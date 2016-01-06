@@ -1,0 +1,28 @@
+{
+  "name": "react-render-server",
+  "version": "0.1.0",
+  "description": "A node.js server for server-side rendering Khan Academy react components.",
+  "main": "src/server.js",
+  "scripts": {
+    "serve": "nodemon src/server.js",
+    "test": "mocha --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Khan/react-render-server.git"
+  },
+  "author": "Jamie Wong <jamie.wong@khanacademy.org>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Khan/react-render-server/issues"
+  },
+  "homepage": "https://github.com/Khan/react-render-server#readme",
+  "dependencies": {
+    "express": "^4.13.3"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "mocha": "^2.3.4",
+    "nodemon": "^1.8.1"
+  }
+}
