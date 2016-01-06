@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Fetch a package from the place that has packages.
  *
@@ -14,7 +16,7 @@ const request = require('superagent');
 
 
 // All files requested via /render are fetched via this hostname.
-const serverHostname = 'https://www.khanacademy.org';
+let serverHostname = 'https://www.khanacademy.org';
 
 /**
  * Given an absolute path, e.g. /javascript/foo-package.js, return a
@@ -34,6 +36,10 @@ const fetchPackage = function(path, bustCache) {
             }
         });
     });
+};
+
+fetchPackage.setServerHostname = function(newHostname) {
+    serverHostname = newHostname;
 };
 
 module.exports = fetchPackage;

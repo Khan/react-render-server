@@ -5,6 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "serve": "nodemon --use_strict src/main.js",
+    "serve_local": "nodemon --use_strict src/main.js -- --host=http://localhost:8080",
     "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
   },
   "repository": {
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
+    "argparse": "^1.0.3",
     "body-parser": "^1.14.2",
     "canvas": "^1.3.6",
     "express": "^4.13.3",
