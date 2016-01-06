@@ -2,8 +2,10 @@
  * The high-level logic for our serving endpoints (api routes).
  */
 
-const bodyParser = require('body-parser');
+const bodyParser = require("body-parser");
 const express = require("express");
+
+const fetchPackage = require("./fetch_package.js");
 
 const app = express();
 app.use(bodyParser.json());
@@ -51,7 +53,17 @@ app.use(bodyParser.json());
  * (https://github.com/Khan/aphrodite).
  */
 app.post('/render', (req, res) => {
-    res.json(req.body);
+    // TODO(csilvers): validate input
+
+    const fetchPromises = req.body.files.map(file => fetchPackage(file));
+    Promise.all(fetchPromises).then(
+        (fetchBodies) => {
+            const allBodies = fetchBodies.join("\n");
+            res.json({contents: allBodies});
+        },
+        (err) => {
+            res.json({error: err});
+        });
 });
 
 

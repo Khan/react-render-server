@@ -4,8 +4,8 @@
   "description": "A node.js server for server-side rendering Khan Academy react components.",
   "main": "src/main.js",
   "scripts": {
-    "serve": "nodemon src/main.js",
-    "test": "mocha --reporter spec 'src/*_test.js'"
+    "serve": "nodemon --use_strict src/main.js",
+    "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
   },
   "repository": {
     "type": "git",
@@ -19,12 +19,14 @@
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
     "body-parser": "^1.14.2",
-    "express": "^4.13.3"
+    "express": "^4.13.3",
+    "superagent": "^1.6.1"
   },
   "devDependencies": {
     "chai": "^3.4.1",
     "mocha": "^2.3.4",
     "nodemon": "^1.8.1",
+    "superagent-mocker": "^0.3.0",
     "supertest": "^1.1.0"
   }
 }
