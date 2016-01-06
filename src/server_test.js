@@ -1,26 +1,29 @@
 'use strict';
 
+const fs = require("fs");
+
+const assert = require("chai").assert;
 const supertest = require("supertest");
 const superagent = require("superagent");
 const superagentMocker = require("superagent-mocker");
 
 const server = require("./server.js");
 
-describe('render', () => {
+describe('/render', () => {
     const agent = supertest.agent(server);
 
     let mock;
 
     before(() => {
         mock = superagentMocker(superagent);
-        const filenameToContents = {
-            "/apackage.js": "I am an A!",
-            "/bpackage.js": "I am a B!",
-            "/cpackage.js": "I do not know what I am.",
-        };
-        Object.keys(filenameToContents).forEach((key) => {
-            mock.get(`https://www.khanacademy.org${key}`,
-                     req => filenameToContents[key]);
+        const packageNames = ['corelibs-package.js',
+                              'shared-package.js',
+                              'server-package.js'];
+
+        packageNames.forEach((pkgname) => {
+            mock.get(`https://www.khanacademy.org/${pkgname}`,
+                     req => fs.readFileSync(`${__dirname}/testdata/${pkgname}`,
+                                            "utf-8"));
         });
     });
 
@@ -29,16 +32,26 @@ describe('render', () => {
     });
 
     it('should echo the package contents', (done) => {
-        const testJson = {
-            files: ['/apackage.js', '/bpackage.js', '/cpackage.js'],
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number'],
         };
-        const expected = ("I am an A!\n" +
-                          "I am a B!\n" +
-                          "I do not know what I am.");
+        const testJson = {
+            files: ['/corelibs-package.js',
+                    '/shared-package.js',
+                    '/server-package.js'],
+            path: "./javascript/server-package/test-component.jsx",
+            props: testProps,
+        };
+        // We test the actual rendered contents in render_test.js.  Here
+        // we just test that we get *some* output.
         agent
             .post('/render')
             .send(testJson)
-            .expect({contents: expected}, done);
+            .expect((res) => {
+                assert(res.body.html);    // should have *some* html
+                assert(res.body.css);     // should have a css object
+            })
+            .end(done);
     });
 });
-

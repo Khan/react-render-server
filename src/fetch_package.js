@@ -26,8 +26,10 @@ const fetchPackage = function(path, bustCache) {
     return new Promise((resolve, reject) => {
         request.get(serverHostname + path).end((err, res) => {
             if (err) {
+                // TODO(csilvers): add retrying.
                 reject(err);
             } else {
+                // TODO(csilvers): return a vm-compiled version of res
                 resolve(res);
             }
         });

@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const express = require("express");
 
 const fetchPackage = require("./fetch_package.js");
+const render = require("./render.js");
 
 const app = express();
 app.use(bodyParser.json());
@@ -53,13 +54,16 @@ app.use(bodyParser.json());
  * (https://github.com/Khan/aphrodite).
  */
 app.post('/render', (req, res) => {
-    // TODO(csilvers): validate input
+    // TODO(csilvers): validate input, especially req.body.path
 
     const fetchPromises = req.body.files.map(file => fetchPackage(file));
     Promise.all(fetchPromises).then(
         (fetchBodies) => {
-            const allBodies = fetchBodies.join("\n");
-            res.json({contents: allBodies});
+            // TODO(csilvers): deal with the fact this may throw.
+            const renderedState = render(fetchBodies,
+                                         req.body.path,
+                                         req.body.props);
+            res.json(renderedState);
         },
         (err) => {
             res.json({error: err});
