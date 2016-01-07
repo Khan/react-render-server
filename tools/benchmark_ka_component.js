@@ -50,15 +50,21 @@ const getTransitiveDependencies = function(pkg, depmap) {
  *     relative to webapp's ka-root.
  * @param {string} fixturePath - where the fixture file lives on
  *     the local filesystem.  Should be an absolute path.
+ * @param {number} instanceSeed - a (preferably large) integer.
+ *     When the props file has multiple instances that could be used
+ *     to populate the fixture, we use the instanceSeed to decide which
+ *     one to use.  The mapping from seed to instance is arbitrary but
+ *     fixed -- using the same seed again will yield the same instance.
  * @param {string} gaeHostPort - actually a protocol-host-port, where
  *     the webapp server is running.
  * @param {string} renderHostPort - actually a protocol-host-port, where
  *      the react-render-server is running.
  */
-const render = function(componentPath, fixturePath,
+const render = function(componentPath, fixturePath, instanceSeed,
                         gaeHostPort, renderHostPort) {
     const relativeFixturePath = path.relative(__dirname, fixturePath);
-    const props = require(relativeFixturePath).instances[0];
+    const allProps = require(relativeFixturePath).instances;
+    const props = allProps[instanceSeed % allProps.length];
 
     // Talk to kake, via the webapp server, to get the package
     // information.  First, we need the package map.
@@ -106,7 +112,6 @@ const render = function(componentPath, fixturePath,
                     props: props,
                 };
 
-                console.log(`POSTING to ${renderHostPort}/render`, reqBody) //!!
                 superagent
                     .post(renderHostPort + "/render")
                     .send(reqBody)
@@ -114,7 +119,6 @@ const render = function(componentPath, fixturePath,
                         if (err) {
                             throw err;
                         }
-                        console.log('RESPONSE', res.text); //!e
                     });
             });
     });
@@ -122,6 +126,7 @@ const render = function(componentPath, fixturePath,
 
 render("javascript/content-library-package/components/concept-thumbnail.jsx",
        "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
+       1,
        "http://localhost:8080",
        "http://localhost:8060");
 
