@@ -6,6 +6,7 @@
   "scripts": {
     "serve": "nodemon --use_strict src/main.js",
     "serve_local": "nodemon --use_strict src/main.js -- --host=http://localhost:8080",
+    "profile": "node-debug -p 8040 src/main.js --host=http://localhost:8080",
     "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
   },
   "repository": {
@@ -31,6 +32,7 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "mocha": "^2.3.4",
+    "node-inspector": "^0.12.5",
     "nodemon": "^1.8.1",
     "superagent-mocker": "^0.3.0",
     "supertest": "^1.1.0"
