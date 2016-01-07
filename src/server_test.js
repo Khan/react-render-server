@@ -3,35 +3,23 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
+const nock = require("nock");
 const supertest = require("supertest");
-const superagent = require("superagent");
-const superagentMocker = require("superagent-mocker");
 
 const server = require("./server.js");
 
 describe('/render', () => {
     const agent = supertest.agent(server);
 
-    let mock;
+    let mockScope;
 
     before(() => {
-        mock = superagentMocker(superagent);
-        const packageNames = ['corelibs-package.js',
-                              'shared-package.js',
-                              'server-package.js'];
-
-        packageNames.forEach((pkgname) => {
-            mock.get(`https://www.khanacademy.org/${pkgname}`, req => {
-                return {
-                    text: fs.readFileSync(`${__dirname}/testdata/${pkgname}`,
-                                          "utf-8")
-                };
-            });
-        });
+        mockScope = nock('https://www.khanacademy.org');
     });
 
     after(() => {
-        mock.unmock(superagent);
+        nock.restore();
+        nock.cleanAll();
     });
 
     it('should echo the package contents', (done) => {
@@ -46,6 +34,13 @@ describe('/render', () => {
             path: "./javascript/server-package/test-component.jsx",
             props: testProps,
         };
+
+        testJson.files.forEach((pkgname) => {
+            const contents = fs.readFileSync(`${__dirname}/testdata${pkgname}`,
+                                             "utf-8");
+            mockScope = mockScope.get(pkgname).reply(200, contents);
+        });
+
         // We test the actual rendered contents in render_test.js.  Here
         // we just test that we get *some* output.
         agent
