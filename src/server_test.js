@@ -21,9 +21,12 @@ describe('/render', () => {
                               'server-package.js'];
 
         packageNames.forEach((pkgname) => {
-            mock.get(`https://www.khanacademy.org/${pkgname}`,
-                     req => fs.readFileSync(`${__dirname}/testdata/${pkgname}`,
-                                            "utf-8"));
+            mock.get(`https://www.khanacademy.org/${pkgname}`, req => {
+                return {
+                    text: fs.readFileSync(`${__dirname}/testdata/${pkgname}`,
+                                          "utf-8")
+                };
+            });
         });
     });
 

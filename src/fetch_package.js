@@ -24,15 +24,14 @@ let serverHostname = 'https://www.khanacademy.org';
  */
 const fetchPackage = function(path, bustCache) {
     // TODO(csilvers): implement a cache
-
     return new Promise((resolve, reject) => {
-        request.get(serverHostname + path).end((err, res) => {
+        request.get(serverHostname + path).buffer().end((err, res) => {
             if (err) {
                 // TODO(csilvers): add retrying.
                 reject(err);
             } else {
                 // TODO(csilvers): return a vm-compiled version of res
-                resolve(res);
+                resolve(res.text);
             }
         });
     });

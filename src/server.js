@@ -4,6 +4,7 @@
 
 const bodyParser = require("body-parser");
 const express = require("express");
+const morgan = require("morgan");
 
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
@@ -11,6 +12,8 @@ const render = require("./render.js");
 const app = express();
 app.use(bodyParser.json());
 
+// Add HTTP logging to standard out
+app.use(morgan("dev"));
 
 /**
  * Server-side render a react component.
@@ -55,18 +58,24 @@ app.use(bodyParser.json());
  */
 app.post('/render', (req, res) => {
     // TODO(csilvers): validate input, especially req.body.path
-
     const fetchPromises = req.body.files.map(file => fetchPackage(file));
+
     Promise.all(fetchPromises).then(
         (fetchBodies) => {
-            // TODO(csilvers): deal with the fact this may throw.
             const renderedState = render(fetchBodies,
                                          req.body.path,
                                          req.body.props);
             res.json(renderedState);
         },
         (err) => {
-            res.json({error: err});
+            // Error handler for fetching failures
+            console.error('Fetching failure:', err.stack);
+            res.status(500).json({error: err});
+        })
+        .catch((err) => {
+            // Error handler for rendering failures
+            console.error('Rendering failure:', err.stack);
+            res.status(500).json({error: err});
         });
 });
 

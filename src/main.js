@@ -28,6 +28,16 @@ const host = args.host.replace(/\/$/, '');     // get rid of any trailing /
 
 fetchPackage.setServerHostname(host);    // funtimes global funtimes
 
+// Don't let unhandled Promise rejections fail silently.
+//
+// Ideally this would result in the request containing the unhandled rejection,
+// if any, 500'ing, but I don't know how you'd be able to recover a reference
+// to the request from reason or p.
+process.on('unhandledRejection', (reason, p) => {
+    console.log("Unhandled Rejection at: Promise ", p,
+                " reason: ", reason.stack);
+});
+
 const server = app.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;

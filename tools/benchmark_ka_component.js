@@ -58,7 +58,7 @@ const getTransitiveDependencies = function(pkg, depmap) {
 const render = function(componentPath, fixturePath,
                         gaeHostPort, renderHostPort) {
     const relativeFixturePath = path.relative(__dirname, fixturePath);
-    const props = require(relativeFixturePath);
+    const props = require(relativeFixturePath).instances[0];
 
     // Talk to kake, via the webapp server, to get the package
     // information.  First, we need the package map.
@@ -105,6 +105,8 @@ const render = function(componentPath, fixturePath,
                     path: "./" + componentPath,
                     props: props,
                 };
+
+                console.log(`POSTING to ${renderHostPort}/render`, reqBody) //!!
                 superagent
                     .post(renderHostPort + "/render")
                     .send(reqBody)
@@ -112,13 +114,14 @@ const render = function(componentPath, fixturePath,
                         if (err) {
                             throw err;
                         }
+                        console.log('RESPONSE', res.text); //!e
                     });
             });
     });
 };
 
 render("javascript/content-library-package/components/concept-thumbnail.jsx",
-       "/home/csilvers/khan/webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
+       "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
        "http://localhost:8080",
        "http://localhost:8060");
 
