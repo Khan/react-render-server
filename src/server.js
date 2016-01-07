@@ -2,6 +2,8 @@
  * The high-level logic for our serving endpoints (api routes).
  */
 
+/* eslint-disable no-console */
+
 const bodyParser = require("body-parser");
 const express = require("express");
 const morgan = require("morgan");
@@ -68,8 +70,13 @@ app.post('/render', (req, res) => {
             res.json(renderedState);
         },
         (err) => {
-            // Error handler for fetching failures
-            console.error('Fetching failure:', err.stack);
+            // Error handler for fetching failures.
+            if (err.response && err.response.error) {
+                console.error('Fetching failure: ' + err.response.error + ': ',
+                              err.stack);
+            } else {
+                console.error('Fetching failure: ', err.stack);
+            }
             res.status(500).json({error: err});
         })
         .catch((err) => {

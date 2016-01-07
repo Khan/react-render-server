@@ -8,6 +8,7 @@ const argparse = require("argparse");
 
 const app = require("./server.js");
 const fetchPackage = require("./fetch_package.js");
+const cache = require("./cache.js");
 const packageInfo = require("../package.json");
 
 const parser = new argparse.ArgumentParser({
@@ -16,17 +17,23 @@ const parser = new argparse.ArgumentParser({
     description: packageInfo.description,
 });
 parser.addArgument(['-p', '--port'],
-                   {type: 'int', defaultValue: 8060, help: "Port to run on."});
+                   {type: 'int', defaultValue: 8060,
+                    help: "Port to run on."});
 parser.addArgument(['--host'],
                    {defaultValue: 'https://www.khanacademy.org',
                     help: "Host to fetch javascript files from."});
+parser.addArgument(['--cache-size'],
+                   {type: 'int', defaultValue: 100,
+                    help: "Internal cache size, in MB."});
 
 const args = parser.parseArgs();
 
 const port = args.port;
 const host = args.host.replace(/\/$/, '');     // get rid of any trailing /
 
+// Set up our globals and singletons
 fetchPackage.setServerHostname(host);    // funtimes global funtimes
+cache.init(args.cacheSize * 1024 * 1024);
 
 // Don't let unhandled Promise rejections fail silently.
 //

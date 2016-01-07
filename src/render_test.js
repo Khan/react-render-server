@@ -1,3 +1,6 @@
+'use strict';
+/* global describe, it, before, after */
+
 const fs = require("fs");
 
 const assert = require("chai").assert;

@@ -1,4 +1,5 @@
 'use strict';
+/* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
 
@@ -6,7 +7,9 @@ const assert = require("chai").assert;
 const nock = require("nock");
 const supertest = require("supertest");
 
+const cache = require("./cache.js");
 const server = require("./server.js");
+
 
 describe('/render', () => {
     const agent = supertest.agent(server);
@@ -14,12 +17,18 @@ describe('/render', () => {
     let mockScope;
 
     before(() => {
-        mockScope = nock('https://www.khanacademy.org');
+        nock.disableNetConnect();
+        nock.enableNetConnect('127.0.0.1');
     });
 
-    after(() => {
-        nock.restore();
+    beforeEach(() => {
+        mockScope = nock('https://www.khanacademy.org');
+        cache.init(10000);
+    });
+
+    afterEach(() => {
         nock.cleanAll();
+        cache.destroy();
     });
 
     it('should echo the package contents', (done) => {
@@ -38,7 +47,7 @@ describe('/render', () => {
         testJson.files.forEach((pkgname) => {
             const contents = fs.readFileSync(`${__dirname}/testdata${pkgname}`,
                                              "utf-8");
-            mockScope = mockScope.get(pkgname).reply(200, contents);
+            mockScope.get(pkgname).reply(200, contents);
         });
 
         // We test the actual rendered contents in render_test.js.  Here
@@ -47,8 +56,9 @@ describe('/render', () => {
             .post('/render')
             .send(testJson)
             .expect((res) => {
-                assert(res.body.html);    // should have *some* html
-                assert(res.body.css);     // should have a css object
+                assert.ok(res.body.html);    // should have *some* html
+                assert.ok(res.body.css);     // should have a css object
+                mockScope.done();
             })
             .end(done);
     });
