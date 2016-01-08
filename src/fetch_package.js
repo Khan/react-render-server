@@ -47,6 +47,8 @@ const resetGlobals = function() {
     numRetries = 2;     // so 3 tries total
 };
 
+resetGlobals();
+
 
 /**
  * Given an absolute path, e.g. /javascript/foo-package.js, return a
