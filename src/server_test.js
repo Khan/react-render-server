@@ -62,4 +62,46 @@ describe('API endpoint /render', () => {
             })
             .end(done);
     });
+
+    it('should fail on invalid inputs', (done) => {
+        const invalidInputs = [
+            {},
+            {path: "./foo", props: {bar: 4}},   // missing 'files'
+            {files: [], path: "./foo", props: {bar: 4}},   // empty 'files'
+            {files: [1, 2], path: "./foo", props: {bar: 4}},   // bad type
+            {files: ["foo"], path: "./foo", props: {bar: 4}},   // bad fpath
+            {files: ["/foo"], props: {bar: 4}},   // missing 'path'
+            {files: ["/foo"], path: 4, props: {bar: 4}},   // bad type
+            {files: ["/foo"], path: 'foo', props: {bar: 4}},   // bad path
+            {files: ["/foo"], path: "./foo", props: "foo"},   // bad type
+            {files: ["/foo"], path: "./foo", props: [{}, {}]},   // bad type
+        ];
+        let remainingTests = invalidInputs.length;
+
+        invalidInputs.forEach((testJson) => {
+            agent.post('/render').send({}).expect(
+                res => assert.equal(400, res.status)
+            ).end(() => {
+                if (--remainingTests === 0) {
+                    done();
+                }
+            });
+        });
+    });
+
+    it('should fail on missing files', (done) => {
+        agent.post('/render').send().expect(
+            res => assert.equal(400, res.status)
+        ).end(done);
+    });
+    it('should fail on mi', (done) => {
+        agent.post('/render').send({}).expect(
+            res => assert.equal(400, res.status)
+        ).end(done);
+    });
+    it('should fail on empty input', (done) => {
+        agent.post('/render').send({}).expect(
+            res => assert.equal(400, res.status)
+        ).end(done);
+    });
 });

@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * The high-level logic for our serving endpoints (api routes).
  */
@@ -59,6 +61,27 @@ app.use(morgan("dev"));
  * (https://github.com/Khan/aphrodite).
  */
 app.post('/render', (req, res) => {
+    // Validate the input.
+    let err;
+    if (!Array.isArray(req.body.files) || req.body.files.length === 0 ||
+            !req.body.files.every(e => typeof e === 'string') ||
+            !req.body.files.every(e => e.indexOf('/') === 0)) {
+        err = ('Missing "files" keyword in POST JSON input, ' +
+               'or "files" is not a list of strings-starting-with-/');
+    } else if (typeof req.body.path !== 'string' ||
+               req.body.path.indexOf("./") !== 0) {
+        err = ('Missing "path" keyword in POST JSON input, ' +
+               'or "path" does not start with "./"');
+    } else if (typeof req.body.props !== 'object' ||
+               Array.isArray(req.body.props)) {
+        err = ('Missing "props" keyword in POST JSON input, ' +
+               'or "props" is not an object, or it has non-string keys.');
+    }
+    if (err) {
+        res.status(400).json({error: err});
+        return;
+    }
+
     // TODO(csilvers): validate input, especially req.body.path
     const fetchPromises = req.body.files.map(file => fetchPackage(file));
 
