@@ -33,15 +33,22 @@ const resetGlobals = function() {
 resetGlobals();
 
 
+const runInContext = function(context, fn) {
+    return vm.runInContext("(" + fn.toString() + ")()", context);
+};
+
 /**
- * Retrieve a vm context object preloaded with all of the jsPackages
- * executed.
+ * Retrieve a vm context object that's been preloaded by having all of
+ * the jsPackages executed and the react environment initialized.
  */
-const getVMContext = function(jsPackages, pathToReactComponent, cacheBehavior) {
+const getVMContext = function(jsPackages, pathToReactComponent,
+                              cacheBehavior) {
     if (cacheBehavior == null) {
         cacheBehavior = defaultCacheBehavior;
     }
 
+    // (We expect props to vary between requests for the same
+    // component, so we don't make the props part of the cache key.)
     const cacheKey = (jsPackages.map(pkg => pkg[0]).join(",") +
                       ":" + pathToReactComponent);
 
@@ -82,12 +89,39 @@ const getVMContext = function(jsPackages, pathToReactComponent, cacheBehavior) {
     // Used by javascript/reports-package/reports-shared.jsx on boot in
     // isExerciseMapFresh().
     sandbox.localStorage = {};
-    sandbox.pathToReactComponent = pathToReactComponent;
 
     const context = vm.createContext(sandbox);
 
     jsPackages.forEach((pkg) => {
         vm.runInContext(pkg[1], context);   // pkg is [url path, contents]
+    });
+
+    // KA code is transpiled via babel.  The resulting code can't run
+    // unless we load these shims first.
+    // TODO(csilvers): Automatically run the shims whenever corelibs.js
+    // (or maybe shared.js) is loaded, then get rid of this.
+    runInContext(context, () => {
+        KAdefine.require("./third_party/javascript-khansrc/core-js/shim.min.js");
+        KAdefine.require("./third_party/javascript-khansrc/babeljs/babel-external-helpers.js");
+    });
+
+    runInContext(context, () => {
+        // Get stuff out of the context and into local vars.
+        const ReactDOMServer = global.ReactDOMServer;
+
+        const React = KAdefine.require("react");
+        // TODO(csilvers): handle aphrodite
+
+        // Verify we have the right version of react.  ReactDOMServer
+        // holds the react version that we've installed here, for this
+        // server, while React holds the react version that is
+        // provided via the input js packages -- that is, the version
+        // on webapp.  If they don't match, throw an exception.
+        if (React.version !== ReactDOMServer.version) {
+            throw new Error(`Server should be using React version ` +
+                            `${React.version}, but is using React ` +
+                            `version ${ReactDOMServer.version}`);
+        }
     });
 
     if (cacheBehavior !== 'ignore') {
@@ -133,47 +167,16 @@ const render = function(jsPackages, pathToReactComponent, props,
     const context = getVMContext(jsPackages, pathToReactComponent,
                                  cacheBehavior);
 
-    // We expect props to vary between requests for the same component, so we
-    // don't make the props part of the cache key.
+    context.pathToReactComponent = pathToReactComponent;
     context.reactProps = props;
 
-    const runInContext = function(fn) {
-        return vm.runInContext("(" + fn.toString() + ")()", context);
-    };
-
-    // KA code is transpiled via babel.  The resulting code can't run
-    // unless we load these shims first.
-    // TODO(csilvers): Automatically run the shims whenever corelibs.js
-    // (or maybe shared.js) is loaded, then get rid of this.
-    runInContext(() => {
-        KAdefine.require("./third_party/javascript-khansrc/core-js/shim.min.js");
-        KAdefine.require("./third_party/javascript-khansrc/babeljs/babel-external-helpers.js");
-    });
-
-    return runInContext(() => {
-        // Get stuff out of the context and into local vars.
-        const ReactDOMServer = global.ReactDOMServer;
-        const pathToReactComponent = global.pathToReactComponent;
-        const props = global.reactProps;
-
-        const React = KAdefine.require("react");
-        // TODO(csilvers): handle aphrodite
-
-        // Verify we have the right version of react.  ReactDOMServer
-        // holds the react version that we've installed here, for this
-        // server, while React holds the react version that is
-        // provided via the input js packages -- that is, the version
-        // on webapp.  If they don't match, throw an exception.
-        if (React.version !== ReactDOMServer.version) {
-            throw new Error(`Server should be using React version ` +
-                            `${React.version}, but is using React ` +
-                            `version ${ReactDOMServer.version}`);
-        }
-
-        const Component = KAdefine.require(pathToReactComponent);
-        const reactElement = React.createElement(Component, props);
+    // getVMContext sets up the sandbox to have react installed, as
+    // well as everything else needed to load the react component, so
+    // our work here is easy.
+    return runInContext(context, () => {
+        const Component = KAdefine.require(global.pathToReactComponent);
+        const reactElement = React.createElement(Component, global.reactProps);
         const html = ReactDOMServer.renderToString(reactElement);
-
         return {
             html: html,
             css: {

@@ -105,7 +105,7 @@ describe('render', () => {
     });
 
 
-    it('should not pull vm context from cache when asked not to', () => {
+    it('should not use cache at all when asked not to', () => {
         render.setDefaultCacheBehavior('ignore');
 
         render(packages,
