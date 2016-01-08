@@ -5,8 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "serve": "nodemon --use_strict src/main.js",
-    "serve_local": "nodemon --use_strict src/main.js -- --host=http://localhost:8080",
-    "profile": "node-debug -p 8040 --no-preload src/main.js --host=http://localhost:8080",
+    "serve_local": "nodemon --use_strict src/main.js -- --host=http://localhost:8080 --dev",
+    "profile": "node-debug -p 8040 --no-preload src/main.js --host=http://localhost:8080 --dev",
     "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
   },
   "repository": {
