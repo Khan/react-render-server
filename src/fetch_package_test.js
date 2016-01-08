@@ -8,6 +8,25 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 
 
+// Return a function that can be used in nock.reply(), that
+// automatically gives a 304 if the request header indicates.
+// (Pretending that this resource was last modified at the given
+// lastModified time).  Otherwise, it gives back a 200 with the
+// specified reply.
+const maybe304 = function(lastModified, reply) {
+    return function() {
+        // We have acces to nock's 'this'.
+        if (this.req.headers['if-modified-since']) {
+            const ims = Date.parse(this.req.headers['if-modified-since']);
+            const lm = Date.parse(lastModified);
+            if (lm <= ims) {
+                return [304, null];
+            }
+        }
+        return [200, reply];
+    };
+};
+
 describe('fetchPackage', () => {
     let mockScope;
 
@@ -54,7 +73,7 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(200, "'yay!'");
         mockScope.get("/ok.js").reply(200, "new");
         return fetchPackage("/ok.js").then((res) => {
-            return fetchPackage("/ok.js", true);
+            return fetchPackage("/ok.js", 'no');
         }).then((res) => {
             // Should have the new value due to the 'true' above.
             assert.equal(res, "new");
@@ -106,4 +125,63 @@ describe('fetchPackage', () => {
             assert.equal(1, mockScope.pendingMocks().length);
         });
     });
+
+    it("should use the cache when appropriate in ims mode", () => {
+        // 'lm' == 'last-modified'
+        const lmDate = 'Thu, 07 Jan 2016 23:47:52 GMT';
+        const lmBefore = 'Thu, 07 Jan 2016 23:47:50 GMT';
+        const lmAfter = 'Thu, 07 Jan 2016 23:47:55 GMT';
+
+        mockScope.get("/ok.js").reply(200, "'hi'",
+                                      {'Last-modified': lmDate});
+        mockScope.get("/ok.js").reply(maybe304(lmDate, "'no-see-um'"));
+        mockScope.get("/ok.js").reply(maybe304(lmBefore, "'no-see-um 2'"));
+        mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
+        return fetchPackage("/ok.js", 'ims').then((res) => {
+            // Original fetch
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'ims');
+        }).then((res) => {
+            // lmDate
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'ims');
+        }).then((res) => {
+            // lmAfter
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'ims');
+        }).then((res) => {
+            // lmBefore
+            assert.equal(res, "'new content'");
+            mockScope.done();
+        });
+    });
+
+    it("last-modified is ignored in 'yes' mode", () => {
+        const lmDate = 'Thu, 07 Jan 2016 23:47:52 GMT';
+        const lmBefore = 'Thu, 07 Jan 2016 23:47:50 GMT';
+        const lmAfter = 'Thu, 07 Jan 2016 23:47:55 GMT';
+
+        mockScope.get("/ok.js").reply(200, "'hi'",
+                                      {'Last-modified': lmDate});
+        mockScope.get("/ok.js").reply(maybe304(lmDate, "'no-see-um'"));
+        mockScope.get("/ok.js").reply(maybe304(lmBefore, "'no-see-um 2'"));
+        mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
+        return fetchPackage("/ok.js", 'yes').then((res) => {
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'yes');
+        }).then((res) => {
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'yes');
+        }).then((res) => {
+            assert.equal(res, "'hi'");
+            return fetchPackage("/ok.js", 'yes');
+        }).then((res) => {
+            assert.equal(res, "'hi'");
+            // We should still have pending mocks; in 'yes' mode we
+            // don't even hit the server when there's a cache hit.
+            assert.notEqual(0, mockScope.pendingMocks().length);
+        });
+    });
 });
+
+

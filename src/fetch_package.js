@@ -20,36 +20,71 @@ const cache = require("./cache");
 // All files requested via /render are fetched via this hostname.
 let serverHostname = 'https://www.khanacademy.org';
 
+// fetchPackage takes a cacheBehavior property, which is one of these:
+//    'yes': try to retrieve the object from the cache
+//    'no': do not try to retrieve the object from the cache (but
+//          still store it in the cache after retrieving it).
+//    'ignore': do not try to retrieve the object from the cache,
+//          nor try to store it in the cache.
+//    'ims': retrieve the object from the cache, but use the
+//          last-modified date on the result in order to do an
+//          if-modified-since query.
+// This variable controls the cache behavior that is used if the
+// user does not pass in a value for cacheBehavior for fetchPackage().
+let defaultCacheBehavior = 'yes';
+
 /**
  * Given an absolute path, e.g. /javascript/foo-package.js, return a
  * promise holding the package contents.
  */
-const fetchPackage = function(path, bustCache) {
+const fetchPackage = function(path, cacheBehavior) {
+    if (cacheBehavior == null) {
+        cacheBehavior = defaultCacheBehavior;
+    }
+    let cachedValue;
+
     const url = serverHostname + path;
-    if (!bustCache) {
-        const cachedValue = cache.get(url);
+    if (cacheBehavior === 'ims') {
+        cachedValue = cache.get(url);
+        // We'll save this for making the if-modified-since query later.
+    } else if (cacheBehavior === 'yes') {
+        cachedValue = cache.get(url);
         if (cachedValue != null) {
-            // TODO(csilvers): in dev, don't just return here, instead
-            // make the request below but with an if-modified-since
-            // equal to last-modified on this cache value.
             return Promise.resolve(cachedValue.text);
         }
     }
 
     return new Promise((resolve, reject) => {
         // TODO(csilvers): add fetch timeouts
-        request.get(url).buffer().end((err, res) => {
+        const fetcher = request.get(url);
+        if (cachedValue && cachedValue.header['last-modified']) {
+            fetcher.set('if-modified-since',
+                        cachedValue.header['last-modified']);
+        }
+        fetcher.buffer().end((err, res) => {
             if (err) {
-                // TODO(csilvers): add retrying.
+                // Due to a superagent bug(?), 304 "Not modified" ends up here.
+                if (err.response && err.response.status === 304) {
+                    resolve(cachedValue.text);
+                    return;
+                }
                 if (err.response && err.response.status >= 400 &&
                         err.response.status < 500) {
-                    // TODO(csilvers): if it's a 4xx error, do a negative cache
+                    // One could imagine adding a 'negative' cache
+                    // entry for 4xx errors, maybe with a maxAge of 1
+                    // minute, but unless we see this being a problem
+                    // in practice it's not worth the code complexity.
+                    reject(err);
+                    return;
                 }
+                // TODO(csilvers): retry
                 reject(err);
             } else {
                 // Estimate the size of `res` to just be the size of the
                 // response body (we ignore headers and struct overhead).
-                cache.set(url, res, res.text.length);
+                if (cacheBehavior !== 'ignore') {
+                    cache.set(url, res, res.text.length);
+                }
                 resolve(res.text);
             }
         });
@@ -60,8 +95,8 @@ fetchPackage.setServerHostname = function(newHostname) {
     serverHostname = newHostname;
 };
 
+fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
+    defaultCacheBehavior = cacheBehavior;
+};
+
 module.exports = fetchPackage;
-
-
-
-

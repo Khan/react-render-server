@@ -22,6 +22,9 @@ parser.addArgument(['-p', '--port'],
 parser.addArgument(['--host'],
                    {defaultValue: 'https://www.khanacademy.org',
                     help: "Host to fetch javascript files from."});
+parser.addArgument(['--dev'],
+                   {action: 'storeTrue',
+                    help: "Set if running on dev; controls caching/etc."});
 parser.addArgument(['--cache-size'],
                    {type: 'int', defaultValue: 100,
                     help: "Internal cache size, in MB."});
@@ -33,6 +36,13 @@ const host = args.host.replace(/\/$/, '');     // get rid of any trailing /
 
 // Set up our globals and singletons
 fetchPackage.setServerHostname(host);    // funtimes global funtimes
+if (args.dev) {
+    // In dev, we do an if-modified-since query rather than trusting
+    // the cache never gets out of date.  (In prod the default cache
+    // behavior is fine because package-names include their md5 in the
+    // filename.)
+    fetchPackage.setDefaultCacheBehavior('ims');
+}
 cache.init(args.cacheSize * 1024 * 1024);
 
 // Don't let unhandled Promise rejections fail silently.
