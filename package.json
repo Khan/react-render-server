@@ -37,6 +37,7 @@
     "nock": "^4.0.0",
     "node-inspector": "^0.12.5",
     "nodemon": "^1.8.1",
+    "sinon": "^1.17.2",
     "supertest": "^1.1.0"
   }
 }

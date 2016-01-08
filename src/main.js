@@ -7,9 +7,10 @@
 const argparse = require("argparse");
 
 const app = require("./server.js");
-const fetchPackage = require("./fetch_package.js");
 const cache = require("./cache.js");
+const fetchPackage = require("./fetch_package.js");
 const packageInfo = require("../package.json");
+const render = require("./render.js");
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -42,6 +43,7 @@ if (args.dev) {
     // behavior is fine because package-names include their md5 in the
     // filename.)
     fetchPackage.setDefaultCacheBehavior('ims');
+    render.setDefaultCacheBehavior('ignore');
     // We also turn off the timeout in dev; it's not as important there.
     fetchPackage.setTimeout(null);
 }

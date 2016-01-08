@@ -83,7 +83,9 @@ app.post('/render', (req, res) => {
     }
 
     // TODO(csilvers): validate input, especially req.body.path
-    const fetchPromises = req.body.files.map(file => fetchPackage(file));
+    const fetchPromises = req.body.files.map(
+        urlPath => fetchPackage(urlPath).then(contents => [urlPath, contents])
+    );
 
     Promise.all(fetchPromises).then(
         (fetchBodies) => {
