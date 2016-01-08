@@ -55,6 +55,17 @@ describe('fetchPackage', () => {
         });
     });
 
+    it("should fail on 4xx", (done) => {
+        mockScope.get("/ok.js").reply(404, "boo");
+
+        fetchPackage("/ok.js").then(
+            (res) => done(new Error("Should have failed on 4xx")),
+            (err) => {
+                assert.equal(404, err.response.status);
+                done();
+            });
+    });
+
     it("should use the cache", () => {
         // What we return for the first call and the second call.
         mockScope.get("/ok.js").reply(200, "'yay!'");
@@ -188,27 +199,59 @@ describe('fetchPackage', () => {
         // The important thing is that the timeout trigger in the
         // fetch code; we shouldn't wait so long it hits the
         // test-runner timeout.
-        fetchPackage.setTimeout(100);
+        fetchPackage.setTimeout(20);
 
+        // Due to retries, we'll try to fetch this thing 3 times.
         mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
-        fetchPackage("/ok.js", 'yes').then(
+        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
+        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
+        fetchPackage("/ok.js").then(
             (res) => done(new Error("Should have timed out")),
             (err) => {
-                assert.equal(100, err.timeout);
+                assert.equal(20, err.timeout);
+                mockScope.done();
+                done();
+            }).catch(done);
+    });
+
+    it("should fail on connection timeout", (done) => {
+        fetchPackage.setTimeout(20);
+
+        // Due to retries, we'll try to fetch this thing 3 times.
+        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
+        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
+        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
+        fetchPackage("/ok.js").then(
+            (res) => done(new Error("Should have timed out")),
+            (err) => {
+                assert.equal(20, err.timeout);
+                mockScope.done();
+                done();
+            }).catch(done);
+    });
+
+    it("should retry on 5xx", (done) => {
+        mockScope.get("/ok.js").reply(500, "boo");
+        mockScope.get("/ok.js").reply(500, "boo");
+        mockScope.get("/ok.js").reply(500, "boo");
+
+        fetchPackage("/ok.js").then(
+            (res) => done(new Error("Should have failed on 4xx")),
+            (err) => {
+                assert.equal(500, err.response.status);
+                mockScope.done();
                 done();
             });
     });
 
-    it("should fail on connection timeout", (done) => {
-        fetchPackage.setTimeout(100);
+    it("should succeed on 5xx followed by 200", () => {
+        mockScope.get("/ok.js").reply(500, "boo");
+        mockScope.get("/ok.js").reply(200, "'yay!'");
 
-        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
-        fetchPackage("/ok.js", 'yes').then(
-            (res) => done(new Error("Should have timed out")),
-            (err) => {
-                assert.equal(100, err.timeout);
-                done();
-            });
+        return fetchPackage("/ok.js").then((res) => {
+            assert.equal(res, "'yay!'");
+            mockScope.done();
+        });
     });
 });
 

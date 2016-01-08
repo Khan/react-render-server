@@ -11,7 +11,7 @@ const cache = require("./cache.js");
 const server = require("./server.js");
 
 
-describe('/render', () => {
+describe('API endpoint /render', () => {
     const agent = supertest.agent(server);
 
     let mockScope;
@@ -31,7 +31,7 @@ describe('/render', () => {
         cache.destroy();
     });
 
-    it('should echo the package contents', (done) => {
+    it('should render a simple react component', (done) => {
         const testProps = {
             val: 6,
             list: ['I', 'am', 'not', 'a', 'number'],

@@ -32,12 +32,19 @@ let serverHostname;
 // user does not pass in a value for cacheBehavior for fetchPackage().
 let defaultCacheBehavior;
 
+// How long we wait on a single http request before giving up.  Note
+// that due to retries, a single fetchPackage() call can take 3 times
+// as long as this.
 let defaultTimeoutInMs;
+
+// How many times we retry on 5xx error or similar, before giving up.
+let numRetries;
 
 const resetGlobals = function() {
     serverHostname = 'https://www.khanacademy.org';
     defaultCacheBehavior = 'yes';
     defaultTimeoutInMs = 1000;
+    numRetries = 2;     // so 3 tries total
 };
 
 
@@ -45,10 +52,14 @@ const resetGlobals = function() {
  * Given an absolute path, e.g. /javascript/foo-package.js, return a
  * promise holding the package contents.
  */
-const fetchPackage = function(path, cacheBehavior) {
+const fetchPackage = function(path, cacheBehavior, triesLeftAfterThisOne) {
     if (cacheBehavior == null) {
         cacheBehavior = defaultCacheBehavior;
     }
+    if (triesLeftAfterThisOne == null) {
+        triesLeftAfterThisOne = numRetries;
+    }
+
     let cachedValue;
 
     const url = serverHostname + path;
@@ -87,7 +98,16 @@ const fetchPackage = function(path, cacheBehavior) {
                     reject(err);
                     return;
                 }
-                // TODO(csilvers): retry
+                // If we get here, we have a 5xx error or similar
+                // (socket timeout, maybe).  Let's retry a few times.
+                if (triesLeftAfterThisOne > 0) {
+                    fetchPackage(path, cacheBehavior,
+                                 triesLeftAfterThisOne - 1)
+                        .then(resolve, reject);
+                    return;
+                }
+
+                // OK, I give up.
                 reject(err);
             } else {
                 // Estimate the size of `res` to just be the size of the
