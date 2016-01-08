@@ -16,9 +16,8 @@ const request = require('superagent');
 
 const cache = require("./cache");
 
-
 // All files requested via /render are fetched via this hostname.
-let serverHostname = 'https://www.khanacademy.org';
+let serverHostname;
 
 // fetchPackage takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -31,7 +30,16 @@ let serverHostname = 'https://www.khanacademy.org';
 //          if-modified-since query.
 // This variable controls the cache behavior that is used if the
 // user does not pass in a value for cacheBehavior for fetchPackage().
-let defaultCacheBehavior = 'yes';
+let defaultCacheBehavior;
+
+let defaultTimeoutInMs;
+
+const resetGlobals = function() {
+    serverHostname = 'https://www.khanacademy.org';
+    defaultCacheBehavior = 'yes';
+    defaultTimeoutInMs = 1000;
+};
+
 
 /**
  * Given an absolute path, e.g. /javascript/foo-package.js, return a
@@ -55,8 +63,10 @@ const fetchPackage = function(path, cacheBehavior) {
     }
 
     return new Promise((resolve, reject) => {
-        // TODO(csilvers): add fetch timeouts
         const fetcher = request.get(url);
+        if (defaultTimeoutInMs != null) {
+            fetcher.timeout(defaultTimeoutInMs);
+        }
         if (cachedValue && cachedValue.header['last-modified']) {
             fetcher.set('if-modified-since',
                         cachedValue.header['last-modified']);
@@ -98,5 +108,13 @@ fetchPackage.setServerHostname = function(newHostname) {
 fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
     defaultCacheBehavior = cacheBehavior;
 };
+
+// Can set the timeout to null to turn off timeouts.
+fetchPackage.setTimeout = function(timeout) {
+    defaultTimeoutInMs = timeout;
+};
+
+// Used by tests.
+fetchPackage.resetGlobals = resetGlobals;
 
 module.exports = fetchPackage;

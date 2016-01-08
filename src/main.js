@@ -42,6 +42,8 @@ if (args.dev) {
     // behavior is fine because package-names include their md5 in the
     // filename.)
     fetchPackage.setDefaultCacheBehavior('ims');
+    // We also turn off the timeout in dev; it's not as important there.
+    fetchPackage.setTimeout(null);
 }
 cache.init(args.cacheSize * 1024 * 1024);
 

@@ -38,6 +38,7 @@ describe('fetchPackage', () => {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
+        fetchPackage.resetGlobals();
     });
 
     afterEach(() => {
@@ -181,6 +182,33 @@ describe('fetchPackage', () => {
             // don't even hit the server when there's a cache hit.
             assert.notEqual(0, mockScope.pendingMocks().length);
         });
+    });
+
+    it("should fail on response timeout", (done) => {
+        // The important thing is that the timeout trigger in the
+        // fetch code; we shouldn't wait so long it hits the
+        // test-runner timeout.
+        fetchPackage.setTimeout(100);
+
+        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
+        fetchPackage("/ok.js", 'yes').then(
+            (res) => done(new Error("Should have timed out")),
+            (err) => {
+                assert.equal(100, err.timeout);
+                done();
+            });
+    });
+
+    it("should fail on connection timeout", (done) => {
+        fetchPackage.setTimeout(100);
+
+        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
+        fetchPackage("/ok.js", 'yes').then(
+            (res) => done(new Error("Should have timed out")),
+            (err) => {
+                assert.equal(100, err.timeout);
+                done();
+            });
     });
 });
 
