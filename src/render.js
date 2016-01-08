@@ -12,8 +12,15 @@ const vm = require("vm");
 const jsdom = require("jsdom");
 const ReactDOMServer = require('react-dom/server');
 
+const cache = require("./cache.js");
 
-const createVMContext = function() {
+/**
+ * Retrieve a vm context object preloaded with all of the jsPackageSources
+ * executed.
+ *
+ * TODO(jlfwong): Cache this
+ */
+const getVMContext = function(jsPackageSources, pathToReactComponent) {
     const sandbox = {};
 
     // A minimal document, for parts of our code that assume there's a DOM.
@@ -44,8 +51,15 @@ const createVMContext = function() {
     // Used by javascript/reports-package/reports-shared.jsx on boot in
     // isExerciseMapFresh().
     sandbox.localStorage = {};
+    sandbox.pathToReactComponent = pathToReactComponent;
 
-    return vm.createContext(sandbox);
+    const context = vm.createContext(sandbox);
+
+    jsPackageSources.forEach((contents) => {
+        vm.runInContext(contents, context);
+    });
+
+    return context;
 };
 
 /**
@@ -74,13 +88,11 @@ const createVMContext = function() {
  */
 
 const render = function(jsPackageSources, pathToReactComponent, props) {
-    const context = createVMContext();
-    context.pathToReactComponent = pathToReactComponent;
-    context.reactProps = props;
+    const context = getVMContext(jsPackageSources, pathToReactComponent);
 
-    jsPackageSources.forEach((contents) => {
-        vm.runInContext(contents, context);
-    });
+    // We expect props to vary between requests for the same component, so we
+    // don't make the props part of the cache key.
+    context.reactProps = props;
 
     const runInContext = function(fn) {
         return vm.runInContext("(" + fn.toString() + ")()", context);
