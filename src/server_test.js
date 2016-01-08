@@ -38,6 +38,7 @@ describe('API endpoint /render', () => {
         };
         const testJson = {
             files: ['/corelibs-package.js',
+                    '/corelibs-legacy-package.js',
                     '/shared-package.js',
                     '/server-package.js'],
             path: "./javascript/server-package/test-component.jsx",

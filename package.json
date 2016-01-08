@@ -22,7 +22,6 @@
   "dependencies": {
     "argparse": "^1.0.3",
     "body-parser": "^1.14.2",
-    "canvas": "^1.3.6",
     "express": "^4.13.3",
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",

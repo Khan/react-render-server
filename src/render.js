@@ -90,6 +90,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
     // isExerciseMapFresh().
     sandbox.localStorage = {};
 
+    // This makes sure that qTip2 doesn't try to use the canvas.
+    sandbox.HTMLCanvasElement.prototype.getContext = undefined;
+
     const context = vm.createContext(sandbox);
 
     jsPackages.forEach((pkg) => {

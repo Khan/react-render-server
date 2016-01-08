@@ -30,8 +30,11 @@ describe('render', () => {
         render.resetGlobals();
         cache.init(10000);
 
-        const packageNames = ['corelibs-package.js', 'shared-package.js',
-                              'server-package.js'];
+        const packageNames = ['corelibs-package.js',
+                              'corelibs-legacy-package.js',
+                              'shared-package.js',
+                              'server-package.js',
+                              'canvas-test-package.js'];
 
         packages = packageNames.map(filename => {
             const filepath = `${__dirname}/testdata/${filename}`;
@@ -130,5 +133,12 @@ describe('render', () => {
                "./javascript/server-package/test-component.jsx",
                props);
         assert.equal(2, createContextSpy.callCount);
+    });
+
+    it('should not require canvas to run', () => {
+        // All we're testing for here is that this renders without crashing.
+        render(packages,
+               "./javascript/canvas-test-package/test-component.jsx",
+               props);
     });
 });
