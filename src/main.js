@@ -20,9 +20,6 @@ const parser = new argparse.ArgumentParser({
 parser.addArgument(['-p', '--port'],
                    {type: 'int', defaultValue: 8060,
                     help: "Port to run on."});
-parser.addArgument(['--host'],
-                   {defaultValue: 'https://www.khanacademy.org',
-                    help: "Host to fetch javascript files from."});
 parser.addArgument(['--dev'],
                    {action: 'storeTrue',
                     help: "Set if running on dev; controls caching/etc."});
@@ -33,10 +30,8 @@ parser.addArgument(['--cache-size'],
 const args = parser.parseArgs();
 
 const port = args.port;
-const host = args.host.replace(/\/$/, '');     // get rid of any trailing /
 
 // Set up our globals and singletons
-fetchPackage.setServerHostname(host);    // funtimes global funtimes
 if (args.dev) {
     // In dev, we do an if-modified-since query rather than trusting
     // the cache never gets out of date.  (In prod the default cache

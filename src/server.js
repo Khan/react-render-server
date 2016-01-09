@@ -25,10 +25,10 @@ app.use(morgan("dev"));
  * The contents to render are sent in the request body as json, in
  * the following format:
  * {
- *    "files": [
- *        "/genfiles/javascript/en/corelibs-package-59eab0.js",
- *        "/genfiles/javascript/en/shared-package-99b641.js",
- *        "/genfiles/javascript/en/content-library-281081.js"
+ *    "urls": [
+ *        "http://kastatic.org/genfiles/javascript/en/corelibs-package-xx.js",
+ *        "http://kastatic.org/genfiles/javascript/en/shared-package-xx.js",
+ *        "http://kastatic.org/genfiles/javascript/en/content-library-xx.js"
  *    ],
  *    "path": "./javascript/content-library-package/components/link.jsx",
  *    "props": {
@@ -37,14 +37,12 @@ app.use(morgan("dev"));
  *    }
  * }
  *
- * 'files' are urls relative to www.khanacademy.org (that host is
- * hard-coded; we don't want to download from arbitrary servers here!)
- * 'files' should be specified in topological-sort order; they are
+ * 'urls' should be specified in topological-sort order; they are
  * executed in the order listed here.
  *
  * 'path' is a path in nodejs require() format, which exports the react
  * component we wish to render.  It must be included in one of the files
- * specified in 'files'.
+ * specified in 'urls'.
  *
  * 'props' are passed as the props to the react component being rendered.
  *
@@ -62,12 +60,13 @@ app.use(morgan("dev"));
  */
 app.post('/render', (req, res) => {
     // Validate the input.
+    // TODO(csilvers): add a 'secret' arg and verify that it matches.
     let err;
-    if (!Array.isArray(req.body.files) || req.body.files.length === 0 ||
-            !req.body.files.every(e => typeof e === 'string') ||
-            !req.body.files.every(e => e.indexOf('/') === 0)) {
-        err = ('Missing "files" keyword in POST JSON input, ' +
-               'or "files" is not a list of strings-starting-with-/');
+    if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
+            !req.body.urls.every(e => typeof e === 'string') ||
+            !req.body.urls.every(e => e.indexOf('http') === 0)) {
+        err = ('Missing "urls" keyword in POST JSON input, ' +
+               'or "urls" is not a list of full urls');
     } else if (typeof req.body.path !== 'string' ||
                req.body.path.indexOf("./") !== 0) {
         err = ('Missing "path" keyword in POST JSON input, ' +
@@ -82,9 +81,8 @@ app.post('/render', (req, res) => {
         return;
     }
 
-    // TODO(csilvers): validate input, especially req.body.path
-    const fetchPromises = req.body.files.map(
-        urlPath => fetchPackage(urlPath).then(contents => [urlPath, contents])
+    const fetchPromises = req.body.urls.map(
+        url => fetchPackage(url).then(contents => [url, contents])
     );
 
     Promise.all(fetchPromises).then(

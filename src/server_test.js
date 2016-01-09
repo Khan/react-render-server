@@ -37,18 +37,19 @@ describe('API endpoint /render', () => {
             list: ['I', 'am', 'not', 'a', 'number'],
         };
         const testJson = {
-            files: ['/corelibs-package.js',
-                    '/corelibs-legacy-package.js',
-                    '/shared-package.js',
-                    '/server-package.js'],
+            urls: ['https://www.khanacademy.org/corelibs-package.js',
+                   'https://www.khanacademy.org/corelibs-legacy-package.js',
+                   'https://www.khanacademy.org/shared-package.js',
+                   'https://www.khanacademy.org/server-package.js'],
             path: "./javascript/server-package/test-component.jsx",
             props: testProps,
         };
 
-        testJson.files.forEach((pkgname) => {
-            const contents = fs.readFileSync(`${__dirname}/testdata${pkgname}`,
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
                                              "utf-8");
-            mockScope.get(pkgname).reply(200, contents);
+            mockScope.get(path).reply(200, contents);
         });
 
         // We test the actual rendered contents in render_test.js.  Here
@@ -65,17 +66,19 @@ describe('API endpoint /render', () => {
     });
 
     it('should fail on invalid inputs', (done) => {
+        const url = 'https://www.khanacademy.org/foo';
         const invalidInputs = [
             {},
-            {path: "./foo", props: {bar: 4}},   // missing 'files'
-            {files: [], path: "./foo", props: {bar: 4}},   // empty 'files'
-            {files: [1, 2], path: "./foo", props: {bar: 4}},   // bad type
-            {files: ["foo"], path: "./foo", props: {bar: 4}},   // bad fpath
-            {files: ["/foo"], props: {bar: 4}},   // missing 'path'
-            {files: ["/foo"], path: 4, props: {bar: 4}},   // bad type
-            {files: ["/foo"], path: 'foo', props: {bar: 4}},   // bad path
-            {files: ["/foo"], path: "./foo", props: "foo"},   // bad type
-            {files: ["/foo"], path: "./foo", props: [{}, {}]},   // bad type
+            {path: "./foo", props: {bar: 4}},   // missing 'urls'
+            {urls: [], path: "./foo", props: {bar: 4}},   // empty 'urls'
+            {urls: [1, 2], path: "./foo", props: {bar: 4}},   // bad type
+            {urls: ["foo"], path: "./foo", props: {bar: 4}},   // bad fpath
+            {urls: ["/foo"], path: "./foo", props: {bar: 4}},   // bad fpath
+            {urls: [url], props: {bar: 4}},   // missing 'path'
+            {urls: [url], path: 4, props: {bar: 4}},   // bad type
+            {urls: [url], path: 'foo', props: {bar: 4}},   // bad path
+            {urls: [url], path: "./foo", props: "foo"},   // bad type
+            {urls: [url], path: "./foo", props: [{}, {}]},   // bad type
         ];
         let remainingTests = invalidInputs.length;
 

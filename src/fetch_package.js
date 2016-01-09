@@ -5,7 +5,7 @@
  *
  * The server-side renderer takes, as input, a list of js packages, in
  * addition to the name of the react component to render.  This module
- * provides the function for taking the url-path of a package and
+ * provides the function for taking the url of a package and
  * actually retrieving the package.
  *
  * The server that holds the package information is hard-coded in this
@@ -15,9 +15,6 @@
 const request = require('superagent');
 
 const cache = require("./cache");
-
-// All files requested via /render are fetched via this hostname.
-let serverHostname;
 
 // fetchPackage takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -41,7 +38,6 @@ let defaultTimeoutInMs;
 let numRetries;
 
 const resetGlobals = function() {
-    serverHostname = 'https://www.khanacademy.org';
     defaultCacheBehavior = 'yes';
     defaultTimeoutInMs = 1000;
     numRetries = 2;     // so 3 tries total
@@ -51,10 +47,10 @@ resetGlobals();
 
 
 /**
- * Given an absolute path, e.g. /javascript/foo-package.js, return a
- * promise holding the package contents.
+ * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
+ * return a promise holding the package contents.
  */
-const fetchPackage = function(path, cacheBehavior, triesLeftAfterThisOne) {
+const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
     if (cacheBehavior == null) {
         cacheBehavior = defaultCacheBehavior;
     }
@@ -64,7 +60,6 @@ const fetchPackage = function(path, cacheBehavior, triesLeftAfterThisOne) {
 
     let cachedValue;
 
-    const url = serverHostname + path;
     if (cacheBehavior === 'ims') {
         cachedValue = cache.get(url);
         // We'll save this for making the if-modified-since query later.
@@ -103,7 +98,7 @@ const fetchPackage = function(path, cacheBehavior, triesLeftAfterThisOne) {
                 // If we get here, we have a 5xx error or similar
                 // (socket timeout, maybe).  Let's retry a few times.
                 if (triesLeftAfterThisOne > 0) {
-                    fetchPackage(path, cacheBehavior,
+                    fetchPackage(url, cacheBehavior,
                                  triesLeftAfterThisOne - 1)
                         .then(resolve, reject);
                     return;
@@ -121,10 +116,6 @@ const fetchPackage = function(path, cacheBehavior, triesLeftAfterThisOne) {
             }
         });
     });
-};
-
-fetchPackage.setServerHostname = function(newHostname) {
-    serverHostname = newHostname;
 };
 
 fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
