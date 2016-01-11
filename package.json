@@ -26,6 +26,7 @@
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",
     "morgan": "^1.6.1",
+    "nodemon": "^1.8.1",
     "react": "0.14.0",
     "react-dom": "0.14.0",
     "superagent": "^1.6.1"
@@ -35,7 +36,6 @@
     "mocha": "^2.3.4",
     "nock": "^4.0.0",
     "node-inspector": "^0.12.5",
-    "nodemon": "^1.8.1",
     "sinon": "^1.17.2",
     "supertest": "^1.1.0"
   }
