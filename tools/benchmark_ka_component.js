@@ -100,7 +100,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
                 const pkgToUrl = {};
                 dependencyInfo.forEach((packageInfo) => {
                     dependencyMap[packageInfo.name] = packageInfo.dependencies;
-                    pkgToUrl[packageInfo.name] = packageInfo.url;
+                    pkgToUrl[packageInfo.name] = gaeHostPort + packageInfo.url;
                 });
                 const packageDeps = getTransitiveDependencies(
                     componentPackage,
@@ -109,7 +109,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
 
                 // We finally have what we need!
                 const reqBody = {
-                    files: depPackageUrls,
+                    urls: depPackageUrls,
                     path: "./" + componentPath,
                     props: props,
                 };
