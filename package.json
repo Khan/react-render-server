@@ -7,7 +7,8 @@
     "start": "nodemon --use_strict src/main.js -- -p 8080",
     "serve_local": "nodemon --use_strict src/main.js -- --dev",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
-    "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
+    "test": "mocha --use_strict --reporter spec 'src/*_test.js'",
+    "deploy": "./deploy.sh"
   },
   "repository": {
     "type": "git",
