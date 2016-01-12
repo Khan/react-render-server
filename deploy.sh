@@ -33,3 +33,5 @@ git branch | grep -q '* master' \
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
 gcloud -q --verbosity info preview app deploy app.yaml --project "$PROJECT" --version "$VERSION"
+
+echo "DONE"

@@ -22,7 +22,7 @@ echo "Setting ${VERSION} as default on module ${MODULE}..."
 NON_DEFAULT_HOSTNAME="https://${VERSION}-dot-${MODULE}-dot-${PROJECT}.appspot.com"
 HEALTHCHECK_URL="${NON_DEFAULT_HOSTNAME}/_ah/health"
 
-[ `curl -s "${HEALTHCHECK_URL}"` = "ok!" ] \
+curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
     || die "Server at ${NON_DEFAULT_HOSTNAME} not healthy"
 
 # TODO(jlfwong): Prime the new version of the servers before we set default. We
@@ -30,7 +30,7 @@ HEALTHCHECK_URL="${NON_DEFAULT_HOSTNAME}/_ah/health"
 # khanacademy.org.
 
 gcloud -q --verbosity info preview app modules set-default "$MODULE" \
-    --version "$VERSION"
+    --project "$PROJECT" --version "$VERSION"
 
 # Ensure that the version flipped
 DEFAULT_HOSTNAME="https://${MODULE}-dot-${PROJECT}.appspot.com/_api/version"
@@ -39,3 +39,5 @@ LIVE_VERSION=`curl -s ${DEFAULT_HOSTNAME}`
 
 [ "${LIVE_VERSION}" = "${VERSION}" ] \
     || die "Expected live version to be ${VERSION}, but saw ${LIVE_VERSION}."
+
+echo "DONE"
