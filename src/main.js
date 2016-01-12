@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * The main entrypoint for our react-component render server.
  */
@@ -6,6 +8,7 @@
 const fs = require("fs");
 
 const argparse = require("argparse");
+const express = require("express");
 const morgan = require("morgan");
 
 const app = require("./server.js");
@@ -34,6 +37,8 @@ const args = parser.parseArgs();
 
 const port = args.port;
 
+const appWithLogging = express();
+
 // Set up our globals and singletons
 if (args.dev) {
     // In dev, we do an if-modified-since query rather than trusting
@@ -47,8 +52,8 @@ if (args.dev) {
     // Disable the need for secrets.
     renderSecret.matches = (actual) => true;
 
-    // Add HTTP logging to standard out
-    app.use(morgan("dev"));
+    // Add HTTP logging to standard out.
+    appWithLogging.use(morgan("dev"), app);
 } else {
     // In production, we write to a file which magically gets picked up by the
     // AppEngine log service so we can see them in the log viewer.
@@ -57,7 +62,7 @@ if (args.dev) {
     const managedVMLogPath = "/var/log/app_engine/request.log";
     const accessLogStream = fs.createWriteStream(managedVMLogPath,
                                                  {flags: 'a'});
-    app.use(morgan("combined", {stream: accessLogStream}));
+    appWithLogging.use(morgan("combined", {stream: accessLogStream}), app);
 }
 cache.init(args.cacheSize * 1024 * 1024);
 
@@ -71,7 +76,7 @@ process.on('unhandledRejection', (reason, p) => {
                 " reason: ", reason.stack);
 });
 
-const server = app.listen(port, () => {
+const server = appWithLogging.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;
 
