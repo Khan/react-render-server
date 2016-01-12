@@ -25,4 +25,5 @@ git branch | grep -q '* master' \
     || die "You must pull to deploy from latest master."
 
 # Yay we're good to go!
-gcloud preview app deploy app.yaml --project "$PROJECT" --version "$VERSION"
+echo "Deploying ${VERSION}..."
+gcloud -q --verbosity info preview app deploy app.yaml --project "$PROJECT" --version "$VERSION"
