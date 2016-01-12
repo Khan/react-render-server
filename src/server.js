@@ -115,11 +115,17 @@ app.post('/render', (req, res) => {
 
 app.get('/_api/ping', (req, res) => { res.send('pong!\n'); });
 
+app.get('/_api/version', (req, res) => {
+    // This will return the module version ID we set when deploying.
+    res.send((process.env['GAE_MODULE_VERSION'] || 'dev') + '\n');
+});
+
 // These are used by the Managed VM lifecycle functions:
 // https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#lifecycle_events
 app.get('/_ah/health', (req, res) => { res.send('ok!\n'); });
 app.get('/_ah/start', (req, res) => { res.send('ok!\n'); });
 app.get('/_ah/stop', (req, res) => { res.send('ok!\n'); });
+
 
 module.exports = app;
 

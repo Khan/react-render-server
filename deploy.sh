@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-# Deploy the last commit to AppEngine
+# Deploy the latest commit to AppEngine
 
 : ${PROJECT:=khan-academy}
 
@@ -11,6 +11,8 @@ die() {
 
 # Calculate the version name for the latest commit
 # Format is: YYMMDD-HHMM-RRRRRRRRRRRR
+#
+# Keep this in sync with VERSION in set_default.sh
 VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific"; ($rev, $t) = split; @lt = localtime($t); printf "%02d%02d%02d-%02d%02d-%.12s\n", $lt[5] % 100, $lt[4] + 1, $lt[3], $lt[2], $lt[1], $rev'`
 
 # Ensure the 'secret' file exists (so we can verify /render requests)

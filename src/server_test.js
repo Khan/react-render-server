@@ -22,6 +22,26 @@ describe('API endpoint /_api/ping', () => {
     });
 });
 
+describe('API endpoint /_api/version', () => {
+    const agent = supertest.agent(server);
+    afterEach(function() {
+        delete process.env['GAE_MODULE_VERSION'];
+    });
+
+    it("should return the module version in production", (done) => {
+        process.env['GAE_MODULE_VERSION'] = 'foo-version';
+        agent
+            .get('/_api/version')
+            .expect("foo-version\n", done);
+    });
+
+    it("should return the 'dev' in dev", (done) => {
+        agent
+            .get('/_api/version')
+            .expect("dev\n", done);
+    });
+});
+
 describe('API endpoint /_ah/health', () => {
     const agent = supertest.agent(server);
 
@@ -51,7 +71,6 @@ describe('API endpoint /_ah/stop', () => {
             .expect("ok!\n", done);
     });
 });
-
 
 describe('API endpoint /render', () => {
     const agent = supertest.agent(server);
