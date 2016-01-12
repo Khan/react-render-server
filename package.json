@@ -4,7 +4,7 @@
   "description": "A node.js server for server-side rendering Khan Academy react components.",
   "main": "src/main.js",
   "scripts": {
-    "serve": "nodemon --use_strict src/main.js",
+    "start": "nodemon --use_strict src/main.js -- -p 8080",
     "serve_local": "nodemon --use_strict src/main.js -- --dev",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
     "test": "mocha --use_strict --reporter spec 'src/*_test.js'"
@@ -38,5 +38,8 @@
     "node-inspector": "^0.12.5",
     "sinon": "^1.17.2",
     "supertest": "^1.1.0"
+  },
+  "engines": {
+    "node" : "^4.2.1"
   }
 }

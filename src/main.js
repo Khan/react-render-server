@@ -3,8 +3,10 @@
  */
 
 /* eslint-disable no-console */
+const fs = require("fs");
 
 const argparse = require("argparse");
+const morgan = require("morgan");
 
 const app = require("./server.js");
 const cache = require("./cache.js");
@@ -41,6 +43,18 @@ if (args.dev) {
     render.setDefaultCacheBehavior('ignore');
     // We also turn off the timeout in dev; it's not as important there.
     fetchPackage.setTimeout(null);
+
+    // Add HTTP logging to standard out
+    app.use(morgan("dev"));
+} else {
+    // In production, we write to a file which magically gets picked up by the
+    // AppEngine log service so we can see them in the log viewer.
+    //
+    // https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
+    const managedVMLogPath = "/var/log/app_engine/request.log";
+    const accessLogStream = fs.createWriteStream(managedVMLogPath,
+                                                 {flags: 'a'});
+    app.use(morgan("combined", {stream: accessLogStream}));
 }
 cache.init(args.cacheSize * 1024 * 1024);
 

@@ -8,16 +8,12 @@
 
 const bodyParser = require("body-parser");
 const express = require("express");
-const morgan = require("morgan");
 
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
 
 const app = express();
 app.use(bodyParser.json());
-
-// Add HTTP logging to standard out
-app.use(morgan("dev"));
 
 /**
  * Server-side render a react component.
@@ -111,6 +107,12 @@ app.post('/render', (req, res) => {
 
 
 app.get('/_api/ping', (req, res) => { res.send('pong!\n'); });
+
+// These are used by the Managed VM lifecycle functions:
+// https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#lifecycle_events
+app.get('/_ah/health', (req, res) => { res.send('ok!\n'); });
+app.get('/_ah/start', (req, res) => { res.send('ok!\n'); });
+app.get('/_ah/stop', (req, res) => { res.send('ok!\n'); });
 
 module.exports = app;
 

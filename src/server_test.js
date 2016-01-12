@@ -10,6 +10,46 @@ const supertest = require("supertest");
 const cache = require("./cache.js");
 const server = require("./server.js");
 
+describe('API endpoint /_api/ping', () => {
+    const agent = supertest.agent(server);
+
+    it("should return pong", (done) => {
+        agent
+            .get('/_api/ping')
+            .expect("pong!\n", done);
+    });
+});
+
+describe('API endpoint /_ah/health', () => {
+    const agent = supertest.agent(server);
+
+    it("should return ok!", (done) => {
+        agent
+            .get('/_ah/health')
+            .expect("ok!\n", done);
+    });
+});
+
+describe('API endpoint /_ah/start', () => {
+    const agent = supertest.agent(server);
+
+    it("should return ok!", (done) => {
+        agent
+            .get('/_ah/start')
+            .expect("ok!\n", done);
+    });
+});
+
+describe('API endpoint /_ah/stop', () => {
+    const agent = supertest.agent(server);
+
+    it("should return ok!", (done) => {
+        agent
+            .get('/_ah/stop')
+            .expect("ok!\n", done);
+    });
+});
+
 
 describe('API endpoint /render', () => {
     const agent = supertest.agent(server);
