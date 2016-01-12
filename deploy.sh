@@ -13,6 +13,10 @@ die() {
 # Format is: YYMMDD-HHMM-RRRRRRRRRRRR
 VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific"; ($rev, $t) = split; @lt = localtime($t); printf "%02d%02d%02d-%02d%02d-%.12s\n", $lt[5] % 100, $lt[4] + 1, $lt[3], $lt[2], $lt[1], $rev'`
 
+# Ensure the 'secret' file exists (so we can verify /render requests)
+[ -s "secret" ] \
+    || die "You must create a file called 'secret' with the secret from\n   https://phabricator.khanacademy.org/K121"
+
 # Ensure the repository isn't dirty
 [ `git status -u -s | wc -c` -eq 0 ] \
     || die "You must commit your changes before deploying."

@@ -5,9 +5,11 @@ const fs = require("fs");
 
 const assert = require("chai").assert;
 const nock = require("nock");
+const sinon = require("sinon");
 const supertest = require("supertest");
 
 const cache = require("./cache.js");
+const renderSecret = require("./secret.js");
 const server = require("./server.js");
 
 describe('API endpoint /_api/ping', () => {
@@ -64,11 +66,13 @@ describe('API endpoint /render', () => {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
+        sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
     });
 
     afterEach(() => {
         nock.cleanAll();
         cache.destroy();
+        renderSecret.matches.restore();
     });
 
     it('should render a simple react component', (done) => {
@@ -83,6 +87,7 @@ describe('API endpoint /render', () => {
                    'https://www.khanacademy.org/server-package.js'],
             path: "./javascript/server-package/test-component.jsx",
             props: testProps,
+            secret: 'sekret',
         };
 
         testJson.urls.forEach((url) => {
@@ -109,16 +114,18 @@ describe('API endpoint /render', () => {
         const url = 'https://www.khanacademy.org/foo';
         const invalidInputs = [
             {},
-            {path: "./foo", props: {bar: 4}},   // missing 'urls'
-            {urls: [], path: "./foo", props: {bar: 4}},   // empty 'urls'
-            {urls: [1, 2], path: "./foo", props: {bar: 4}},   // bad type
-            {urls: ["foo"], path: "./foo", props: {bar: 4}},   // bad fpath
-            {urls: ["/foo"], path: "./foo", props: {bar: 4}},   // bad fpath
-            {urls: [url], props: {bar: 4}},   // missing 'path'
-            {urls: [url], path: 4, props: {bar: 4}},   // bad type
-            {urls: [url], path: 'foo', props: {bar: 4}},   // bad path
-            {urls: [url], path: "./foo", props: "foo"},   // bad type
-            {urls: [url], path: "./foo", props: [{}, {}]},   // bad type
+            {path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {urls: [], path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {urls: [1, 2], path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {urls: ["foo"], path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {urls: ["/foo"], path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {urls: [url], props: {bar: 4}, secret: 'sekret'},
+            {urls: [url], path: 4, props: {bar: 4}, secret: 'sekret'},
+            {urls: [url], path: 'foo', props: {bar: 4}, secret: 'sekret'},
+            {urls: [url], path: "./foo", props: "foo", secret: 'sekret'},
+            {urls: [url], path: "./foo", props: [{}, {}], secret: 'sekret'},
+            {urls: [url], path: "./foo", props: {bar: 4}},
+            {urls: [url], path: "./foo", props: {bar: 4}, secret: 'bad'},
         ];
         let remainingTests = invalidInputs.length;
 
@@ -131,21 +138,5 @@ describe('API endpoint /render', () => {
                 }
             });
         });
-    });
-
-    it('should fail on missing files', (done) => {
-        agent.post('/render').send().expect(
-            res => assert.equal(400, res.status)
-        ).end(done);
-    });
-    it('should fail on mi', (done) => {
-        agent.post('/render').send({}).expect(
-            res => assert.equal(400, res.status)
-        ).end(done);
-    });
-    it('should fail on empty input', (done) => {
-        agent.post('/render').send({}).expect(
-            res => assert.equal(400, res.status)
-        ).end(done);
     });
 });

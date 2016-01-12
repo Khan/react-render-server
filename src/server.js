@@ -11,6 +11,7 @@ const express = require("express");
 
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
+const renderSecret = require("./secret.js");
 
 const app = express();
 app.use(bodyParser.json());
@@ -30,7 +31,8 @@ app.use(bodyParser.json());
  *    "props": {
  *        "href": "http://www.google.com",
  *        "children": "Google"
- *    }
+ *    },
+ *    "secret": "...."
  * }
  *
  * 'urls' should be specified in topological-sort order; they are
@@ -41,6 +43,10 @@ app.use(bodyParser.json());
  * specified in 'urls'.
  *
  * 'props' are passed as the props to the react component being rendered.
+ *
+ * 'secret' is a shared secret.  It must equal the value of the 'secret'
+ * file in the server's base-directory, or the server will deny the request.
+ * NOTE: In dev mode, the secret field is ignored.
  *
  * The return format is also json:
  * {
@@ -56,11 +62,12 @@ app.use(bodyParser.json());
  */
 app.post('/render', (req, res) => {
     // Validate the input.
-    // TODO(csilvers): add a 'secret' arg and verify that it matches.
     let err;
-    if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
-            !req.body.urls.every(e => typeof e === 'string') ||
-            !req.body.urls.every(e => e.indexOf('http') === 0)) {
+    if (!renderSecret.matches(req.body.secret)) {
+        err = 'Missing or invalid secret';
+    } else if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
+               !req.body.urls.every(e => typeof e === 'string') ||
+               !req.body.urls.every(e => e.indexOf('http') === 0)) {
         err = ('Missing "urls" keyword in POST JSON input, ' +
                'or "urls" is not a list of full urls');
     } else if (typeof req.body.path !== 'string' ||

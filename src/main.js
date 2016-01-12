@@ -13,6 +13,7 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const packageInfo = require("../package.json");
 const render = require("./render.js");
+const renderSecret = require("./secret.js");
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -43,6 +44,8 @@ if (args.dev) {
     render.setDefaultCacheBehavior('ignore');
     // We also turn off the timeout in dev; it's not as important there.
     fetchPackage.setTimeout(null);
+    // Disable the need for secrets.
+    renderSecret.matches = (actual) => true;
 
     // Add HTTP logging to standard out
     app.use(morgan("dev"));
