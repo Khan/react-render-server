@@ -30,6 +30,9 @@ git branch | grep -q '* master' \
 [ `git rev-parse HEAD` = `git rev-parse origin/master` ] \
     || die "You must pull to deploy from latest master."
 
+# Don't deploy if tests fail
+npm test
+
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
 gcloud -q --verbosity info preview app deploy app.yaml --project "$PROJECT" --version "$VERSION"
