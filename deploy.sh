@@ -3,6 +3,7 @@
 # Deploy the latest commit to AppEngine
 
 : ${PROJECT:=khan-academy}
+: ${VERBOSITY:=info}
 
 die() {
     echo "FATAL ERROR: $@"
@@ -37,7 +38,7 @@ gcloud config set "app/use_appengine_api" "True"
 
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
-gcloud -q --verbosity debug --log-http preview app deploy app.yaml \
+gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
     --project "$PROJECT" --version "$VERSION" --no-promote
 
 echo "DONE"
