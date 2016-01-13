@@ -33,6 +33,7 @@ npm test
 
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
-gcloud -q --verbosity info preview app deploy app.yaml --project "$PROJECT" --version "$VERSION"
+gcloud -q --verbosity info preview app deploy app.yaml \
+    --project "$PROJECT" --version "$VERSION" --no-promote
 
 echo "DONE"
