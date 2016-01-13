@@ -37,7 +37,7 @@ gcloud config unset "app/use_appengine_api"
 
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
-gcloud -q --verbosity info preview app deploy app.yaml \
+gcloud -q --verbosity debug --log-http preview app deploy app.yaml \
     --project "$PROJECT" --version "$VERSION" --no-promote
 
 echo "DONE"
