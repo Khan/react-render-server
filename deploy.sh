@@ -25,10 +25,8 @@ VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific
 
 # Ensure we're deploying from latest master
 git fetch origin
-git branch | grep -q '* master' \
-    || die "You must deploy from master."
 [ `git rev-parse HEAD` = `git rev-parse origin/master` ] \
-    || die "You must pull to deploy from latest master."
+    || die "You must deploy from latest origin/master."
 
 # Don't deploy if tests fail
 npm test
