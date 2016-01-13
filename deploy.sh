@@ -31,6 +31,10 @@ git fetch origin
 # Don't deploy if tests fail
 npm test
 
+# Use the default value for use_appengine_api. This is configuration set by
+# deployment of webapp.
+gcloud config unset "app/use_appengine_api"
+
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
 gcloud -q --verbosity info preview app deploy app.yaml \
