@@ -33,7 +33,7 @@ npm test
 
 # Use the default value for use_appengine_api. This is configuration set by
 # deployment of webapp.
-gcloud config unset "app/use_appengine_api"
+gcloud config set "app/use_appengine_api" "True"
 
 # Yay we're good to go!
 echo "Deploying ${VERSION}..."
