@@ -35,9 +35,12 @@ gcloud -q --verbosity info preview app modules set-default "$MODULE" \
 # Ensure that the version flipped
 DEFAULT_HOSTNAME="https://${MODULE}-dot-${PROJECT}.appspot.com/_api/version"
 
-LIVE_VERSION=`curl -s ${DEFAULT_HOSTNAME}`
-
-[ "${LIVE_VERSION}" = "${VERSION}" ] \
-    || die "Expected live version to be ${VERSION}, but saw ${LIVE_VERSION}."
+# Wait for the new version to become accessible, waiting up to 10 seconds
+for i in `seq 10`; do
+    LIVE_VERSION=`curl -s ${DEFAULT_HOSTNAME}`
+    [ "${LIVE_VERSION}" = "${VERSION}" ] && break
+    [ $i -eq 10 ] && die "Expected live version to be ${VERSION}, but saw ${LIVE_VERSION}."
+    sleep 1
+done
 
 echo "DONE"
