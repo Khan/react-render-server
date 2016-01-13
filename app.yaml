@@ -8,3 +8,28 @@ automatic_scaling:
   cool_down_period_sec: 60
   cpu_utilization:
     target_utilization: 0.5
+
+skip_files:
+####
+# Backup files/etc -- created by editors, but not part of the source tree.
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.orig$
+- ^(.*/)?.*\.rej$
+####
+# Ignore all .-prefixed files (.git, .gitignore, .arcconfig, etc.)
+- ^(.*/)?\..*$
+####
+# Dev-only scripts
+- ^deploy.sh$
+- ^set_default.sh$
+- ^tools$
+####
+# Other dev-specific files
+- ^README.md$
+- ^lint_blacklist.txt$
+####
+# Tests
+- ^src/.*_test.js$
+- ^src/testdata/.*$
+- ^node_modules/.*/test$
