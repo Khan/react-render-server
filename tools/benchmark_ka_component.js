@@ -244,18 +244,23 @@ const main = function(parseArgs) {
         // assume that the fixture is at <ka_root>/javascript/...
         // TODO(csilvers): figure out ka-root better.
         parseArgs.fixtures.forEach((fixturePath) => {
-            const fixtureAbspath = path.resolve(fixturePath);
-            const re = /(javascript\/.*)\.fixture\./;
-            const result = re.exec(fixtureAbspath);
-            if (result) {
+            try {
+                const fixtureAbspath = path.resolve(fixturePath);
+                const re = /(javascript\/.*)\.fixture\./;
+                const result = re.exec(fixtureAbspath);
+                if (!result) {
+                    throw new Error('cannot infer component from ' +
+                                    fixtureAbspath);
+                }
                 const componentPath = result[1];
                 for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
                     // Let's do the work!
                     render(componentPath, fixtureAbspath, i,
-                           gaeHostPort, rrsHostPort, packageManifestContents);
+                           gaeHostPort, rrsHostPort,
+                           packageManifestContents);
                 }
-            } else {
-                console.log(`Skipping ${fixturePath}: cannot parse component`);
+            } catch (err) {
+                console.log(`Skipping ${fixturePath}: ${err}`);
             }
         });
     });
