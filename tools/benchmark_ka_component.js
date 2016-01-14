@@ -136,6 +136,41 @@ const requestToPromise = function(req) {
 
 
 /**
+ * Return the package-manifest contents.
+ *
+ * This is needed for figuring out package dependencies for render.
+ */
+const getPackageManifestContents = function(gaeHostPort) {
+    // We need the transitive dependency map for the package
+    // containing our component.  This is a bit annoying for 3
+    // reasons:
+    // 1) On prod, the file containing the map has a hard-to-guess
+    //    filename, so we need to extract it from the homepage;
+    // 2) The file containing the map is not json, so we have to
+    //    extract out the info we want using regexps;
+    // 3) We need to figure out the transitive deps ourselves.
+    // We do (1) and (2), at least, here.
+    // TODO(csilvers): compute (3) here as well too.
+    return requestToPromise(superagent.get(gaeHostPort + '/')).then(res => {
+        const re = /['"]([^"']*\/package-manifest[^'"]*)["']/;
+        const results = re.exec(res.text);
+        if (!results) {
+            throw new Error("Can't find package-manifest in homepage");
+        }
+        let packageManifestUrl = results[1];
+        if (packageManifestUrl.indexOf('://') === -1) {
+            packageManifestUrl = gaeHostPort + packageManifestUrl;
+        }
+        return packageManifestUrl;
+    }).then((packageManifestUrl) => {
+        return requestToPromise(superagent.get(packageManifestUrl));
+    }).then((packageManifestResult) => {
+        return packageManifestResult.text;
+    });
+};
+
+
+/**
  * Return profile information about rendering component with fixture.
  *
  * @param {string} componentPath - a path to the component,
@@ -151,49 +186,20 @@ const requestToPromise = function(req) {
  *     the webapp server is running.
  * @param {string} renderHostPort - actually a protocol-host-port, where
  *      the react-render-server is running.
+ * @param {string} packageManifestContents - the output of
+ *      getPackageManifestContents().
  */
 const render = function(componentPath, fixturePath, instanceSeed,
-                        gaeHostPort, renderHostPort) {
+                        gaeHostPort, renderHostPort,
+                        packageManifestContents) {
     const relativeFixturePath = path.relative(__dirname, fixturePath);
     const allProps = require(relativeFixturePath).instances;
     const props = allProps[instanceSeed % allProps.length];
 
-
-    const componentPackagePromise = getPackage(componentPath, gaeHostPort);
-
-    // We need the transitive dependency map for the package
-    // containing our component.  This is a bit annoying for 3
-    // reasons:
-    // 1) On prod, the file containing the map has a hard-to-guess
-    //    filename, so we need to extract it from the homepage;
-    // 2) The file containing the map is not json, so we have to
-    //    extract out the info we want using regexps;
-    // 3) We then need to compute the transitive closure ourself.
-    const packageManifestPromise = requestToPromise(
-        superagent.get(gaeHostPort + '/')
-    ).then(res => {
-        const re = /['"]([^"']*\/package-manifest[^'"]*)["']/;
-        const results = re.exec(res.text);
-        if (!results) {
-            throw new Error("Can't find package-manifest in homepage");
-        }
-        let packageManifestUrl = results[1];
-        if (packageManifestUrl.indexOf('://') === -1) {
-            packageManifestUrl = gaeHostPort + packageManifestUrl;
-        }
-        return packageManifestUrl;
-    }).then(packageManifestUrl => {
-        return requestToPromise(superagent.get(packageManifestUrl));
-    });
-
-    Promise.all([componentPackagePromise, packageManifestPromise]).then(v => {
-        const componentPackage = v[0];
-        const packageManifestResult = v[1];
-
+    getPackage(componentPath, gaeHostPort).then((componentPackage) => {
         const depPackageUrls = getDependentPackageUrls(
-            componentPackage, packageManifestResult.text, gaeHostPort);
+            componentPackage, packageManifestContents, gaeHostPort);
 
-        // We finally have what we need!
         const reqBody = {
             urls: depPackageUrls,
             path: "./" + componentPath,
@@ -205,13 +211,29 @@ const render = function(componentPath, fixturePath, instanceSeed,
         );
     }).then(res => {
         console.log(`${componentPath}: ${res.text.length}`);
-    }).catch(err => console.log(`${componentPath}: ${err}`));
+    }).catch(err => {
+        console.log(`${componentPath}: ${err}`);
+    });
 };
 
 
-render("javascript/content-library-package/components/concept-thumbnail.jsx",
-       "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
-       1,
-       "http://localhost:8080",   // "https://www.khanacademy.org",
-       "http://localhost:8060");
+const gaeHostPort = "http://localhost:8080";  // "https://www.khanacademy.org";
+const rrsHostPort = "http://localhost:8060";  // "https://react-render-dot-khan-academy.appspot.com";
 
+getPackageManifestContents(gaeHostPort).then((packageManifestContents) => {
+    render(
+        "javascript/content-library-package/components/concept-thumbnail.jsx",
+        "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
+        1,
+        gaeHostPort,
+        rrsHostPort,
+        packageManifestContents);
+
+    render(
+        "javascript/content-library-package/components/concept-thumbnail.jsx",
+        "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
+        2,
+        gaeHostPort,
+        rrsHostPort,
+        packageManifestContents);
+});
