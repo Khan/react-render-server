@@ -21,7 +21,10 @@
 
 const path = require("path");
 
+const argparse = require("argparse");
 const superagent = require("superagent");
+
+const packageInfo = require("../package.json");
 
 
 /**
@@ -217,23 +220,72 @@ const render = function(componentPath, fixturePath, instanceSeed,
 };
 
 
-const gaeHostPort = "http://localhost:8080";  // "https://www.khanacademy.org";
-const rrsHostPort = "http://localhost:8060";  // "https://react-render-dot-khan-academy.appspot.com";
+const main = function(parseArgs) {
+    let gaeHostPort;
+    let rrsHostPort;
 
-getPackageManifestContents(gaeHostPort).then((packageManifestContents) => {
-    render(
-        "javascript/content-library-package/components/concept-thumbnail.jsx",
-        "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
-        1,
-        gaeHostPort,
-        rrsHostPort,
-        packageManifestContents);
+    if (parseArgs.dev || parseArgs.dev_webapp) {
+        gaeHostPort = "http://localhost:8080";
+    } else {
+        gaeHostPort = "https://www.khanacademy.org";
+    }
 
-    render(
-        "javascript/content-library-package/components/concept-thumbnail.jsx",
-        "../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js",  // @Nolint(long line)
-        2,
-        gaeHostPort,
-        rrsHostPort,
-        packageManifestContents);
+    if (parseArgs.dev || parseArgs.dev_render) {
+        rrsHostPort = "http://localhost:8060";
+    } else {
+        rrsHostPort = "https://react-render-dot-khan-academy.appspot.com";
+    }
+
+    getPackageManifestContents(gaeHostPort).then((packageManifestContents) => {
+        // To get the path to the component, we just remove the trailing
+        // .fixture.js, and the leading ka-root prefix.  For now, we
+        // assume that the fixture is at <ka_root>/javascript/...
+        // TODO(csilvers): figure out ka-root better.
+        parseArgs.fixtures.forEach((fixturePath) => {
+            const fixtureAbspath = path.resolve(fixturePath);
+            const re = /(javascript\/.*)\.fixture\./;
+            const result = re.exec(fixtureAbspath);
+            if (result) {
+                const componentPath = result[1];
+                for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
+                    // Let's do the work!
+                    render(componentPath, fixtureAbspath, i,
+                           gaeHostPort, rrsHostPort, packageManifestContents);
+                }
+            } else {
+                console.log(`Skipping ${fixturePath}: cannot parse component`);
+            }
+        });
+    });
+};
+
+
+process.on('unhandledRejection', (reason, p) => {
+    console.log("Unhandled Rejection at: Promise ", p,
+                " reason: ", reason.stack);
 });
+
+const parser = new argparse.ArgumentParser({
+    version: packageInfo.version,
+    addHelp: true,
+    description: "A load tester/benchmarker for the react-render-server",
+});
+parser.addArgument(['fixtures'],
+                   {nargs: '*',
+                    defaultValue: ["../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js"],  // @Nolint(long line)
+                    help: "List of fixture files on the local filesystem"});
+parser.addArgument(['--dev'],
+                   {action: 'storeTrue',
+                    help: "Connect to local gae and render-server"});
+parser.addArgument(['--dev-webapp'],
+                   {action: 'storeTrue',
+                    help: "Use local webapp (on localhost:8080)"});
+parser.addArgument(['--dev-render'],
+                   {action: 'storeTrue',
+                    help: "Use local render-server (on localhost:8060)"});
+parser.addArgument(['-n', '--num-trials-per-component'],
+                   {type: 'int', defaultValue: 1,
+                    help: ("How many times we render a given component " +
+                           "with a given fixture file (for load testing)")});
+
+main(parser.parseArgs());
