@@ -22,12 +22,12 @@ let secret;
 const matches = function(actual) {
     if (!secret) {
         try {
-            secret = fs.readFileSync(secretPath).trim();
+            secret = fs.readFileSync(secretPath, "utf-8").trim();
             if (!secret) {     // empty file?
                 throw new Error('secret file is empty!');
             }
         } catch (err) {
-            console.log('FATAL ERROR: You must create a file:');
+            console.log(`FATAL ERROR (${err}): You must create a file:`);
             console.log('    ' + secretPath);
             console.log('Its contents should be the secret-string at');
             console.log('    https://phabricator.khanacademy.org/K121');
