@@ -25,6 +25,7 @@ const argparse = require("argparse");
 const superagent = require("superagent");
 
 const packageInfo = require("../package.json");
+const secret = require("../src/secret.js");
 
 
 /**
@@ -204,6 +205,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
             componentPackage, packageManifestContents, gaeHostPort);
 
         const reqBody = {
+            secret: secret.get(),
             urls: depPackageUrls,
             path: "./" + componentPath,
             props: props,
@@ -289,3 +291,9 @@ parser.addArgument(['-n', '--num-trials-per-component'],
                            "with a given fixture file (for load testing)")});
 
 main(parser.parseArgs());
+
+
+/* For manual testing, here's a curl command you can send to a server directly:
+
+curl -H "Content-type: application/json" -d '{"secret":"'`cat ../secret`'", "urls":["https://www.khanacademy.org/genfiles/javascript/en/corelibs-package-31375e.js","https://www.khanacademy.org/genfiles/javascript/en/corelibs-legacy-package-fbfab0.js","https://www.khanacademy.org/genfiles/javascript/en/shared-package-1e468a.js","https://www.khanacademy.org/genfiles/javascript/en/shared-styles-package-32d405.js","https://www.khanacademy.org/genfiles/javascript/en/hover-card-package-de8d87.js","https://www.khanacademy.org/genfiles/javascript/en/react-package-9b7fb9.js","https://www.khanacademy.org/genfiles/javascript/en/react-components-package-a7e18c.js","https://www.khanacademy.org/genfiles/javascript/en/flux-package-838d8f.js","https://www.khanacademy.org/genfiles/javascript/en/tasks-package-43bf44.js","https://www.khanacademy.org/genfiles/javascript/en/tutorial-package-8e5302.js","https://www.khanacademy.org/genfiles/javascript/en/video-package-9b200b.js","https://www.khanacademy.org/genfiles/javascript/en/content-library-package-9ac69b.js"],"path":"./javascript/content-library-package/components/concept-thumbnail.jsx","props":{"domain":"math","kind":"concept","progressData":{"skillsCompleted":3,"skillsTotal":32},"url":"/images/topic-icons-large/linear_equations.png"}}' 127.0.0.1:8080/render
+*/

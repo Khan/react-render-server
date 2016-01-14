@@ -19,7 +19,8 @@ const path = require("path");
 const secretPath = path.normalize(__dirname + "/../secret");
 let secret;
 
-const matches = function(actual) {
+// Used by the benchmark/loadtest tool.
+const get = function() {
     if (!secret) {
         try {
             secret = fs.readFileSync(secretPath, "utf-8").trim();
@@ -34,8 +35,15 @@ const matches = function(actual) {
             process.exit(1);
         }
     }
-    return secret === actual;
+    return secret;
 };
 
-module.exports = { matches: matches };
+
+const matches = function(actual) {
+    return get() === actual;
+};
+
+
+// get is only used by the benchmarking/loadtest tool.
+module.exports = { matches: matches, get: get };
 
