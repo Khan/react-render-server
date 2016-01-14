@@ -43,4 +43,11 @@ for i in `seq 10`; do
     sleep 1
 done
 
+# TODO(csilvers): git tag the release.
+
+echo "Default set, now deleting old versions."
+# TODO(csilvers): support 'good' and 'bad' versions via git tag.
+
+
+
 echo "DONE"
