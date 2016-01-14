@@ -32,7 +32,7 @@ const get = function() {
             console.log('    ' + secretPath);
             console.log('Its contents should be the secret-string at');
             console.log('    https://phabricator.khanacademy.org/K121');
-            process.exit(1);
+            throw err;
         }
     }
     return secret;
