@@ -169,7 +169,7 @@ describe('fetchPackage', () => {
         });
     });
 
-    it("last-modified is ignored in 'yes' mode", () => {
+    it("should ignore last-modified in 'yes' mode", () => {
         const lmDate = 'Thu, 07 Jan 2016 23:47:52 GMT';
         const lmBefore = 'Thu, 07 Jan 2016 23:47:50 GMT';
         const lmAfter = 'Thu, 07 Jan 2016 23:47:55 GMT';
@@ -193,6 +193,36 @@ describe('fetchPackage', () => {
             // We should still have pending mocks; in 'yes' mode we
             // don't even hit the server when there's a cache hit.
             assert.notEqual(0, mockScope.pendingMocks().length);
+        });
+    });
+
+    it("should only fetch once for concurrent requests", () => {
+        mockScope.get("/ok.js").reply(200, "'yay!'");
+        mockScope.get("/ok.js").reply(200, "'ignored'");
+
+        return Promise.all(
+            [fetchPackage("https://www.ka.org/ok.js"),
+             fetchPackage("https://www.ka.org/ok.js")]
+        ).then(e => {
+            assert.equal(e[0], "'yay!'");
+            assert.equal(e[1], "'yay!'");
+            // We should still have pending mocks; the second request
+            // should never have gotten sent.
+            assert.notEqual(0, mockScope.pendingMocks().length);
+        });
+    });
+
+    it("should fetch twice with different cache modes", () => {
+        mockScope.get("/ok.js").reply(200, "'yay!'");
+        mockScope.get("/ok.js").reply(200, "'not ignored'");
+
+        return Promise.all(
+            [fetchPackage("https://www.ka.org/ok.js", "yes"),
+             fetchPackage("https://www.ka.org/ok.js", "no")]
+        ).then(e => {
+            assert.equal(e[0], "'yay!'");
+            assert.equal(e[1], "'not ignored'");
+            mockScope.done();
         });
     });
 

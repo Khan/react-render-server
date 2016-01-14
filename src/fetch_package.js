@@ -37,10 +37,15 @@ let defaultTimeoutInMs;
 // How many times we retry on 5xx error or similar, before giving up.
 let numRetries;
 
+// What requests are currently in flight?
+let inFlightRequests;
+
+
 const resetGlobals = function() {
     defaultCacheBehavior = 'yes';
     defaultTimeoutInMs = 1000;
     numRetries = 2;     // so 3 tries total
+    inFlightRequests = {};
 };
 
 resetGlobals();
@@ -58,6 +63,13 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
         triesLeftAfterThisOne = numRetries;
     }
 
+    // If a different request has already asked for this url, just
+    // tag along with it rather than making our own request.
+    const inFlightCacheKey = cacheBehavior + "." + url;
+    if (inFlightRequests[inFlightCacheKey]) {
+        return inFlightRequests[inFlightCacheKey];
+    }
+
     let cachedValue;
 
     if (cacheBehavior === 'ims') {
@@ -70,8 +82,10 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
         }
     }
 
-    return new Promise((resolve, reject) => {
+    const retval = new Promise((resolve, reject) => {
         const fetcher = request.get(url);
+        // TODO(csilvers): always take 60 seconds here, and have the caller
+        // abort after defaultTimeoutInMs (so we can still populate the cache).
         if (defaultTimeoutInMs != null) {
             fetcher.timeout(defaultTimeoutInMs);
         }
@@ -80,6 +94,8 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
                         cachedValue.header['last-modified']);
         }
         fetcher.buffer().end((err, res) => {
+            // The request is done: don't say it's inflight anymore!
+            delete inFlightRequests[inFlightCacheKey];
             if (err) {
                 // Due to a superagent bug(?), 304 "Not modified" ends up here.
                 if (err.response && err.response.status === 304) {
@@ -116,6 +132,11 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
             }
         });
     });
+
+    // Let other concurrent requests know that we're fetching this
+    // url, so they don't try to do it too.
+    inFlightRequests[inFlightCacheKey] = retval;
+    return retval;
 };
 
 fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
