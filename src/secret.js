@@ -28,10 +28,10 @@ const get = function() {
                 throw new Error('secret file is empty!');
             }
         } catch (err) {
-            logging.log(`FATAL ERROR (${err}): You must create a file:`);
-            logging.log('    ' + secretPath);
-            logging.log('Its contents should be the secret-string at');
-            logging.log('    https://phabricator.khanacademy.org/K121');
+            logging.error(`FATAL ERROR (${err}): You must create a file:`);
+            logging.error('    ' + secretPath);
+            logging.error('Its contents should be the secret-string at');
+            logging.error('    https://phabricator.khanacademy.org/K121');
             throw err;
         }
     }

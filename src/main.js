@@ -4,12 +4,10 @@
 
 'use strict';
 
-const fs = require("fs");
-
 const argparse = require("argparse");
 const express = require("express");
-const morgan = require("morgan");
-const logging = require("winston");
+const expressWinston = require('express-winston');
+const winston = require('winston');
 
 const app = require("./server.js");
 const cache = require("./cache.js");
@@ -17,6 +15,8 @@ const fetchPackage = require("./fetch_package.js");
 const packageInfo = require("../package.json");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
+
+const logging = winston;     // just an alias, for clarity
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -37,8 +37,6 @@ const args = parser.parseArgs();
 
 const port = args.port;
 
-const appWithLogging = express();
-
 // Set up our globals and singletons
 if (args.dev) {
     // In dev, we do an if-modified-since query rather than trusting
@@ -51,19 +49,45 @@ if (args.dev) {
     fetchPackage.setTimeout(null);
     // Disable the need for secrets.
     renderSecret.matches = (actual) => true;
-
-    // Add HTTP logging to standard out.
-    appWithLogging.use(morgan("dev"), app);
 } else {
     // In production, we write to a file which magically gets picked up by the
     // AppEngine log service so we can see them in the log viewer.
     //
     // https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
-    const managedVMLogPath = "/var/log/app_engine/request.log";
-    const accessLogStream = fs.createWriteStream(managedVMLogPath,
-                                                 {flags: 'a'});
-    appWithLogging.use(morgan("combined", {stream: accessLogStream}), app);
+    // TODO(csilvers): is this necessary?  This page hints no:
+    // https://cloud.google.com/nodejs/getting-started/logging-application-events
+    //const managedVMLogPath = "/var/log/app_engine/request.log";
+    //const accessLogStream = fs.createWriteStream(managedVMLogPath,
+    //                                             {flags: 'a'});
 }
+
+// Add logging support, based on
+//   https://cloud.google.com/nodejs/getting-started/logging-application-events
+const appWithLogging = express();
+appWithLogging.use(expressWinston.logger({      // request logging
+    transports: [
+        new winston.transports.Console({
+            json: false,
+            colorize: args.dev,    // colorize for dev, but not prod
+        }),
+    ],
+    expressFormat: true,
+    meta: false,
+}));
+appWithLogging.use(expressWinston.errorLogger({      // error logging
+    transports: [
+        new winston.transports.Console({
+            json: true,
+            colorize: args.dev,
+        }),
+    ],
+}));
+// Send a 500 on all uncaught exceptions.
+// We also append the normal app on after this, and we're all set!
+appWithLogging.use(function(err, req, res, next) {
+    res.status(500).send('Something broke!');
+}, app);
+
 cache.init(args.cacheSize * 1024 * 1024);
 
 // Don't let unhandled Promise rejections fail silently.
