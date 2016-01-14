@@ -100,15 +100,16 @@ app.post('/render', (req, res) => {
             if (err.response && err.response.error) {
                 console.error('Fetching failure: ' + err.response.error + ': ',
                               err.stack);
+                res.status(500).json({error: err});
             } else {
                 console.error('Fetching failure: ', err.stack);
+                res.status(500).json({error: err.toString()});
             }
-            res.status(500).json({error: err});
         })
         .catch((err) => {
             // Error handler for rendering failures
             console.error('Rendering failure:', err.stack);
-            res.status(500).json({error: err});
+            res.status(500).json({error: err.toString()});
         });
 });
 
