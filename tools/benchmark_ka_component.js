@@ -211,8 +211,10 @@ const render = function(componentPath, fixturePath, instanceSeed,
             props: props,
         };
 
+        const url = renderHostPort + "/render?path=" + componentPath;
+
         return requestToPromise(
-            superagent.post(renderHostPort + "/render").send(reqBody)
+            superagent.post(url).send(reqBody)
         );
     }).then(res => {
         console.log(`${componentPath}: ${res.text.length}`);
