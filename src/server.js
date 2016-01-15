@@ -9,6 +9,7 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 
+const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
@@ -113,6 +114,30 @@ app.post('/render', (req, res) => {
         });
 });
 
+
+/**
+ * Flush all the caches.
+ *
+ * This can be useful when there's weird errors that may be due to bad
+ * caching, or for testing.
+ *
+ * The post data is sent in the request body as json, in the following format:
+ * {
+ *    "secret": "...."
+ * }
+ *
+ * 'secret' is a shared secret.  It must equal the value of the 'secret'
+ * file in the server's base-directory, or the server will deny the request.
+ * NOTE: In dev mode, the secret field is ignored.
+ */
+app.post('/flush', (req, res) => {
+    if (!renderSecret.matches(req.body.secret)) {
+        res.status(400).json({error: 'Missing or invalid secret'});
+        return;
+    }
+    cache.reset();
+    res.send('Flushed\n');
+});
 
 app.get('/_api/ping', (req, res) => { res.send('pong!\n'); });
 

@@ -9,6 +9,7 @@ const sinon = require("sinon");
 const supertest = require("supertest");
 
 const cache = require("./cache.js");
+const fetchPackage = require("./fetch_package.js");
 const renderSecret = require("./secret.js");
 const server = require("./server.js");
 
@@ -149,7 +150,7 @@ describe('API endpoint /render', () => {
         let remainingTests = invalidInputs.length;
 
         invalidInputs.forEach((testJson) => {
-            agent.post('/render').send({}).expect(
+            agent.post('/render').send(testJson).expect(
                 res => assert.equal(400, res.status)
             ).end(() => {
                 if (--remainingTests === 0) {
@@ -159,3 +160,60 @@ describe('API endpoint /render', () => {
         });
     });
 });
+
+describe('API endpoint /flush', () => {
+    const agent = supertest.agent(server);
+
+    let mockScope;
+
+    before(() => {
+        nock.disableNetConnect();
+        nock.enableNetConnect('127.0.0.1');
+    });
+
+    beforeEach(() => {
+        mockScope = nock('https://www.khanacademy.org');
+        cache.init(10000);
+        sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
+        cache.destroy();
+        renderSecret.matches.restore();
+    });
+
+    it('should empty the cache', (done) => {
+        const url = 'https://www.khanacademy.org/corelibs-package.js';
+        mockScope.get('/corelibs-package.js').reply(200, 'test contents');
+        mockScope.get('/corelibs-package.js').reply(200, 'must refetch');
+
+        fetchPackage(url).then((res) => {
+            assert.equal(res, "test contents");
+            return fetchPackage(url);
+        }).then((res) => {
+            // Should still be cached.
+            assert.equal(res, "test contents");
+            agent
+                .post('/flush')
+                .send({secret: 'sekret'})
+                .expect((res) => {
+                    assert.equal('Flushed\n', res.text);
+                })
+                .end(() => {
+                    fetchPackage(url).then((res) => {
+                        assert.equal(res, "must refetch");
+                        mockScope.done();
+                        done();
+                    });
+                });
+        });
+    });
+
+    it("should require a valid secret", (done) => {
+        agent.post('/flush').send({secret: 'bad sekret'}).expect(
+            res => assert.equal(400, res.status)
+        ).end(done);
+    });
+});
+
