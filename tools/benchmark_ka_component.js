@@ -219,8 +219,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
     }).catch(err => {
         // If it's an http error, print the status code rather than name,
         // and the error text if the body is json.
-        if (err.response && err.response.status && err.response.text &&
-                err.response.text.indexOf('"error"') > -1) {
+        if (err.response && err.response.status && err.response.text) {
             console.log(`${componentPath}: ` +
                         `${err.response.text} (${err.response.status})`);
         } else {
