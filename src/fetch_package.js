@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Fetch a package from the place that has packages.
  *
@@ -11,6 +9,8 @@
  * The server that holds the package information is hard-coded in this
  * file, to avoid letting this server execute arbitrary code.
  */
+
+'use strict';
 
 const request = require('superagent');
 

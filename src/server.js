@@ -1,13 +1,12 @@
-'use strict';
-
 /**
  * The high-level logic for our serving endpoints (api routes).
  */
 
-/* eslint-disable no-console */
+'use strict';
 
 const bodyParser = require("body-parser");
 const express = require("express");
+const logging = require("winston");
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
@@ -99,17 +98,17 @@ app.post('/render', (req, res) => {
         (err) => {
             // Error handler for fetching failures.
             if (err.response && err.response.error) {
-                console.error('Fetching failure: ' + err.response.error + ': ',
+                logging.error('Fetching failure: ' + err.response.error + ': ',
                               err.stack);
                 res.status(500).json({error: err});
             } else {
-                console.error('Fetching failure: ', err.stack);
+                logging.error('Fetching failure: ', err.stack);
                 res.status(500).json({error: err.toString()});
             }
         })
         .catch((err) => {
             // Error handler for rendering failures
-            console.error('Rendering failure:', err.stack);
+            logging.error('Rendering failure:', err.stack);
             res.status(500).json({error: err.toString()});
         });
 });

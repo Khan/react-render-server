@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * A singleton LRU cache implementation.
  *
@@ -7,6 +5,8 @@
  * Unfortunately, bejeezuses take up a lot of memory, so we use a
  * cache to control that.
  */
+
+'use strict';
 
 const lruCache = require("lru-cache");
 

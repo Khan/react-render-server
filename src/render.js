@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * The core functionality of actually rendering a react component.
  *
@@ -7,6 +5,8 @@
  * component, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
+
+'use strict';
 
 const vm = require("vm");
 

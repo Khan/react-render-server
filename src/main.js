@@ -1,15 +1,15 @@
-'use strict';
-
 /**
  * The main entrypoint for our react-component render server.
  */
 
-/* eslint-disable no-console */
+'use strict';
+
 const fs = require("fs");
 
 const argparse = require("argparse");
 const express = require("express");
 const morgan = require("morgan");
+const logging = require("winston");
 
 const app = require("./server.js");
 const cache = require("./cache.js");
@@ -72,14 +72,14 @@ cache.init(args.cacheSize * 1024 * 1024);
 // if any, 500'ing, but I don't know how you'd be able to recover a reference
 // to the request from reason or p.
 process.on('unhandledRejection', (reason, p) => {
-    console.log("Unhandled Rejection at: Promise ", p,
-                " reason: ", reason.stack);
+    logging.error("Unhandled Rejection at: Promise ", p,
+                  " reason: ", reason.stack);
 });
 
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;
 
-    console.log('react-render-server running at http://%s:%s', host, port);
+    logging.info('react-render-server running at http://%s:%s', host, port);
 });
 

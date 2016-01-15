@@ -14,7 +14,8 @@
  *     PROFILE: doing foo (finished after 16.7658 ms)
  */
 
-/* eslint-disable no-console */
+const logging = require('winston');
+
 
 const hrtToMs = (hrt) => {
     // high resolution timestamps are a tuple [seconds, nanoseconds]
@@ -22,14 +23,15 @@ const hrtToMs = (hrt) => {
 };
 
 const start = (msg, includeStartMessage) => {
+    // TODO(csilvers): return an empty function if the log-level is >= debug?
     if (includeStartMessage) {
-        console.log('PROFILE: %s (start)', msg);
+        logging.debug('PROFILE: %s (start)', msg);
     }
     const startTime = process.hrtime();
     return {
         end: () => {
             const endTime = process.hrtime();
-            console.log('PROFILE: %s (finished after %d ms)',
+            logging.debug('PROFILE: %s (finished after %d ms)',
                 msg,
                 (hrtToMs(endTime) - hrtToMs(startTime)).toFixed(4));
         },

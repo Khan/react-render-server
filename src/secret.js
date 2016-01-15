@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * A simple module for exposing the secret for /render calls.
  *
@@ -11,10 +9,12 @@
  * also one reason we have this weird matches() indirection.
  */
 
-/* eslint-disable no-console */
+'use strict';
 
 const fs = require("fs");
 const path = require("path");
+
+const logging = require("winston");
 
 const secretPath = path.normalize(__dirname + "/../secret");
 let secret;
@@ -28,10 +28,10 @@ const get = function() {
                 throw new Error('secret file is empty!');
             }
         } catch (err) {
-            console.log(`FATAL ERROR (${err}): You must create a file:`);
-            console.log('    ' + secretPath);
-            console.log('Its contents should be the secret-string at');
-            console.log('    https://phabricator.khanacademy.org/K121');
+            logging.log(`FATAL ERROR (${err}): You must create a file:`);
+            logging.log('    ' + secretPath);
+            logging.log('Its contents should be the secret-string at');
+            logging.log('    https://phabricator.khanacademy.org/K121');
             throw err;
         }
     }
