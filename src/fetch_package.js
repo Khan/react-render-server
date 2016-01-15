@@ -89,7 +89,7 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
 
         const fetcher = request.get(url);
         // We give the fetcher 60 seconds to get a response that we
-        // can cache.  (Note the promise returned by this function
+        // can cache.  (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
         if (cachedValue && cachedValue.header['last-modified']) {
