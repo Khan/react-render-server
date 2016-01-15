@@ -129,6 +129,28 @@ const getVMContext = function(jsPackages, pathToReactComponent,
                             `${React.version}, but is using React ` +
                             `version ${ReactDOMServer.version}`);
         }
+
+        try {
+            global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
+
+            // Make sure we're using a new enough version of Aphrodite
+            global.StyleSheetServer.renderStatic;
+        } catch (e) {
+            // If we're here, it should mean that the component being rendered
+            // does not depend on Aphrodite. We'll make a stub instead ot make
+            // the code below simpler.
+            global.StyleSheetServer = {
+                renderStatic: (cb) => {
+                    return {
+                        html: cb(),
+                        css: {
+                            content: "",
+                            renderedClassNames: [],
+                        },
+                    };
+                },
+            };
+        }
     });
 
     if (cacheBehavior !== 'ignore') {
@@ -187,14 +209,8 @@ const render = function(jsPackages, pathToReactComponent, props,
     const ret = runInContext(context, () => {
         const Component = KAdefine.require(global.pathToReactComponent);
         const reactElement = React.createElement(Component, global.reactProps);
-        const html = ReactDOMServer.renderToString(reactElement);
-        return {
-            html: html,
-            css: {
-                content: "",   // TODO(csilvers): figure this out
-                renderedClassNames: [],  // TODO(csilvers): figure this out
-            },
-        };
+        return global.StyleSheetServer.renderStatic(
+            () => ReactDOMServer.renderToString(reactElement));
     });
 
     renderProfile.end();

@@ -1,156 +1,3 @@
-KAdefine("third_party/javascript-khansrc/es5-shim/function-prototype-bind-polyfill.js", function(__KA_require, __KA_module, __KA_exports) {
-// Function.prototype.bind polyfill, extracted from es5-shim at
-// https://github.com/es-shims/es5-shim/blob/8a90ad2de61931a8bf53cfd6858e24c37e24b9d6/es5-shim.js
-//
-// This is used at KA by the PhantomJS test runner, which doesn't
-// support Function.prototype.bind prior to version 2.x.
-//
-// It is also required on the main site for the exercise snapshot
-// utility, which runs in PhantomJS and loads the exercise content in an
-// iframe and doesn't inject this script.
-
-(function () {
-
-var prototypeOfArray = Array.prototype;
-var _Array_slice_ = prototypeOfArray.slice;
-
-function Empty() {}
-
-if (!Function.prototype.bind) {
-    Function.prototype.bind = function bind(that) { // .length is 1
-        // 1. Let Target be the this value.
-        var target = this;
-        // 2. If IsCallable(Target) is false, throw a TypeError exception.
-        if (typeof target !== "function") {
-            throw new TypeError("Function.prototype.bind called on incompatible " + target);
-        }
-        // 3. Let A be a new (possibly empty) internal list of all of the
-        //   argument values provided after thisArg (arg1, arg2 etc), in order.
-        // XXX slicedArgs will stand in for "A" if used
-        var args = _Array_slice_.call(arguments, 1); // for normal call
-        // 4. Let F be a new native ECMAScript object.
-        // 11. Set the [[Prototype]] internal property of F to the standard
-        //   built-in Function prototype object as specified in 15.3.3.1.
-        // 12. Set the [[Call]] internal property of F as described in
-        //   15.3.4.5.1.
-        // 13. Set the [[Construct]] internal property of F as described in
-        //   15.3.4.5.2.
-        // 14. Set the [[HasInstance]] internal property of F as described in
-        //   15.3.4.5.3.
-        var binder = function () {
-
-            if (this instanceof bound) {
-                // 15.3.4.5.2 [[Construct]]
-                // When the [[Construct]] internal method of a function object,
-                // F that was created using the bind function is called with a
-                // list of arguments ExtraArgs, the following steps are taken:
-                // 1. Let target be the value of F's [[TargetFunction]]
-                //   internal property.
-                // 2. If target has no [[Construct]] internal method, a
-                //   TypeError exception is thrown.
-                // 3. Let boundArgs be the value of F's [[BoundArgs]] internal
-                //   property.
-                // 4. Let args be a new list containing the same values as the
-                //   list boundArgs in the same order followed by the same
-                //   values as the list ExtraArgs in the same order.
-                // 5. Return the result of calling the [[Construct]] internal
-                //   method of target providing args as the arguments.
-
-                var result = target.apply(
-                    this,
-                    args.concat(_Array_slice_.call(arguments))
-                );
-                if (Object(result) === result) {
-                    return result;
-                }
-                return this;
-
-            } else {
-                // 15.3.4.5.1 [[Call]]
-                // When the [[Call]] internal method of a function object, F,
-                // which was created using the bind function is called with a
-                // this value and a list of arguments ExtraArgs, the following
-                // steps are taken:
-                // 1. Let boundArgs be the value of F's [[BoundArgs]] internal
-                //   property.
-                // 2. Let boundThis be the value of F's [[BoundThis]] internal
-                //   property.
-                // 3. Let target be the value of F's [[TargetFunction]] internal
-                //   property.
-                // 4. Let args be a new list containing the same values as the
-                //   list boundArgs in the same order followed by the same
-                //   values as the list ExtraArgs in the same order.
-                // 5. Return the result of calling the [[Call]] internal method
-                //   of target providing boundThis as the this value and
-                //   providing args as the arguments.
-
-                // equiv: target.call(this, ...boundArgs, ...args)
-                return target.apply(
-                    that,
-                    args.concat(_Array_slice_.call(arguments))
-                );
-
-            }
-
-        };
-
-        // 15. If the [[Class]] internal property of Target is "Function", then
-        //     a. Let L be the length property of Target minus the length of A.
-        //     b. Set the length own property of F to either 0 or L, whichever is
-        //       larger.
-        // 16. Else set the length own property of F to 0.
-
-        var boundLength = Math.max(0, target.length - args.length);
-
-        // 17. Set the attributes of the length own property of F to the values
-        //   specified in 15.3.5.1.
-        var boundArgs = [];
-        for (var i = 0; i < boundLength; i++) {
-            boundArgs.push("$" + i);
-        }
-
-        // XXX Build a dynamic function with desired amount of arguments is the only 
-        // way to set the length property of a function.
-        // In environments where Content Security Policies enabled (Chrome extensions,
-        // for ex.) all use of eval or Function costructor throws an exception.
-        // However in all of these environments Function.prototype.bind exists
-        // and so this code will never be executed.
-        var bound = Function("binder", "return function(" + boundArgs.join(",") + "){return binder.apply(this,arguments)}")(binder);
-
-        if (target.prototype) {
-            Empty.prototype = target.prototype;
-            bound.prototype = new Empty();
-            // Clean up dangling references.
-            Empty.prototype = null;
-        }
-
-        // TODO
-        // 18. Set the [[Extensible]] internal property of F to true.
-
-        // TODO
-        // 19. Let thrower be the [[ThrowTypeError]] function Object (13.2.3).
-        // 20. Call the [[DefineOwnProperty]] internal method of F with
-        //   arguments "caller", PropertyDescriptor {[[Get]]: thrower, [[Set]]:
-        //   thrower, [[Enumerable]]: false, [[Configurable]]: false}, and
-        //   false.
-        // 21. Call the [[DefineOwnProperty]] internal method of F with
-        //   arguments "arguments", PropertyDescriptor {[[Get]]: thrower,
-        //   [[Set]]: thrower, [[Enumerable]]: false, [[Configurable]]: false},
-        //   and false.
-
-        // TODO
-        // NOTE Function objects created using Function.prototype.bind do not
-        // have a prototype property or the [[Code]], [[FormalParameters]], and
-        // [[Scope]] internal properties.
-        // XXX can't delete prototype in pure-js.
-
-        // 22. Return F.
-        return bound;
-    };
-}
-
-})();
-});
 KAdefine("javascript/shared-package/ka.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
 /* eslint-disable comma-dangle */
@@ -832,7 +679,8 @@ KAdefine("javascript/shared-package/package-manager.js", function(require, modul
 var $ = require("jquery");
 var _ = require("../../third_party/javascript-khansrc/lodash/lodash.js");
 
-var KA = require("./ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 
 var staticUrl = function (path) {
     // In IE9, we can't have this request change protocol.
@@ -850,9 +698,6 @@ var PACKAGE_LEVEL_CALCULATING = -1;
 
 // @type {Object.<string, _Package>} Map from package name to _Package instance
 var _packagesByName = {};
-
-// Deferred which resolves when manifests are registered for the first time.
-var manifestsRegistered = $.Deferred();
 
 /**
  * A _Package represents the lifecycle of a single file being downloaded and
@@ -945,9 +790,7 @@ _Package = (function () {
      */_Package.prototype.
     markExecuted = function markExecuted() {
         this._state = PACKAGE_STATE_EXECUTED;
-        var deferred = $.Deferred();
-        deferred.resolve();
-        this._fetchingPromise = deferred.promise();};
+        this._fetchingPromise = Promise.resolve();};
 
 
     /**
@@ -963,23 +806,19 @@ _Package = (function () {
             return this._fetchingPromise;}
 
 
-        var deferred = $.Deferred();
-        this._fetchingPromise = deferred.promise();
+        this._fetchingPromise = new Promise(function (resolve) {
+            // We delay sending off ajax requests to load async packages until
+            // all the things required to render the initial page load are
+            // done running.
+            $(document).ready(function () {
+                khanFetch(_this._url).
+                then(function (resp) {return resp.text();}).
+                then(function (data) {
+                    _this._content = data;
+                    _this._state = PACKAGE_STATE_LOADED;
+                    resolve();});});});
 
-        // We delay sending off ajax requests to load async packages until
-        // all the things required to render the initial page load are
-        // done running.
-        $(document).ready(function () {
-            $.ajax({ 
-                type: "GET", 
-                url: _this._url, 
-                // We set dataType: html to prevent jQuery from trying to
-                // execute the JS it downloads immediately.
-                dataType: "html" }).
-            then(function (data) {
-                _this._content = data;
-                _this._state = PACKAGE_STATE_LOADED;
-                deferred.resolve();});});
+
 
 
         this._state = PACKAGE_STATE_LOADING;
@@ -1001,8 +840,10 @@ _Package = (function () {
 
 
         if (this._content === null) {
-            throw new Error("_Package " + 
-            name + " cannot be executed without content.");}
+            var errorMsg = "_Package " + 
+            name + " cannot be executed without content.";
+            console.error(errorMsg);
+            throw new Error(errorMsg);}
 
 
         var ext = this._name.slice(this._name.lastIndexOf(".") + 1);
@@ -1032,7 +873,7 @@ _Package = (function () {
         var transitiveDeps = this._getTransitiveDependencies().
         sort(function (a, b) {return a._getLevel() - b._getLevel();});
 
-        return $.when.apply($.when, 
+        return Promise.all(
         transitiveDeps.map(function (pkg) {return pkg._fetch();})).
         then(function () {
             transitiveDeps.forEach(function (pkg) {return pkg._execute();});});};
@@ -1117,6 +958,11 @@ _Package = (function () {
 
 window.PackageManager = window.PackageManager || {};
 
+// Promise which resolves when manifests are registered for the first time.
+PackageManager._manifestsRegistered = new Promise(function (resolve) {
+    PackageManager._resolveManifestsRegistered = resolve;});
+
+
 /**
  * Mark previously executed packages as executed.
  */
@@ -1180,19 +1026,19 @@ var logDynamicRequire = (function () {
  *   executed.
  */
 PackageManager.require = function () {for (var _len = arguments.length, packageNames = Array(_len), _key = 0; _key < _len; _key++) {packageNames[_key] = arguments[_key];}
-    return $.when.apply($.when, packageNames.map(function (name) {
+    return Promise.all(packageNames.map(function (name) {
         if (KA.IS_DEV_SERVER) {
             logDynamicRequire(name);}
 
 
         // We allow you to do a PackageManager.require() call before the
         // manifests are registered. If packages are registered, but the package
-        // *still* isn't defined, we'll _Package.get(name) will still throw
-        // though.
+        // *still* isn't defined, _Package.get(name) will console log an error
+        // and produce an error via `.catch()`.
         if (_Package.isDefined(name)) {
             return _Package.get(name).fetchAndExecute();} else 
         {
-            return manifestsRegistered.then(function () {
+            return PackageManager._manifestsRegistered.then(function () {
                 return _Package.get(name).fetchAndExecute();});}}));};
 
 
@@ -1259,7 +1105,7 @@ PackageManager.registerDynamic = function (options) {
 PackageManager.registerManifests = function (manifests) {
     (manifests["javascript"] || []).forEach(PackageManager.registerDynamic);
     (manifests["stylesheets"] || []).forEach(PackageManager.registerDynamic);
-    manifestsRegistered.resolve();};
+    PackageManager._resolveManifestsRegistered();};
 
 
 module.exports = PackageManager;
@@ -1520,60 +1366,9 @@ module.exports =
 
 	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
 
-	var _generate = __webpack_require__(2);
+	var _util = __webpack_require__(2);
 
-	var _util = __webpack_require__(3);
-
-	var injectStyles = function injectStyles(cssContents) {
-	    // Taken from
-	    // http://stackoverflow.com/questions/524696/how-to-create-a-style-tag-with-javascript
-	    var head = document.head || document.getElementsByTagName('head')[0];
-	    var style = document.createElement('style');
-
-	    style.type = 'text/css';
-	    if (style.styleSheet) {
-	        style.styleSheet.cssText = cssContents;
-	    } else {
-	        style.appendChild(document.createTextNode(cssContents));
-	    }
-
-	    head.appendChild(style);
-	};
-
-	var alreadyInjected = {};
-	var injectionBuffer = "";
-	var injectionMode = 'IMMEDIATE';
-
-	// Custom handlers for stringifying CSS values that have side effects
-	// (such as fontFamily, which can cause @font-face rules to be injected)
-	var stringHandlers = {
-	    // With fontFamily we look for objects that are passed in and interpret
-	    // them as @font-face rules that we need to inject. The value of fontFamily
-	    // can either be a string (as normal), an object (a single font face), or
-	    // an array of objects and strings.
-	    fontFamily: function fontFamily(val) {
-	        if (Array.isArray(val)) {
-	            return val.map(fontFamily).join(",");
-	        } else if (typeof val === "object") {
-	            injectStyleOnce(val.fontFamily, "@font-face", [val]);
-	            return '"' + val.fontFamily + '"';
-	        } else {
-	            return val;
-	        }
-	    }
-	};
-
-	var injectStyleOnce = function injectStyleOnce(key, selector, definitions) {
-	    if (!alreadyInjected[key]) {
-	        var generated = (0, _generate.generateCSS)(selector, definitions, stringHandlers);
-	        if (injectionMode === 'BUFFER') {
-	            injectionBuffer += generated;
-	        } else {
-	            injectStyles(generated);
-	        }
-	        alreadyInjected[key] = true;
-	    }
-	};
+	var _inject = __webpack_require__(3);
 
 	var StyleSheet = {
 	    create: function create(sheetDefinition) {
@@ -1583,30 +1378,38 @@ module.exports =
 	            var key = _ref2[0];
 	            var val = _ref2[1];
 
-	            // TODO(jlfwong): Figure out a way (probably an AST transform) to
-	            // make the ID stable here to enable server -> client rehydration.
-	            // Probably just use a large random number (but one that's
-	            // determined at build time instead of runtime).
 	            return [key, {
-	                _name: key + '_' + (0, _util.nextID)(),
+	                // TODO(emily): Make a 'production' mode which doesn't prepend
+	                // the class name here, to make the generated CSS smaller.
+	                _name: key + '_' + (0, _util.hashObject)(val),
 	                _definition: val
 	            }];
 	        });
 	    },
 
-	    startBuffering: function startBuffering() {
-	        injectionMode = 'BUFFER';
-	    },
+	    renderBuffered: function renderBuffered(renderFunc) {
+	        var renderedClassNames = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
-	    flush: function flush() {
-	        if (injectionMode !== 'BUFFER') {
-	            return;
-	        }
-	        if (injectionBuffer.length > 0) {
-	            injectStyles(injectionBuffer);
-	        }
-	        injectionMode = 'IMMEDIATE';
-	        injectionBuffer = "";
+	        (0, _inject.addRenderedClassNames)(renderedClassNames);
+	        (0, _inject.startBuffering)(false);
+	        renderFunc(_inject.flushToStyleTag);
+	    }
+	};
+
+	var StyleSheetServer = {
+	    renderStatic: function renderStatic(renderFunc) {
+	        (0, _inject.reset)();
+	        (0, _inject.startBuffering)(true);
+	        var html = renderFunc();
+	        var cssContent = (0, _inject.flushToString)();
+
+	        return {
+	            html: html,
+	            css: {
+	                content: cssContent,
+	                renderedClassNames: (0, _inject.getRenderedClassNames)()
+	            }
+	        };
 	    }
 	};
 
@@ -1629,7 +1432,7 @@ module.exports =
 	    var className = validDefinitions.map(function (s) {
 	        return s._name;
 	    }).join("-o_O-");
-	    injectStyleOnce(className, '.' + className, validDefinitions.map(function (d) {
+	    (0, _inject.injectStyleOnce)(className, '.' + className, validDefinitions.map(function (d) {
 	        return d._definition;
 	    }));
 
@@ -1638,71 +1441,13 @@ module.exports =
 
 	exports['default'] = {
 	    StyleSheet: StyleSheet,
+	    StyleSheetServer: StyleSheetServer,
 	    css: css
 	};
 	module.exports = exports['default'];
 
 /***/ },
 /* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	    value: true
-	});
-
-	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
-
-	var _util = __webpack_require__(3);
-
-	var generateCSS = function generateCSS(selector, styleTypes, stringHandlers) {
-	    var merged = styleTypes.reduce(_util.recursiveMerge);
-
-	    var declarations = {};
-	    var mediaQueries = {};
-	    var pseudoStyles = {};
-
-	    Object.keys(merged).forEach(function (key) {
-	        if (key[0] === ':') {
-	            pseudoStyles[key] = merged[key];
-	        } else if (key[0] === '@') {
-	            mediaQueries[key] = merged[key];
-	        } else {
-	            declarations[key] = merged[key];
-	        }
-	    });
-
-	    return generateCSSRuleset(selector, declarations, stringHandlers) + Object.keys(pseudoStyles).map(function (pseudoSelector) {
-	        return generateCSSRuleset(selector + pseudoSelector, pseudoStyles[pseudoSelector], stringHandlers);
-	    }).join("") + Object.keys(mediaQueries).map(function (mediaQuery) {
-	        var ruleset = generateCSS(selector, [mediaQueries[mediaQuery]], stringHandlers);
-	        return mediaQuery + '{' + ruleset + '}';
-	    }).join("");
-	};
-
-	exports.generateCSS = generateCSS;
-	var generateCSSRuleset = function generateCSSRuleset(selector, declarations, stringHandlers) {
-	    var rules = (0, _util.objectToPairs)(declarations).map(function (_ref) {
-	        var _ref2 = _slicedToArray(_ref, 2);
-
-	        var key = _ref2[0];
-	        var value = _ref2[1];
-
-	        var stringValue = (0, _util.stringifyValue)(key, value, stringHandlers);
-	        return (0, _util.kebabifyStyleName)(key) + ':' + stringValue + ' !important;';
-	    }).join("");
-
-	    if (rules) {
-	        return selector + '{' + rules + '}';
-	    } else {
-	        return "";
-	    }
-	};
-	exports.generateCSSRuleset = generateCSSRuleset;
-
-/***/ },
-/* 3 */
 /***/ function(module, exports) {
 
 	// {K1: V1, K2: V2, ...} -> [[K1, V1], [K2, V2]]
@@ -1753,16 +1498,6 @@ module.exports =
 	};
 
 	exports.kebabifyStyleName = kebabifyStyleName;
-	// Return a monotonically increasing counter
-	var nextID = (function () {
-	    var x = 0;
-	    return function () {
-	        x += 1;
-	        return x;
-	    };
-	})();
-
-	exports.nextID = nextID;
 	var recursiveMerge = function recursiveMerge(a, b) {
 	    // TODO(jlfwong): Handle malformed input where a and b are not the same
 	    // type.
@@ -1822,6 +1557,34 @@ module.exports =
 	    strokeWidth: true
 	};
 
+	/**
+	 * Taken from React's CSSProperty.js
+	 *
+	 * @param {string} prefix vendor-specific prefix, eg: Webkit
+	 * @param {string} key style name, eg: transitionDuration
+	 * @return {string} style name prefixed with `prefix`, properly camelCased, eg:
+	 * WebkitTransitionDuration
+	 */
+	function prefixKey(prefix, key) {
+	    return prefix + key.charAt(0).toUpperCase() + key.substring(1);
+	}
+
+	/**
+	 * Support style names that may come passed in prefixed by adding permutations
+	 * of vendor prefixes.
+	 * Taken from React's CSSProperty.js
+	 */
+	var prefixes = ['Webkit', 'ms', 'Moz', 'O'];
+
+	// Using Object.keys here, or else the vanilla for-in loop makes IE8 go into an
+	// infinite loop, because it iterates over the newly added props too.
+	// Taken from React's CSSProperty.js
+	Object.keys(isUnitlessNumber).forEach(function (prop) {
+	    prefixes.forEach(function (prefix) {
+	        isUnitlessNumber[prefixKey(prefix, prop)] = isUnitlessNumber[prop];
+	    });
+	});
+
 	var stringifyValue = function stringifyValue(key, prop, stringHandlers) {
 	    // If a handler exists for this particular key, let it interpret
 	    // that value first before continuing
@@ -1839,7 +1602,256 @@ module.exports =
 	        return prop;
 	    }
 	};
+
 	exports.stringifyValue = stringifyValue;
+	/**
+	 * JS Implementation of MurmurHash2
+	 *
+	 * @author <a href="mailto:gary.court@gmail.com">Gary Court</a>
+	 * @see http://github.com/garycourt/murmurhash-js
+	 * @author <a href="mailto:aappleby@gmail.com">Austin Appleby</a>
+	 * @see http://sites.google.com/site/murmurhash/
+	 *
+	 * @param {string} str ASCII only
+	 * @return {string} Base 36 encoded hash result
+	 */
+	function murmurhash2_32_gc(str) {
+	    var l = str.length;
+	    var h = l;
+	    var i = 0;
+	    var k = undefined;
+
+	    while (l >= 4) {
+	        k = str.charCodeAt(i) & 0xff | (str.charCodeAt(++i) & 0xff) << 8 | (str.charCodeAt(++i) & 0xff) << 16 | (str.charCodeAt(++i) & 0xff) << 24;
+
+	        k = (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0x5bd1e995 & 0xffff) << 16);
+	        k ^= k >>> 24;
+	        k = (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0x5bd1e995 & 0xffff) << 16);
+
+	        h = (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0x5bd1e995 & 0xffff) << 16) ^ k;
+
+	        l -= 4;
+	        ++i;
+	    }
+
+	    switch (l) {
+	        case 3:
+	            h ^= (str.charCodeAt(i + 2) & 0xff) << 16;
+	        case 2:
+	            h ^= (str.charCodeAt(i + 1) & 0xff) << 8;
+	        case 1:
+	            h ^= str.charCodeAt(i) & 0xff;
+	            h = (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0x5bd1e995 & 0xffff) << 16);
+	    }
+
+	    h ^= h >>> 13;
+	    h = (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0x5bd1e995 & 0xffff) << 16);
+	    h ^= h >>> 15;
+
+	    return (h >>> 0).toString(36);
+	}
+
+	// Hash a javascript object using JSON.stringify. This is very fast, about 3
+	// microseconds on my computer for a sample object:
+	// http://jsperf.com/test-hashfnv32a-hash/5
+	//
+	// Note that this uses JSON.stringify to stringify the objects so in order for
+	// this to produce consistent hashes browsers need to have a consistent
+	// ordering of objects. Ben Alpert says that Facebook depends on this, so we
+	// can probably depend on this too.
+	var hashObject = function hashObject(object) {
+	    return murmurhash2_32_gc(JSON.stringify(object));
+	};
+	exports.hashObject = hashObject;
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+
+	var _generate = __webpack_require__(4);
+
+	var injectStyleTag = function injectStyleTag(cssContents) {
+	    // Taken from
+	    // http://stackoverflow.com/questions/524696/how-to-create-a-style-tag-with-javascript
+	    var head = document.head || document.getElementsByTagName('head')[0];
+	    var style = document.createElement('style');
+
+	    style.type = 'text/css';
+	    if (style.styleSheet) {
+	        style.styleSheet.cssText = cssContents;
+	    } else {
+	        style.appendChild(document.createTextNode(cssContents));
+	    }
+
+	    head.appendChild(style);
+	};
+
+	// Custom handlers for stringifying CSS values that have side effects
+	// (such as fontFamily, which can cause @font-face rules to be injected)
+	var stringHandlers = {
+	    // With fontFamily we look for objects that are passed in and interpret
+	    // them as @font-face rules that we need to inject. The value of fontFamily
+	    // can either be a string (as normal), an object (a single font face), or
+	    // an array of objects and strings.
+	    fontFamily: function fontFamily(val) {
+	        if (Array.isArray(val)) {
+	            return val.map(fontFamily).join(",");
+	        } else if (typeof val === "object") {
+	            injectStyleOnce(val.fontFamily, "@font-face", [val], false);
+	            return '"' + val.fontFamily + '"';
+	        } else {
+	            return val;
+	        }
+	    }
+	};
+
+	// This is a map from Aphrodite's generated class names to `true` (acting as a
+	// set of class names)
+	var alreadyInjected = {};
+
+	// This is the buffer of styles which have not yet been flushed.
+	var injectionBuffer = "";
+
+	// We allow for concurrent calls to `renderBuffered`, this keeps track of which
+	// level of nesting we are currently at. 0 means no buffering, >0 means
+	// buffering.
+	var bufferLevel = 0;
+
+	// This tells us whether our previous request to buffer styles is from
+	// renderStatic or renderBuffered. We don't want to allow mixing of the two, so
+	// we keep track of which one we were in before. This only has meaning if
+	// bufferLevel > 0.
+	var inStaticBuffer = true;
+
+	var injectStyleOnce = function injectStyleOnce(key, selector, definitions, useImportant) {
+	    if (!alreadyInjected[key]) {
+	        var generated = (0, _generate.generateCSS)(selector, definitions, stringHandlers, useImportant);
+	        if (bufferLevel > 0) {
+	            injectionBuffer += generated;
+	        } else {
+	            injectStyleTag(generated);
+	        }
+	        alreadyInjected[key] = true;
+	    }
+	};
+
+	exports.injectStyleOnce = injectStyleOnce;
+	var reset = function reset() {
+	    injectionBuffer = "";
+	    alreadyInjected = {};
+	    bufferLevel = 0;
+	    inStaticBuffer = true;
+	};
+
+	exports.reset = reset;
+	var startBuffering = function startBuffering(isStatic) {
+	    if (bufferLevel > 0 && inStaticBuffer !== isStatic) {
+	        throw new Error("Can't interleave server-side and client-side buffering.");
+	    }
+	    inStaticBuffer = isStatic;
+	    bufferLevel++;
+	};
+
+	exports.startBuffering = startBuffering;
+	var flushToString = function flushToString() {
+	    bufferLevel--;
+	    if (bufferLevel > 0) {
+	        return "";
+	    } else if (bufferLevel < 0) {
+	        throw new Error("Aphrodite tried to flush styles more often than it tried to " + "buffer them. Something is wrong!");
+	    }
+
+	    var ret = injectionBuffer;
+	    injectionBuffer = "";
+	    return ret;
+	};
+
+	exports.flushToString = flushToString;
+	var flushToStyleTag = function flushToStyleTag() {
+	    var cssContent = flushToString();
+	    if (cssContent.length > 0) {
+	        injectStyleTag(cssContent);
+	    }
+	};
+
+	exports.flushToStyleTag = flushToStyleTag;
+	var getRenderedClassNames = function getRenderedClassNames() {
+	    return Object.keys(alreadyInjected);
+	};
+
+	exports.getRenderedClassNames = getRenderedClassNames;
+	var addRenderedClassNames = function addRenderedClassNames(classNames) {
+	    classNames.forEach(function (className) {
+	        alreadyInjected[className] = true;
+	    });
+	};
+	exports.addRenderedClassNames = addRenderedClassNames;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+
+	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+	var _util = __webpack_require__(2);
+
+	var generateCSS = function generateCSS(selector, styleTypes, stringHandlers, useImportant) {
+	    var merged = styleTypes.reduce(_util.recursiveMerge);
+
+	    var declarations = {};
+	    var mediaQueries = {};
+	    var pseudoStyles = {};
+
+	    Object.keys(merged).forEach(function (key) {
+	        if (key[0] === ':') {
+	            pseudoStyles[key] = merged[key];
+	        } else if (key[0] === '@') {
+	            mediaQueries[key] = merged[key];
+	        } else {
+	            declarations[key] = merged[key];
+	        }
+	    });
+
+	    return generateCSSRuleset(selector, declarations, stringHandlers, useImportant) + Object.keys(pseudoStyles).map(function (pseudoSelector) {
+	        return generateCSSRuleset(selector + pseudoSelector, pseudoStyles[pseudoSelector], stringHandlers, useImportant);
+	    }).join("") + Object.keys(mediaQueries).map(function (mediaQuery) {
+	        var ruleset = generateCSS(selector, [mediaQueries[mediaQuery]], stringHandlers, useImportant);
+	        return mediaQuery + '{' + ruleset + '}';
+	    }).join("");
+	};
+
+	exports.generateCSS = generateCSS;
+	var generateCSSRuleset = function generateCSSRuleset(selector, declarations, stringHandlers, useImportant) {
+	    var rules = (0, _util.objectToPairs)(declarations).map(function (_ref) {
+	        var _ref2 = _slicedToArray(_ref, 2);
+
+	        var key = _ref2[0];
+	        var value = _ref2[1];
+
+	        var stringValue = (0, _util.stringifyValue)(key, value, stringHandlers);
+	        var important = useImportant === false ? "" : " !important";
+	        return (0, _util.kebabifyStyleName)(key) + ':' + stringValue + important + ';';
+	    }).join("");
+
+	    if (rules) {
+	        return selector + '{' + rules + '}';
+	    } else {
+	        return "";
+	    }
+	};
+	exports.generateCSSRuleset = generateCSSRuleset;
 
 /***/ }
 /******/ ]);
@@ -3339,29 +3351,6 @@ module.exports = {
     eraseCookie: eraseCookie, 
     areCookiesEnabled: areCookiesEnabled };
 });
-KAdefine("javascript/shared-package/keyhandling.js", function(require, module, exports) {
-/**
- * Generic utilities related to keyboard handling and input event listneing.
- */
-
-// Namespace
-var Keys = {};
-
-
-/**
- * A space-separated list of event names appropriate for indication for
- * when a text-change event occured.
- *
- * This is "input" in browsers that support it, but approximated by
- * similar events in IE, with some loss in accuracy. (e.g. it doesn't
- * handle holding down a button and having a repeated character fire
- * repeated events)
- */
-Keys.textChangeEvents = "oninput" in document.createElement("input") ? 
-"input" : "keyup paste cut drop";
-
-module.exports = Keys;
-});
 KAdefine("javascript/shared-package/underscore-extensions.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
 /* eslint-disable comma-dangle */
@@ -3703,10 +3692,9 @@ KAdefine("javascript/shared-package/analytics.js", function(require, module, exp
  * sending script is fully loaded.
  */
 
-var $ = require("jquery");
-
 var BigBingo = require("./bigbingo.js");
-var KA = require("./ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;var formUrlencode = _require.formUrlencode;
 var VisitTracking = require("./visit-tracking.js");
 var escapeRegex = require("./regex-util.js").escapeRegex;
 
@@ -3797,7 +3785,7 @@ var Analytics = {
 
 
     trackSingleEvent: function (eventName, parameters) {
-        return $.when();}, 
+        return Promise.resolve();}, 
 
 
     /////////////////////////////////////////////////////////////////
@@ -3840,6 +3828,9 @@ var Analytics = {
      * resource timing API, and for KA package execution, for browsers
      * that support it (all modern ones do).  We then hit an API
      * endpoint on appengine that is made for receiving such data.
+     *
+     * @returns {Promise} A Promise that resolves when the request to send the
+     *     timings is done.
      */
     reportTiming: function () {
         if (!window.performance || !window.performance.timing) {
@@ -3963,7 +3954,7 @@ var Analytics = {
 
 
 
-        this._postTimings(dataToEventLogOnly, dataToGraphite);}, 
+        return this._postTimings(dataToEventLogOnly, dataToGraphite);}, 
 
 
     /**
@@ -3979,6 +3970,8 @@ var Analytics = {
      *     If null, we will not send this value to Google Analytics.
      *     We will also not send the value to Google Analytics if the
      *     global 'ga' variable is undefined.
+     * @returns {Promise} A Promise which resolves when the request to send
+     *     data to graphite is finished.
      */
     reportTimingToGraphiteAndGA: function (graphiteTimingName, gaTimingName) {
         var performance = window.performance;
@@ -3991,6 +3984,15 @@ var Analytics = {
         performance.now() : 
         getNow() - performance.timing.navigationStart);
 
+        if (gaTimingName && typeof ga !== "undefined") {
+            if (gaTimingMetricsReported[gaTimingName]) {
+                return;}
+
+            gaTimingMetricsReported[gaTimingName] = true;var _gaTimingName$split = 
+
+            gaTimingName.split(".");var category = _gaTimingName$split[0];var variable = _gaTimingName$split[1];
+            ga("send", "timing", category, variable, timing);}
+
         if (graphiteTimingName) {
             // Prevent double-reporting of metrics (eg. if a video is rendered
             // again due to client-side navigation).
@@ -4001,16 +4003,9 @@ var Analytics = {
 
             var dataToGraphite = {};
             dataToGraphite[graphiteTimingName] = timing;
-            this._postTimings({}, dataToGraphite);}
-
-        if (gaTimingName && typeof ga !== "undefined") {
-            if (gaTimingMetricsReported[gaTimingName]) {
-                return;}
-
-            gaTimingMetricsReported[gaTimingName] = true;var _gaTimingName$split = 
-
-            gaTimingName.split(".");var category = _gaTimingName$split[0];var variable = _gaTimingName$split[1];
-            ga("send", "timing", category, variable, timing);}}, 
+            return this._postTimings({}, dataToGraphite);} else 
+        {
+            return new Promise.resolve();}}, 
 
 
 
@@ -4053,17 +4048,22 @@ var Analytics = {
      *     milliseconds for given metric.
      * @param {object} dataToGA Map of graphite metric key to
      *     milliseconds for given metric.
+     * @returns {Promise} A promise which resolves when the timing request is
+     *     finished.
      */
     _postTimings: function (dataToEventLogOnly, dataToGraphite) {
         // /_mt/ puts this on a multithreaded module, which is slower
         // but cheaper.  We don't care how long this takes, so it's a
         // good choice for us!
-        $.post("/api/internal/_mt/elog", babelHelpers._extends({}, 
-        dataToEventLogOnly, 
-        dataToGraphite, { 
-            _request_id: KA.requestLogId, 
-            _graphite_key_prefix: KA.gaeStatsKeyPrefix, 
-            _graphite_keys: Object.keys(dataToGraphite).join() }));} };
+        return khanFetch("/api/internal/_mt/elog", { 
+            method: "POST", 
+            body: formUrlencode(babelHelpers._extends({}, 
+            dataToEventLogOnly, 
+            dataToGraphite, { 
+                _request_id: KA.requestLogId, 
+                _graphite_key_prefix: KA.gaeStatsKeyPrefix, 
+                _graphite_keys: Object.keys(dataToGraphite).join() })) });} };
+
 
 
 
@@ -4375,17 +4375,15 @@ KAdefine("javascript/shared-package/typeahead-loader.js", function(require, modu
  * a similar system where the React component can replace an existing input.
  */
 
-var $ = require("jquery");
-
-var KA = require("./ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 
 var suggestionsDeferred = null; // deferred for loading suggestion index
 
 var requireSuggestions = function () {
     if (!suggestionsDeferred) {
         var suggestionsUrl = "/api/internal/search/suggestions_index?v=1";
-
-        suggestionsDeferred = $.getJSON(suggestionsUrl);}
+        suggestionsDeferred = khanFetch(suggestionsUrl);}
 
     return suggestionsDeferred;};
 
@@ -4408,108 +4406,81 @@ var init = function () {
         return;}
 
 
+    var resolve = undefined;
     setTimeout(function () {
         loadJavaScript();
-        requireSuggestions();}, 
-    2000);};
+        resolve(requireSuggestions());}, 
+    2000);
+    return new Promise(function (res, rej) {return resolve = res;});};
 
 
 module.exports = { 
     init: init };
 });
 KAdefine("javascript/shared-package/api-action-results.js", function(require, module, exports) {
-/* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
-/* eslint-disable camelcase, comma-dangle, max-len, no-undef, no-unused-vars, one-var, prefer-template, space-before-function-paren */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
-
+/**
+ * Hello friend! APIActionResults is an observer for all requests that go
+ * through the page.
+ *
+ * It will listens for requests with the magic header "X-KA-API-Response" which
+ * is added in from api/route_decorator.py:add_api_header(). In
+ * api/internal/user.py, add_action_results takes care of bundling data to be
+ * digested by this client-side listener.
+ *
+ * When this header is found, this file looks at the data in the request for
+ * the actions contained within the request, and calls the handler that
+ * registered for that specific request.
+ *
+ * This file also adds some magic URL parameters and headers to outbound
+ * requests. In particular, it adds XSRF headers, a cachebusting parameter, and
+ * a language parameter.
+ */
 var $ = require("jquery");
-var jQuery = require("jquery");
-
+var Cookies = require("./cookies.js");
 var KA = require("./ka.js");
 var NotificationsLoader = require("./notifications-loader.js");
 
-var Cookies = require("./cookies.js");
-
-// Hello friend!
-// APIActionResults is an observer for all XHR responses that go through the page
-// The key being that it will listen for XHR messages with the magic header "X-KA-API-Response"
-// which is added in from api/__init__.py
-//
-// In api/v1.py, add_action_results takes care of bundling data to be digested by this client-side
-// listener. As a result, if you have something which happens as a result of an API POST, it's worth
-// investigating whether or not you can have it triggered here rather than in khan-exercise.js
 var APIActionResults = { 
-
     init: function () {
         this.hooks = [];
+        APIActionResults.addJQueryHooks();}, 
 
+
+    /**
+     * Add hooks to jQuery's ajax function to handle adding the
+     * parameters/headers to requests and inspecting the results for API action
+     * headers.
+     */
+    addJQueryHooks: function () {
         $(document).ajaxComplete(function (e, xhr, settings) {
-
-            if (xhr && 
-            xhr.getResponseHeader("X-KA-API-Version-Mismatch")) {
-                apiVersionMismatch();}
+            if (!xhr) {
+                return;}
 
 
-            if (xhr && 
-            xhr.getResponseHeader("X-KA-API-Response") && 
-            xhr.responseText) {
+            // Check for API version mismatches
+            // TODO(emily): This doesn't have to do with API action
+            // results, and should be moved somewhere else.
+            APIActionResults.checkApiVersionMismatch(
+            function (header) {return xhr.getResponseHeader(header);});
 
-                if (xhr.responseText.indexOf("action_results") === -1 && 
-                xhr.responseText.indexOf("actionResults") === -1) {
-                    // We can skip spending any time evaluating the response
-                    // if action results clearly aren't anywhere in the result.
-                    return;}
-
-
-                var result;
-                try {
-                    eval("result = " + xhr.responseText);} 
-                catch (err) {
-                    return;}
+            // Check the response for API actions
+            APIActionResults.checkApiResponse(
+            xhr.responseText, 
+            function (header) {return xhr.getResponseHeader(header);});});
 
 
-                if (result) {
-                    // Result format may differ depending on if 'casing=camel'
-                    // was provided in the request.
-                    var action = result["action_results"] || 
-                    result["actionResults"];
-                    if (action) {
-                        APIActionResults.respondToAction(action);}}}});
-
-
-
-
-
-        jQuery.ajaxSetup({ 
+        $.ajaxSetup({ 
             beforeSend: function (xhr, settings) {
-                // Add a lang=<language> param for all khan-academy calls if
-                // it does not already have the parameter set.
-                // TODO(csilvers): figure out what other routes js can call.
-                // TODO(kamens): some of our one-off pages that don't inherit
-                // from our standard template (e.g. /stories) need to make API
-                // calls even though the global KA object (and therefore
-                // KA.language) isn't defined. In these cases we assume the
-                // language should be english and don't send a lang= param. We
-                // may want to log this case in the future or make all
-                // top-level templates define the global KA object.
-                if (typeof KA !== "undefined" && KA.language && 
-                settings && settings.url && 
-                !/[?&]lang=/.test(settings.url) && (
-                settings.url.indexOf("/api/") > -1 || 
-                settings.url.indexOf("/profile/graph") > -1 || 
-                settings.url.indexOf("/goals/new") > -1 || 
-                settings.url.indexOf("/khan-exercises/exercises/") > -1)) {
-                    settings.url = settings.url + (
-                    /\?/.test(settings.url) ? "&" : "?") + 
-                    "lang=" + KA.language;}
+                // Add the language parameter.
+                // TODO(emily): This doesn't have to do with API action
+                // results, and should be moved somewhere else.
+                if (KA.language && settings && settings.url) {
+                    settings.url = APIActionResults.addLangParam(
+                    settings.url, KA.language);}
 
 
-                if (settings && settings.url && settings.url.indexOf("/api/") > -1) {
-
-                    // Add anti-cache parameter in url by default for all api
-                    // calls, unless they have the default 'v' parameter of
-                    // cacheable in api/decorators.py or they have
-                    // settings.cache already set.
+                if (settings && settings.url) {
+                    // Add the cache parameter.
                     //
                     // Note: We are adding this here instead of setting the
                     // cache parameter in ajaxSetup because that would affect
@@ -4519,37 +4490,181 @@ var APIActionResults = {
                     // because jquery adds the cache busting parameter before
                     // executing beforeSend.
                     //
-                    // Warning: if we ever get rid of calling
-                    // func = add_no_cache_header(func) by default in
+                    // Warning: if we ever get rid of calling func =
+                    // add_no_cache_header(func) by default in
                     // api/route_decorator.py and make sure we should remove
                     // this and make sure cache: false is set on all
                     // non-cacheable api ajax calls, otherwise Chrome will use
                     // the browser cache for ajax requests that happen on page
                     // load if we arrived at the page from the back button
                     // regardless of response header settings.
-                    if (settings.cache === undefined && !/[\?&]v=/.test(settings.url)) {
-                        // This code is copied from jquery.js
-                        var ts = jQuery.now(), 
-                        // try replacing _= if it is there
-                        ret = settings.url.replace(/([?&])_=[^&]*/, "$1_=" + ts);
-
-                        // if nothing was replaced, add timestamp to the end
-                        settings.url = ret + (ret === settings.url ? (/\?/.test(settings.url) ? "&" : "?") + "_=" + ts : "");}
+                    //
+                    // TODO(emily): This doesn't have to do with API action
+                    // results, and should be moved somewhere else.
+                    if (settings.cache === undefined) {
+                        settings.url = APIActionResults.addCacheParam(
+                        settings.url);}
 
 
-                    var xsrfToken = Cookies.readCookie("fkey");
-                    if (xsrfToken) {
-                        // Send xsrf token along via header so it can be matched up
-                        // w/ cookie value.
-                        xhr.setRequestHeader("X-KA-FKey", xsrfToken);} else 
-                    {
-                        apiVersionMismatch();
-                        if (settings.error) {
-                            settings.error();}
-
+                    // Adds the XSRF key to the request.
+                    // TODO(emily): This doesn't have to do with API action
+                    // results, and should be moved somewhere else.
+                    var succeeded = APIActionResults.addXsrfKey(
+                    settings.url, 
+                    function (name, value) {return xhr.setRequestHeader(name, value);});
+                    if (!succeeded) {
+                        // If adding the xsrf key failed, attempt to trigger
+                        // the error callback and cancel the request by
+                        // returning false.
+                        settings.error && settings.error();
                         return false;}}} });}, 
 
 
+
+
+
+
+    /**
+     * Add a lang=<language> param for all khan-academy calls if it does not
+     * already have the parameter set. TODO(csilvers): figure out what other
+     * routes js can call.
+     * TODO(kamens): some of our one-off pages that don't inherit from our
+     * standard template (e.g. /stories) need to make API calls even though the
+     * global KA object (and therefore KA.language) isn't defined. In these
+     * cases we assume the language should be english and don't send a lang=
+     * param. We may want to log this case in the future or make all top-level
+     * templates define the global KA object.
+     *
+     * TODO(emily): This doesn't have anything to do with API action results,
+     * and should probably be moved somewhere else.
+     *
+     * Arguments:
+     *   url: the URL of the request
+     *   lang: the current language
+     * Returns:
+     *   The url, maybe with a lang= parameter added
+     */
+    addLangParam: function (url, lang) {
+        if (!/[?&]lang=/.test(url) && (
+        url.indexOf("/api/") > -1 || 
+        url.indexOf("/profile/graph") > -1 || 
+        url.indexOf("/goals/new") > -1 || 
+        url.indexOf("/khan-exercises/exercises/") > -1)) {
+            return url + (/\?/.test(url) ? "&" : "?") + 
+            "lang=" + lang;}
+
+        return url;}, 
+
+
+    /**
+     * Add anti-cache parameter in url by default for all api calls, unless
+     * they have the default 'v' parameter of cacheable in api/decorators.py or
+     * if the cache parameter is already set.
+     *
+     * TODO(emily): This doesn't have anything to do with API action results,
+     * and should probably be moved somewhere else.
+     *
+     * Arguments:
+     *    url: the URL of the request
+     * Returns:
+     *    The url, maybe with a caching parameter added
+     */
+    addCacheParam: function (url) {
+        if (url.indexOf("/api/") > -1) {
+            if (!/[\?&]v=/.test(url)) {
+                // This code is adapted from jquery.js
+                var ts = +new Date();
+                // try replacing _= if it is there
+                var ret = url.replace(/([?&])_=[^&]*/, "$1_=" + ts);
+
+                // if nothing was replaced, add timestamp to the end
+                return ret + (
+                ret === url ? 
+                (/\?/.test(url) ? "&" : "?") + "_=" + ts : 
+                "");}}
+
+
+        return url;}, 
+
+
+    /**
+     * Send XSRF token in the request via header so it can be matched up w/
+     * cookie value.
+     *
+     * TODO(emily): This doesn't have anything to do with API action results,
+     * and should probably be moved somewhere else.
+     *
+     * Arguments:
+     *    url: the URL of the request
+     *    setHeaderCallback: a function which takes name and value arguments
+     *                       and sets the given header in the current request.
+     * Returns:
+     *    A boolean, where true indicates success and false indicates failure,
+     *    when the XSRF cookie couldn't be found and the request should be
+     *    aborted.
+     */
+    addXsrfKey: function (url, setHeaderCallback) {
+        if (url.indexOf("/api/") > -1) {
+            var xsrfToken = Cookies.readCookie("fkey");
+            if (xsrfToken) {
+                setHeaderCallback("X-KA-FKey", xsrfToken);
+                return true;} else 
+            {
+                APIActionResults._apiVersionMismatch();
+                return false;}}
+
+
+        return true;}, 
+
+
+    /**
+     * Checks a response for the version mismatch header, and reports an error
+     * if it is found.
+     *
+     * Arguments:
+     *    getHeaderCallback: a function that takes a header name argument and
+     *                       returns the value of that header in the response.
+     */
+    checkApiVersionMismatch: function (getHeaderCallback) {
+        if (getHeaderCallback("X-KA-API-Version-Mismatch")) {
+            APIActionResults._apiVersionMismatch();}}, 
+
+
+
+    /**
+     * Checks a response for API response actions, and responds to those
+     * actions appropriately.
+     *
+     * Arguments:
+     *    responseBody: the textual body of the request.
+     *    getHeaderCallback: a function that takes a header name argument and
+     *                       returns the value of that header in the response.
+     */
+    checkApiResponse: function (responseBody, getHeaderCallback) {
+        if (getHeaderCallback("X-KA-API-Response") && responseBody) {
+            if (responseBody.indexOf("action_results") === -1 && 
+            responseBody.indexOf("actionResults") === -1) {
+                // We can skip spending any time evaluating the response
+                // if action results clearly aren't anywhere in the result.
+                return;}
+
+
+            var result;
+            try {
+                // TODO(emily): Can this safely be turned into `var result =
+                // JSON.parse(responseBody);`?
+                eval("result = " + responseBody);} 
+            catch (err) {
+                return;}
+
+
+            if (result) {
+                // Result format may differ depending on if 'casing=camel'
+                // was provided in the request.
+                var action = result["action_results"] || 
+                result["actionResults"];
+                if (action) {
+                    APIActionResults.respondToAction(action);}}}}, 
 
 
 
@@ -4577,6 +4692,17 @@ var APIActionResults = {
 
 
     /**
+     * Reports that there is a mismatch in API versions.
+     */
+    _apiVersionMismatch: function () {
+        // Tell the notifications loader to render an urgent
+        // "ApiVersionMismatch" notification.
+        NotificationsLoader.loadUrgent({ 
+            class_: ["ApiVersionMismatchNotification"] });}, 
+
+
+
+    /**
      * Register both prop and the camelCase version of prop as an API event
      * listener.
      *
@@ -4586,65 +4712,65 @@ var APIActionResults = {
      */
     register: function (prop, fxn) {
         this.hooks[this.hooks.length] = { prop: prop, fxn: fxn };
-        this.hooks[this.hooks.length] = { prop: APIActionResults.toCamelCase(prop), fxn: fxn };} };
+        this.hooks[this.hooks.length] = { 
+            prop: APIActionResults.toCamelCase(prop), 
+            fxn: fxn };}, 
 
 
 
-var apiVersionMismatch = function () {
-    // Tell the notifications loader to render an urgent "ApiVersionMismatch"
-    // notification.
-    NotificationsLoader.loadUrgent({ 
-        class_: ["ApiVersionMismatchNotification"] });};
+    addDefaultHooks: function () {
+        if (window.ScratchpadUI && // @Nolint(emily)
+        ScratchpadUI.trusted && // @Nolint(emily): we need to access this
+        // globally here to check if it exists.
+        window !== top) {
+            // Do not register action results on an embedded scratchpad -- they
+            // will be passed up to the parent frame in ajaxComplete.
+            return;}
+
+        APIActionResults.register(
+        "notifications_added", 
+        NotificationsLoader.loadFromAPI.bind(NotificationsLoader));
+
+        APIActionResults.register("user_profile", function (profile) {
+            // Hack -- basically, the scratchpad API does not convert
+            // underscored_properties to camelCase, but user_profile expects
+            // camelCase when it parses out the Backbone UserProfile. The
+            // problem manifests as a false isAccessible but true is_accessible
+            // on the UserProfile object, which breaks the phantom user hover
+            // card content when talkies are initially viewed after logging out
+            // to create a new phantom user. But, this only causes problems on
+            // embedded scratchpads and happens to "work" on non-embedded
+            // scratchpads simply because "points" is the same attribute name
+            // in both underscore land and camel case land, and the scratchpad
+            // handler creates a pre_phantom user for every user -- since the
+            // Jinja template renderer checks this "user" property to be
+            // non-null, it then creates a UserProfile for the pre-phantom,
+            // with points set to 0. To fix everything momentarily, here we
+            // manually convert the user_profile JSON to camelCase. TODO
+            // (sophia/joel/john): Go through the CS scratchpad code and have
+            // the API return camelCased properties, or use a more robust
+            // workaround. Also investigate the necessity of having a
+            // pre_phantom user, which causes the jinja template renderer to
+            // create a UserProfile for the pre_phantom and populate it with
+            // the defaults.
+            var newProfile = {};
+            for (var attr in profile) {
+                if (profile.hasOwnProperty(attr)) {
+                    newProfile[APIActionResults.toCamelCase(attr)] = 
+                    profile[attr];}}
 
 
+            profile = newProfile;
 
-APIActionResults.addDefaultHooks = function () {
-    if (window.ScratchpadUI && ScratchpadUI.trusted && window !== top) {
-        // Do not register action results on an embedded scratchpad -- they
-        // will be passed up to the parent frame in ajaxComplete.
-        return;}
+            KA.setUserProfile(profile);
 
-    APIActionResults.register("notifications_added", 
-    NotificationsLoader.loadFromAPI.bind(NotificationsLoader));
+            var NavHeader = require("../shared-package/nav-header.js");
+            // If we just converted from no user to a phantom, we swap out the
+            // sign up button for a user dropdown that says "Unclaimed points".
+            // TODO(marcia): understand coach demo overwriting of profile root
+            NavHeader.renderUserDropdown();
+            NavHeader.renderNotificationsDropdown();});} };
 
-    APIActionResults.register("user_profile", function (profile) {
-        // Hack -- basically, the scratchpad API does not convert
-        // underscored_properties to camelCase, but user_profile expects
-        // camelCase when it parses out the Backbone UserProfile. The problem
-        // manifests as a false isAccessible but true is_accessible on the
-        // UserProfile object, which breaks the phantom user hover card content
-        // when talkies are initially viewed after logging out to create a new
-        // phantom user. But, this only causes problems on embedded
-        // scratchpads and happens to "work" on non-embedded scratchpads
-        // simply because "points" is the same attribute name in both
-        // underscore land and camel case land, and the scratchpad handler
-        // creates a pre_phantom user for every user -- since the
-        // Jinja template renderer checks this "user" property to be
-        // non-null, it then creates a UserProfile for the pre-phantom, with
-        // points set to 0. To fix everything momentarily,
-        // here we manually convert the user_profile JSON to camelCase.
-        // TODO (sophia/joel/john): Go through the CS scratchpad code and
-        // have the API return camelCased properties, or use a more robust
-        // workaround. Also investigate the necessity of having a
-        // pre_phantom user, which causes the jinja template renderer to
-        // create a UserProfile for the pre_phantom and populate it
-        // with the defaults.
-        var new_profile = {};
-        for (var attr in profile) {
-            if (profile.hasOwnProperty(attr)) {
-                new_profile[APIActionResults.toCamelCase(attr)] = profile[attr];}}
-
-
-        profile = new_profile;
-
-        KA.setUserProfile(profile);
-
-        var NavHeader = require("../shared-package/nav-header.js");
-        // If we just converted from no user to a phantom, we swap out the sign
-        // up button for a user dropdown that says "Unclaimed points".
-        // TODO(marcia): understand coach demo overwriting of profile root
-        NavHeader.renderUserDropdown();
-        NavHeader.renderNotificationsDropdown();});};
 
 
 
@@ -4667,6 +4793,8 @@ var Analytics = require("../shared-package/analytics.js");
 var Cookies = require("./cookies.js");
 var KA = require("./ka.js");
 var LocalStore = require("./local-store.js");
+
+var resolveReady = null;
 
 var FacebookUtil = { 
 
@@ -4738,7 +4866,13 @@ var FacebookUtil = {
                 Analytics.trackSingleEvent("Load Facepile");});
 
 
-            FacebookUtil.fbReadyDeferred_.resolve();};
+            // Resolve an existing Promise, if it was already created
+            if (resolveReady) {
+                resolveReady();}
+
+
+            // Create a new resolved Promise for the future
+            FacebookUtil._fbReadyPromise = Promise.resolve();};
 
 
         // We register clicks on the #user-info, since the #page_logout
@@ -4809,10 +4943,12 @@ var FacebookUtil = {
 
 
 
-    fbReadyDeferred_: new $.Deferred(), 
+    _fbReadyPromise: new Promise(function (resolve) {
+        resolveReady = resolve;}), 
+
     runOnFbReady: function (func) {
         this.loadFb();
-        this.fbReadyDeferred_.done(func);}, 
+        this._fbReadyPromise.then(func);}, 
 
 
     isUsingFbLoginCached_: undefined, 
@@ -5061,9 +5197,9 @@ KAdefine("javascript/shared-package/promos.js", function(require, module, export
  * one-time promotion of any kind.
  *
  * Corresponds to PromoRecord in promo_record_model.py on the server side.
- */
+ */var _require = 
 
-var $ = require("jquery");
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 
 var Promos = {};
 
@@ -5088,17 +5224,17 @@ Promos.hasUserSeen = function (promoName, callback, context) {
         return;}
 
 
-    $.ajax({ 
-        type: "GET", 
-        url: "/api/internal/user/promo/" + encodeURIComponent(promoName), 
-        success: function (hasSeen) {
-            Promos.cache_[promoName] = hasSeen;
-            callback.call(context, hasSeen);}, 
+    khanFetch("/api/internal/user/promo/" + encodeURIComponent(promoName)).
+    then(function (resp) {return resp.json();}).
+    then(
+    function (hasSeen) {
+        Promos.cache_[promoName] = hasSeen;
+        callback.call(context, hasSeen);}, 
 
-        error: function () {
-            // Err on the side of safety and avoid showing promos when
-            // connectivity is flaky?
-            callback.call(context, true);} });};
+    function () {
+        // Err on the side of safety and avoid showing promos when
+        // connectivity is flaky?
+        callback.call(context, true);});};
 
 
 
@@ -5107,11 +5243,12 @@ Promos.hasUserSeen = function (promoName, callback, context) {
  * Marks a promo as having been served.
  */
 Promos.markAsSeen = function (promoName) {
-    $.ajax({ 
-        type: "POST", 
-        url: "/api/internal/user/promo/" + encodeURIComponent(promoName) });
+    Promos.cache_[promoName] = true;
+    return khanFetch(
+    "/api/internal/user/promo/" + encodeURIComponent(promoName), 
+    { 
+        method: "POST" });};
 
-    Promos.cache_[promoName] = true;};
 
 
 module.exports = Promos;
@@ -5119,20 +5256,10 @@ module.exports = Promos;
 KAdefine("javascript/shared-package/bigbingo.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
 /* eslint-disable camelcase, comma-dangle, indent, no-trailing-spaces, prefer-template */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
+/* To fix, remove an entry above, run "make linc", and fix errors. */var _require = 
 
 
-var $ = require('jquery');
-
-// utility wrapper for positing json to bigbingo
-$.postJSON = function (url, data) {
-    return $.ajax({ 
-        'type': 'POST', 
-        'url': url, 
-        'contentType': 'application/json', 
-        'data': JSON.stringify(data) });};
-
-
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;var formUrlencode = _require.formUrlencode;
 
 var BigBingo = { 
     /**
@@ -5147,8 +5274,11 @@ var BigBingo = {
         // /_mt/ puts this on a multithreaded module, which is slower
         // but cheaper.  We don't care how long this takes, so it's
         // a good choice for us!
-        return $.post('/api/internal/_mt/bigbingo/mark_conversions', { 
-            conversion_ids: conversionIds.join(',') });}, 
+        return khanFetch("/api/internal/_mt/bigbingo/mark_conversions", { 
+            method: "POST", 
+            body: formUrlencode({ 
+                conversion_ids: conversionIds.join(",") }) });}, 
+
 
 
     /**
@@ -5162,8 +5292,11 @@ var BigBingo = {
      * @return {jqXHR} the jquery promise xhr object
      */
     markConversionsWithExtras: function (conversions) {
-        return $.post('/api/internal/_mt/bigbingo/mark_conversions', { 
-            conversions: JSON.stringify(conversions) });}, 
+        return khanFetch("/api/internal/_mt/bigbingo/mark_conversions", { 
+            method: "POST", 
+            body: formUrlencode({ 
+                conversions: JSON.stringify(conversions) }) });}, 
+
 
 
 
@@ -5179,9 +5312,15 @@ var BigBingo = {
      */
 
     markConversionsWithProduct: function (topic_slug, conversions) {
-        var url = '/api/internal/_mt/bigbingo/mark_conversions_with_product' + 
-        '?topic_slug=' + encodeURIComponent(topic_slug);
-        return $.postJSON(url, { 'conversions': conversions });}, 
+        var url = "/api/internal/_mt/bigbingo/mark_conversions_with_product" + 
+        "?topic_slug=" + encodeURIComponent(topic_slug);
+        return khanFetch(url, { 
+            method: "POST", 
+            body: JSON.stringify({ "conversions": conversions }), 
+            headers: { 
+                "Content-Type": "application/json" } });}, 
+
+
 
     /**
      * Mark a single conversion as having happened for the current user.
@@ -5207,13 +5346,16 @@ var BigBingo = {
      * Participate the current user in the given experiment.
      *
      * @param {string} experimentId The string name of the experiment's id.
-     * @return {jqXHR} the jquery promise xhr object
+     * @return {Promise} A Promise that resolves to the A/B test data.
      */
     abTest: function (experimentId) {
         // TODO(marcia): camelCase experiment_id below and conversion_ids above
-        return $.post('/api/internal/bigbingo/ab_test', { 
-            experiment_id: experimentId });} };
+        return khanFetch("/api/internal/bigbingo/ab_test", { 
+            method: "POST", 
+            body: formUrlencode({ 
+                experiment_id: experimentId }) }).
 
+        then(function (resp) {return resp.json();});} };
 
 
 
@@ -6531,7 +6673,8 @@ var $ = require("jquery");
 var Backbone = require("backbone");
 
 var i18n = require("./i18n.js");
-var KA = require("./ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;var encodeParams = _require.encodeParams;
 
 var ProfileModel = Backbone.Model.extend({ 
     defaults: { 
@@ -6793,28 +6936,25 @@ var ProfileModel = Backbone.Model.extend({
      * includes properties in UserDataInfo (bio, location, school
      * affiliations, etc.).
      */
-    fetchFull: function () {
+    fetchFull: function () {var _this3 = this;
         // Return immediately if we've got the full version already
         if (this.get("includesUserDataInfo")) {
-            var d = new $.Deferred();
-            return d.resolve().promise();}
+            return Promise.resolve();}
+
+
+        var params = { 
+            casing: "camel", 
+            kaid: this.get("kaid") };
 
 
         // Get a full version of the profile with all the UserDataInfo
         // properties
-        return $.ajax({ 
-            type: "GET", 
-            url: "/api/internal/user/profile", 
-            data: { 
-                casing: "camel", 
-                kaid: this.get("kaid") }, 
+        return khanFetch("/api/internal/user/profile?" + encodeParams(params)).
+        then(function (resp) {return resp.json();}).
+        then(function (data) {
+            if (data) {
+                _this3.set(data);}});}, 
 
-            dataType: "json", 
-            success: (function (data) {
-                if (data) {
-                    this.set(data);}}).
-
-            bind(this) });}, 
 
 
 
@@ -6832,7 +6972,7 @@ var ProfileModel = Backbone.Model.extend({
         this.trigger("validate:nickname", $.trim(nickname).length > 0);}, 
 
 
-    validateUsername: function (username) {
+    validateUsername: function (username) {var _this4 = this;
         // Can't define validate() (or I don't understand how to)
         // because of https://github.com/documentcloud/backbone/issues/233
 
@@ -6848,15 +6988,10 @@ var ProfileModel = Backbone.Model.extend({
         // Must be synced with server's understanding
         // in UniqueUsername.is_valid_username()
         if (/^[a-z][a-z0-9]{2,}$/.test(username)) {
-            $.ajax({ 
-                url: "/api/internal/user/username_available", 
-                type: "GET", 
-                data: { 
-                    username: username }, 
-
-                dataType: "json", 
-                success: this.onValidateUsernameResponse_.bind(this) });} else 
-
+            khanFetch("/api/internal/user/username_available?" + 
+            encodeParams({ username: username })).
+            then(function (resp) {return resp.json();}).
+            then(function (data) {return _this4.onValidateUsernameResponse_(data);});} else 
         {
             var message = "";
             if (username.length < 3) {
@@ -7334,6 +7469,236 @@ var addBackgroundAndListeners = function ($elem, videoProps) {
 module.exports = { 
     addBackgroundAndListeners: addBackgroundAndListeners };
 });
+KAdefine("javascript/shared-package/khan-fetch.js", function(require, module, exports) {
+/**
+ * This module supplies a wrapper around the global `fetch` function, which
+ * adds some useful functionality that we want when making requests.
+ *
+ * In particular, it:
+ *  - sends cookies by default on same-origin requests
+ *  - fails the promise chain when we receive a non-2xx response, for backwards
+ *    compatibility with $.ajax:
+ *    https://github.com/github/fetch/blob/master/README.md#handling-http-error-statuses
+ *
+ * It also adds the same functionality that is added to `$.ajax` calls in
+ * api-action-results.js, namely:
+ *  - Adds a lang= parameter to API calls
+ *  - Adds a cache-busting _= parameter to API calls
+ *  - Adds the XSRF header
+ *  - Checks for API version mismatches
+ *  - Checks for API action results
+ */
+
+var APIActionResults = require("./api-action-results.js");
+var KA = require("./ka.js");
+
+// It is difficult to make copies of Request objects with modified URLs. This
+// function does as good as is currently possible to copy a request with a new
+// URL, while maintaining all of the properties of the old Request, including
+// the body. It returns a Promise which resolves to the new Request.
+//
+// This solution comes from http://stackoverflow.com/a/34641566/57318
+// According to https://github.com/whatwg/fetch/issues/191, this should
+// eventually be equivalent to `new Request(url, request)`, but that doesn't
+// yet work.
+function copyRequestWithUrl(url, request) {
+    var bodyPromise = 
+    request.headers.get("Content-Type") ? 
+    request.blob() : 
+    Promise.resolve(undefined);
+    return bodyPromise.then(function (body) {
+        return new Request(url, { 
+            body: body, 
+            method: request.method, 
+            headers: request.headers, 
+            referrer: request.referrer, 
+            referrerPolicy: request.referrerPolicy, 
+            mode: request.mode, 
+            credentials: request.credentials, 
+            cache: request.cache, 
+            redirect: request.redirect, 
+            integrity: request.integrity });});}
+
+
+
+
+// By default, cookies aren't sent with fetch requests. We set the request to
+// send cookies by default.
+// TODO(emily): Figure out a way to let someone explicitly omit headers (would
+// we ever want that?).
+function sendCookies(request) {
+    if (request.credentials === "omit") {
+        return new Request(request, { credentials: "same-origin" });}
+
+    return request;}
+
+
+// Adds a lang= parameter to requests if a language is set by calling out to
+// the appropriate APIActionResults function.
+function addLangParam(request) {
+    if (KA.language) {
+        return copyRequestWithUrl(
+        APIActionResults.addLangParam(
+        request.url, KA.language), 
+        request);} else 
+    {
+        return request;}}
+
+
+
+// Adds a _= cache parameter to API requests by calling out to the appropriate
+// APIActionResults function.
+function addCacheParam(request) {
+    var newUrl = APIActionResults.addCacheParam(request.url);
+    return copyRequestWithUrl(newUrl, request);}
+
+
+// Adds the XSRF header to the request by calling out to the appropriate
+// APIActionResults function.
+function addXsrfKey(request) {
+    var headers = new Headers(request.headers);
+    var succeeded = APIActionResults.addXsrfKey(
+    request.url, 
+    function (name, value) {return headers.set(name, value);});
+    if (!succeeded) {
+        throw new Error("Request cancelled because xsrf key was missing");}
+
+    return new Request(request, { headers: headers });}
+
+
+// Since `fetch` by default doesn't fail when the status is a non-2xx status,
+// we add a check to every request's promise chain that fails it when these
+// errors occur.
+function checkStatus(response) {
+    // Code taken from
+    // https://github.com/github/fetch/blob/master/README.md#handling-http-error-statuses
+    if (response.status >= 200 && response.status < 300) {
+        return response;} else 
+    {
+        var error = new Error(response.statusText);
+        error.response = response;
+        throw error;}}
+
+
+
+// Checks for API version mismatches by calling out to the appropriate
+// APIActionResults function.
+function checkApiVersionMismatch(response) {
+    APIActionResults.checkApiVersionMismatch(
+    function (header) {return response.headers.get(header);});
+    return response;}
+
+
+// Checks for API results by passing the response body to the appropriate
+// APIActionResults function.
+function checkApiResponse(response) {
+    // In order to inspect the body of the Response, we must clone it (so that
+    // future users can also look at the response body). APIActionResults wants
+    // the text body of the response, so we pull that out with .text().
+    response.clone().text().then(
+    function (responseBody) {
+        APIActionResults.checkApiResponse(
+        responseBody, 
+        function (header) {return response.headers.get(header);});});
+
+
+    return response;}
+
+
+// The actual fetch wrapper. In general, this function
+//  - creates a Request object from the input
+//  - calls the functions above which modify Request objects
+//  - makes a `fetch` call with the generated Request
+//  - calls the functions above which inspect the Response
+//
+// We wrap all of these into a long Promise chain in order to make error
+// handling easy (for instance, the functions which modify Requests can easily
+// cancel the fetch by throwing an error).
+function khanFetch(input, init) {
+    return Promise.resolve(new Request(input, init)).
+    then(sendCookies).
+    then(addLangParam).
+    then(addCacheParam).
+    then(addXsrfKey).
+    then(function (request) {return fetch(request);}) // @Nolint(emily): this is the only
+    // place we're allowed to use the
+    // native/polyfilled fetch function
+    .then(checkStatus).
+    then(checkApiVersionMismatch).
+    then(checkApiResponse);}
+
+
+// This is a helper function for encoding JS objects as query parameters or
+// x-www-form-urlencoded data. This was adapted from
+// https://github.com/inexorabletash/polyfill/blob/master/url.js:urlencoded_serialize
+//
+// Input: An object. Note that the values of this object will simply be
+//        converted to strings, so you need to serialize them yourself
+//        manually. (Especially note that arrays probably won't do what you
+//        want)
+// Output: A string, containing all of the key/value pairs urlencoded and
+//         concatenated.
+//
+// Ex: `encodeParams({ a: "hello", b: "world" })` -> "a=hello&b=world"
+//
+// This is useful for replacing usages of `$.ajax`, which used this encoding to
+// add URL parameters to GET requests. For example,
+//   $.ajax("/test", { data: { casing: "camel" } }); @Nolint
+// can be replaced with
+//   khanFetch(`/test?${encodeParams({ casing: "camel" })}`);
+function encodeParams(data) {
+    var output = "";
+    var first = true;
+    for (var _iterator = Object.entries(data), _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : _iterator[Symbol.iterator]();;) {var _ref;if (_isArray) {if (_i >= _iterator.length) break;_ref = _iterator[_i++];} else {_i = _iterator.next();if (_i.done) break;_ref = _i.value;}var _name = _ref[0];var value = _ref[1];
+        var nameEnc = encodeURIComponent(_name);
+        var valueEnc = encodeURIComponent(value);
+        if (!first) {
+            output += "&";}
+
+        output += nameEnc + "=" + valueEnc;
+        first = false;}
+
+    return output.replace(/%20/g, "+");}
+
+
+// This is a helper function for use with fetch which x-www-form-urlencodes the
+// given data, and then returns a Blob with the data and the correct type.
+//
+// Ideally, we would be using a URLSearchParams object instead of a Blob object
+// here, but URLSearchParams isn't supported on IE 10, so we would have to
+// polyfill it which would be annoying.
+//
+// This is useful for replacing usages of `$.ajax`, which defaulted to this
+// encoding for POST data. For example,
+//   $.ajax("/test", { method: "POST", data: { ... } }); @Nolint
+// can be replaced with
+//   khanFetch("/test", { method: "POST", body: formUrlencode({ ... }) });
+function formUrlencode(data) {
+    return new Blob(
+    [encodeParams(data)], 
+    { type: "application/x-www-form-urlencoded;charset=UTF-8" });}
+
+
+
+// This is a helper function for reading the contents of a `Blob` as text.
+// Since the `khanFetch` implementation converts body data into a `Blob` before
+// sending it, it is hard for tests to inspect this body manually. This
+// function returns a Promise which resolves to the text contents of a Blob.
+function readBlob(blob) {
+    return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.addEventListener("load", function () {return resolve(reader.result);});
+        reader.addEventListener("error", function () {return reject(reader.error);});
+        reader.readAsText(blob);});}
+
+
+
+module.exports = { 
+    khanFetch: khanFetch, 
+    encodeParams: encodeParams, 
+    formUrlencode: formUrlencode, 
+    readBlob: readBlob };
+});
 KAdefine("javascript/shared-package/nav-header.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
 /* eslint-disable comma-dangle, max-len, no-extra-bind, one-var */
@@ -7634,20 +7999,17 @@ var $ = require("jquery");
 require("../../third_party/javascript-khansrc/bootstrap-dropdown/dropdown.js");
 require("../../third_party/javascript-khansrc/jQuery-menu-aim/jquery.menu-aim.js");
 
-var KA = require("../shared-package/ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 var ExerciseProgressUtils = require(
 "../mobile-shared-package/exercise-progress-utils.js");
 
-var dropExtraAjaxValues = function (data, statusText, jqXHR) {return data;};
 var fetchMissionPercentages = function () {
-    var val = $.when(
-    $.ajax({ 
-        url: "/api/internal/user/missions/progress_info?casing=camel" }).
-    then(dropExtraAjaxValues), 
-    $.ajax({ 
-        url: "/api/internal/user/dashboard_options?casing=camel" }).
-    then(dropExtraAjaxValues)).
-    then(function (missions, dashboardOptions) {
+    var val = Promise.all([
+    khanFetch("/api/internal/user/missions/progress_info?casing=camel").
+    then(function (resp) {return resp.json();}), 
+    khanFetch("/api/internal/user/dashboard_options?casing=camel")]).
+    then(function (_ref) {var missions = _ref[0];var dashboardOptions = _ref[1];
         var missionPercentages = {};
         missions.forEach(function (mission) {
             var countPerLevel = ExerciseProgressUtils.getCountPerLevel(
@@ -7837,8 +8199,10 @@ var HeaderTopicBrowser = {
         end().
         attr("data-hasDropdownBehavior", true).
         attr("role", "button").
-        attr("aria-haspopup", "true");} };
+        attr("aria-haspopup", "true");}, 
 
+
+    __fetchMissionPercentagesForTesting: fetchMissionPercentages };
 
 
 module.exports = HeaderTopicBrowser;
@@ -8602,622 +8966,6 @@ window.guiders = (function($) {
 __KA_module.exports = guiders;
 this.guiders = guiders;
 });
-KAdefine("javascript/shared-package/hover-card.js", function(require, module, exports) {
-/* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
-/* eslint-disable comma-dangle, eqeqeq, indent, max-len, one-var, prefer-template */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
-
-/**
- * A component to display a user hover card.
-
- Usage:
- <div class="video-footer">
-    <span class="author-nickname" data-user-id="http://googleid.khanacademy.org/11111">Katniss</span>
-    <span class="author-nickname" data-user-id="http://googleid.khanacademy.org/22222">Haymitch</span>
-    <span class="author-nickname" data-user-id="http://googleid.khanacademy.org/33333">Thresh</span>
- </div>
-
- Note the required author-nickname class and data-user-id attribute.
-
- $(".video-footer").on("mouseenter", ".author-nickname", function() {
-     HoverCard.createHoverCardQtip($(this));
- });
-
- */
-
-require("../../third_party/javascript-khansrc/qTip2/jquery.qtip.js");
-var $ = require("jquery");
-
-var HoverCardView = require("../shared-package/hover-card-view.js");
-var ProfileModel = require("../shared-package/profile-model.js");
-
-var HoverCard = { 
-    _cache: {}, 
-
-    _link: function (jel, profileRoot) {
-        if (profileRoot != null && jel.is("a") && !jel.attr("href")) {
-            var profileTab = "discussion";
-            if (jel.hasClass("profile-programs")) {
-                profileTab = "projects";}
-
-
-            jel.attr("href", profileRoot + profileTab);}}, 
-
-
-
-    canFitToRight: function (jel) {
-        // True if there is enough space to the right of the element to fully display
-        var cardWidth = 500;
-        var cardOffsetRight = $(window).width() - jel.offset().left - jel.width();
-        return cardOffsetRight > cardWidth;}, 
-
-
-    createHoverCardQtip: function (el, position) {
-        var jel = $(el);
-        // To make the code transition easier, we accept either user-id or
-        // user-kaid, and use whatever was specified.
-        // TODO(alan): Get rid of all userId uses, then remove this
-        // compatibility code.
-        var kaid = jel.data("user-kaid"), 
-        userId = jel.data("user-id"), 
-        hasQtip = jel.data("has-qtip");
-
-        if (hasQtip) {
-            return;}
-
-
-        var userArg, userArgName;
-        if (kaid) {
-            userArg = kaid;
-            userArgName = "kaid";} else 
-        if (userId) {
-            userArg = userId;
-            userArgName = "userId";} else 
-        {
-            return;}
-
-
-        var cached = HoverCard._cache[userArg], 
-        html;
-
-        var positionLeft = false;
-        var extendLeft = !HoverCard.canFitToRight(jel);
-
-        if (cached != null) {
-            // We've hovered over the user somewhere else on the page
-            html = cached.html;
-
-            // Add href to link
-            var profileRoot = cached.model.get("profileRoot");
-            HoverCard._link(jel, profileRoot);} else 
-        {
-            // Create loading view
-            var view = new HoverCardView();
-            html = view.render().el.innerHTML;
-
-            // If there is no room for the q-tip to the right,
-            // extend the card to the left instead.
-            if (extendLeft) {
-                jel.data("right-triangle", true);
-                positionLeft = { 
-                    my: "top right", 
-                    at: "bottom right" };}
-
-
-
-            var args = {};
-            args[userArgName] = userArg;
-
-            $.ajax({ 
-                type: "GET", 
-                url: "/api/internal/user/profile", 
-                data: args, 
-                dataType: "json", 
-                success: HoverCard._onHoverCardDataLoaded.bind(this, jel) });}
-
-
-
-        jel.data("has-qtip", true);
-
-        // Create tooltip
-        jel.qtip({ 
-            content: { 
-                text: html }, 
-
-            style: { 
-                classes: "custom-override" }, 
-
-            hide: { 
-                delay: 100, 
-                fixed: true }, 
-
-            position: position || positionLeft || { 
-                my: "top left", 
-                at: "bottom left" } });
-
-
-
-        jel.qtip("show");
-
-        if (extendLeft) {
-            $(".hover-card-triangle").addClass("right");}}, 
-
-
-
-    _onHoverCardDataLoaded: function (jel, data) {
-        // TODO(alan): get rid of the user-id check once we move completely to
-        // kaids.
-        var userArg = jel.data("user-kaid") || jel.data("user-id"), 
-        model = new ProfileModel(data);
-
-        if (jel.attr("href")) {
-            model.set({ href: jel.attr("href") });}
-
-        if (jel.hasClass("profile-programs")) {
-            model.set({ href: model.get("profileRoot") + "projects" });}
-
-
-        var view = new HoverCardView({ model: model }), 
-        html = view.render().el.innerHTML;
-
-        // Cache html for this user
-        HoverCard._cache[userArg] = { 
-            model: model, 
-            html: html };
-
-
-        // Replace tooltip content
-        jel.qtip("option", "content.text", html);
-
-        // Add href to link
-        var profileRoot = model.get("profileRoot");
-        HoverCard._link(jel, profileRoot);
-
-        if (jel.data("right-triangle")) {
-            $(".hover-card-triangle").addClass("right");}} };
-
-
-
-
-module.exports = HoverCard;
-});
-KAdefine("javascript/shared-package/hover-card-view.js", function(require, module, exports) {
-/* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
-/* eslint-disable comma-dangle */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
-
-var $ = require("jquery"); // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-var Backbone = require("backbone");
-
-var i18n = require("./i18n.js");
-
-/**
- * Responsible for rendering the hovercard that appears in video q&a.
- * Also extended for use in the moderator list.
- */
-var HoverCardView = Backbone.View.extend({ // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-
-    /**
-     * Optional options: {
-     *      hideTriangle: true/false,
-     *      hideShadow: true/false,
-     *      hideStreak: true/false (default: true),
-     *      href: "<user's profile root>"
-     *  }
-     * The default view is a hovercard with a vertical shadow and a little
-     * triangle that points to the user's name (that was hovered over).
-     *
-     * The default href for the user's name in the hovercard is
-     * <profileRoot>/discussion. Specify "href" if you want the link to point
-     * elsewhere, like simply <profileRoot>.
-     */
-    initialize: function (options) {
-        var defaultOptions = { hideStreak: true };
-        this._options = babelHelpers._extends({}, defaultOptions, options); // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-        this.template = require("./hover-card.handlebars"); // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-
-        if (this.model) {
-            // Listen to model changes, notably points via api action results
-            this.model.bind("change", this.render.bind(this));}
-
-
-        this.render = this.render.bind(this);}, 
-    // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-
-    render: function () {
-        var json = this._options;
-
-        if (this.model) {
-            Object.assign(json, this.model.toJSON());
-
-            if (this.model.isPhantom()) {
-                json["nickname"] = i18n._("Unclaimed points");}
-
-
-            if (this.model.isPrivate()) {
-                json["isPrivate"] = this.model.isPrivate();}} else 
-
-        {
-            json["messageOnly"] = true;}
-
-
-        this.$el.html(this.template(json));
-
-        if (this.model) {
-            // Since the model we're given could be the incomplete version
-            // without the bio, send off a request to fetch the full version
-            // if we don't already have it (fetchFull is idempotent). If the
-            // model changes, our change listener will ensure this view re-
-            // renders.
-            this.model.fetchFull();}
-
-        return this;} });
-
-
-
-module.exports = HoverCardView;
-});
-KAdefine("javascript/shared-package/hover-card.handlebars", function(require, module, exports) {
-require("../../third_party/javascript-khansrc/handlebars/handlebars.runtime.js");
-var t = Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
-  helpers = helpers || Handlebars.helpers;
-  var buffer = "", stack1, stack2, foundHelper, tmp1, self=this, functionType="function", blockHelperMissing=helpers.blockHelperMissing, helperMissing=helpers.helperMissing, undef=void 0, escapeExpression=this.escapeExpression;
-
-function program1(depth0,data) {
-  
-  
-  return "\n    <div class=\"hover-card-triangle\"></div>\n    ";}
-
-function program3(depth0,data) {
-  
-  
-  return " vertical-shadow";}
-
-function program5(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += "\n                <div class=\"hover-card-message\">\n                    ";
-  foundHelper = helpers['_'];
-  stack1 = foundHelper || depth0['_'];
-  tmp1 = self.program(6, program6, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  if(foundHelper && typeof stack1 === functionType) { stack1 = stack1.call(depth0, tmp1); }
-  else { stack1 = blockHelperMissing.call(depth0, stack1, tmp1); }
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                </div>\n            ";
-  return buffer;}
-function program6(depth0,data) {
-  
-  
-  return "Finding profile information...";}
-
-function program8(depth0,data) {
-  
-  var buffer = "", stack1, stack2;
-  buffer += "\n                <div class=\"user-stats ";
-  foundHelper = helpers.isPrivate;
-  stack1 = foundHelper || depth0.isPrivate;
-  stack2 = helpers['if'];
-  tmp1 = self.program(9, program9, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\">\n                    <div class=\"badge-container\">\n                        ";
-  foundHelper = helpers.publicBadges;
-  stack1 = foundHelper || depth0.publicBadges;
-  stack2 = helpers.each;
-  tmp1 = self.program(11, program11, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                    </div>\n                    <div class=\"energy-points-badge\">\n                        ";
-  foundHelper = helpers.isSal;
-  stack1 = foundHelper || depth0.isSal;
-  stack2 = helpers['if'];
-  tmp1 = self.program(15, program15, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.program(17, program17, data);
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                    </div>\n                    ";
-  foundHelper = helpers.hideStreak;
-  stack1 = foundHelper || depth0.hideStreak;
-  stack2 = helpers.unless;
-  tmp1 = self.program(19, program19, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                </div>\n                ";
-  buffer += "\n                <div class=\"user-actions\"></div>\n                <div class=\"user-info\">\n                    <a class=\"profile-link\" href=\"";
-  foundHelper = helpers.href;
-  stack1 = foundHelper || depth0.href;
-  stack2 = helpers['if'];
-  tmp1 = self.program(21, program21, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.program(23, program23, data);
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\">\n                        <img src=\"";
-  foundHelper = helpers.avatarSrc;
-  stack1 = foundHelper || depth0.avatarSrc;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "avatarSrc", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\" class=\"avatar\">\n                        <div class=\"nickname-container\">\n                            <span class=\"nickname\">\n                                ";
-  foundHelper = helpers.nickname;
-  stack1 = foundHelper || depth0.nickname;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "nickname", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\n                            </span>\n                            <span class=\"username\">\n                                ";
-  foundHelper = helpers.usernameFormatted;
-  stack1 = foundHelper || depth0.usernameFormatted;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "usernameFormatted", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\n                            </span>\n                        </div>\n                    </a>\n                    <div class=\"bio\">\n                        ";
-  foundHelper = helpers.bio;
-  stack1 = foundHelper || depth0.bio;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "bio", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\n                    </div>\n                </div>\n            ";
-  return buffer;}
-function program9(depth0,data) {
-  
-  
-  return "private";}
-
-function program11(depth0,data) {
-  
-  var buffer = "", stack1, stack2;
-  buffer += "\n                            ";
-  stack1 = depth0;
-  stack2 = helpers['if'];
-  tmp1 = self.program(12, program12, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                        ";
-  return buffer;}
-function program12(depth0,data) {
-  
-  var buffer = "", stack1, stack2;
-  buffer += "\n                                ";
-  stack1 = depth0;
-  stack2 = helpers['with'];
-  tmp1 = self.program(13, program13, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n                            ";
-  return buffer;}
-function program13(depth0,data) {
-  
-  var buffer = "", stack1;
-  buffer += "\n                                    <img class=\"badge-icon\" src=\"";
-  foundHelper = helpers.icons;
-  stack1 = foundHelper || depth0.icons;
-  stack1 = (stack1 === null || stack1 === undefined || stack1 === false ? stack1 : stack1.small);
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "icons.small", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\" alt=\"";
-  foundHelper = helpers.description;
-  stack1 = foundHelper || depth0.description;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "description", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\" title=\"";
-  foundHelper = helpers.description;
-  stack1 = foundHelper || depth0.description;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "description", { hash: {} }); }
-  buffer += escapeExpression(stack1) + "\">\n                                ";
-  return buffer;}
-
-function program15(depth0,data) {
-  
-  
-  return "\n                            <span class=\"infinity-energy-points\">\n                                &infin;\n                            </span>\n                        ";}
-
-function program17(depth0,data) {
-  
-  var buffer = "", stack1, stack2;
-  buffer += "\n                            ";
-  foundHelper = helpers.points;
-  stack1 = foundHelper || depth0.points;
-  foundHelper = helpers.commafy;
-  stack2 = foundHelper || depth0.commafy;
-  if(typeof stack2 === functionType) { stack1 = stack2.call(depth0, stack1, { hash: {} }); }
-  else if(stack2=== undef) { stack1 = helperMissing.call(depth0, "commafy", stack1, { hash: {} }); }
-  else { stack1 = stack2; }
-  buffer += escapeExpression(stack1) + "\n                        ";
-  return buffer;}
-
-function program19(depth0,data) {
-  
-  var buffer = "", stack1, stack2;
-  buffer += "\n                    <div class=\"energy-points-badge\"\n                         style=\"background-color: #e57909; margin-right: 5px;\">\n                         ";
-  foundHelper = helpers.streakLength;
-  stack1 = foundHelper || depth0.streakLength;
-  foundHelper = helpers.commafy;
-  stack2 = foundHelper || depth0.commafy;
-  if(typeof stack2 === functionType) { stack1 = stack2.call(depth0, stack1, { hash: {} }); }
-  else if(stack2=== undef) { stack1 = helperMissing.call(depth0, "commafy", stack1, { hash: {} }); }
-  else { stack1 = stack2; }
-  buffer += escapeExpression(stack1) + "\n                    </div>\n                    ";
-  return buffer;}
-
-function program21(depth0,data) {
-  
-  var stack1;
-  foundHelper = helpers.href;
-  stack1 = foundHelper || depth0.href;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "href", { hash: {} }); }
-  return escapeExpression(stack1);}
-
-function program23(depth0,data) {
-  
-  var stack1;
-  foundHelper = helpers.profileRoot;
-  stack1 = foundHelper || depth0.profileRoot;
-  if(typeof stack1 === functionType) { stack1 = stack1.call(depth0, { hash: {} }); }
-  else if(stack1=== undef) { stack1 = helperMissing.call(depth0, "profileRoot", { hash: {} }); }
-  return escapeExpression(stack1);}
-
-  buffer += "<div class=\"hover-card-container\">\n    ";
-  foundHelper = helpers.hideTriangle;
-  stack1 = foundHelper || depth0.hideTriangle;
-  stack2 = helpers.unless;
-  tmp1 = self.program(1, program1, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n    <div class=\"hover-card-content-container";
-  foundHelper = helpers.hideShadow;
-  stack1 = foundHelper || depth0.hideShadow;
-  stack2 = helpers.unless;
-  tmp1 = self.program(3, program3, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.noop;
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\">\n        <div class=\"hover-card-content clearfix\">\n            ";
-  foundHelper = helpers.messageOnly;
-  stack1 = foundHelper || depth0.messageOnly;
-  stack2 = helpers['if'];
-  tmp1 = self.program(5, program5, data);
-  tmp1.hash = {};
-  tmp1.fn = tmp1;
-  tmp1.inverse = self.program(8, program8, data);
-  stack1 = stack2.call(depth0, stack1, tmp1);
-  if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "\n        </div>\n    </div>\n</div>\n";
-  return buffer;});
-module.exports = t;
-});
-KAdefine("javascript/shared-package/user-progress-cache.jsx", function(require, module, exports) {
-/* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
-/* eslint-disable comma-dangle, no-redeclare */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
-
-/**
- * This file is a client-side counterpart to the UserProgressCache entity
- * defined in user_progress.py. It is responsible for adding stylesheets for
- * the subway icons to show progress and also provides a client-side API for
- * looking up started- and completed-ness of any content item.
- *
- * UserProgressCache.init() is called from server generated script. See
- * ServeUserProgressJs in main.py.
- */
-
-// TODO(alpert): Why split like this?
-var SELECTORS_PER_RULE = 20;
-
-// All progress, in the form {"started": ["v565175118"], "complete": []}
-var progressByStatus;
-
-// All progress, in the form {"v565175118": "started"}
-var statusByKey;
-
-// TODO(alpert): Move somewhere more central?
-function insertCSSIntoHead(css) {
-    if (!css.length) {
-        return;}
-
-
-    var style = document.createElement("style");
-    style.type = "text/css";
-    if (style.styleSheet) {
-        style.styleSheet.cssText = css;} else 
-    {
-        style.appendChild(document.createTextNode(css));}
-
-    var head = document.getElementsByTagName("head")[0];
-    head.appendChild(style);}
-
-
-/**
- * Given a progress dictionary, return a CSS string to be applied to document.
- */
-function cssWithProgress(progressByStatus) {
-    var cssList = [];
-
-    var started = progressByStatus.started;
-    for (var i = 0; i < started.length; i += SELECTORS_PER_RULE) {
-        var chunk = started.slice(i, i + SELECTORS_PER_RULE);
-
-        cssList.push(chunk.map(function (pk) {return "." + pk;}).join(","));
-        cssList.push("{background-position:center;}");
-        cssList.push(chunk.map(function (pk) {return "." + pk + " .pipe.completed";}).join(","));
-        cssList.push("{display:block;}");}
-
-
-    var complete = progressByStatus.complete;
-    for (var i = 0; i < complete.length; i += SELECTORS_PER_RULE) {
-        var chunk = complete.slice(i, i + SELECTORS_PER_RULE);
-
-        cssList.push(chunk.map(function (pk) {return "." + pk;}).join(","));
-        cssList.push("{background-position:bottom;}");
-        cssList.push(chunk.map(function (pk) {return "." + pk + " .pipe.completed";}).join(","));
-        cssList.push("{display:block;}");}
-
-
-    return cssList.join("");}
-
-
-var UserProgressCache = { 
-    /**
-     * Given a dict like {"started": ["v565175118"], "complete": []}, add
-     * appropriate CSS rules to the page and store the dict for future use.
-     */
-    init: function (progress) {
-        if (progressByStatus) {
-            throw new Error("Double-initialization of UserProgressCache");}
-
-
-        progressByStatus = progress;
-        statusByKey = {};
-
-        progress.started.forEach(function (key) {
-            statusByKey[key] = "started";});
-
-        progress.complete.forEach(function (key) {
-            statusByKey[key] = "complete";});
-
-
-        var css = cssWithProgress(progress);
-        insertCSSIntoHead(css);}, 
-
-
-    /**
-     * Given a progress key like "v565175118", return "unstarted", "started",
-     * or "complete" depending on the current user's progress.
-     */
-    getStatusForProgressKey: function (key) {
-        if (!progressByStatus) {
-            throw new Error("UserProgressCache not yet initialized");}
-
-
-        return key in statusByKey ? statusByKey[key] : "unstarted";} };
-
-
-
-module.exports = UserProgressCache;
-});
 KAdefine("javascript/shared-package/exercise-progress-constants.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
 /* eslint-disable comma-dangle */
@@ -9393,11 +9141,10 @@ KAdefine("javascript/shared-package/visit-tracking.js", function(require, module
  * Tracking of return visits for logged-in, phantom, and pre-phantom users.
  */
 
-var $ = require("jquery");
-
 var BigBingo = require("./bigbingo.js");
 var Cookies = require("./cookies.js");
-var KA = require("./ka.js");
+var KA = require("./ka.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;var formUrlencode = _require.formUrlencode;
 
 // TODO(stephanie): do this in a more appropriate common library
 var getSeconds = function (dateString) {
@@ -9480,8 +9227,13 @@ var VisitTracking = {
 
 
             if (user && user.attributes.isChildAccount) {
-                $.post("/api/internal/user/mark_bingo_conversion_for_parent", { 
-                    conversion_id: "child_return_visit" });}
+                khanFetch(
+                "/api/internal/user/mark_bingo_conversion_for_parent", 
+                { 
+                    method: "POST", 
+                    body: formUrlencode({ 
+                        conversion_id: "child_return_visit" }) });}
+
 
 
 
@@ -10116,12 +9868,12 @@ KAdefine("javascript/shared-package/session-survey.jsx", function(require, modul
  */
 var React = require("react");
 var ReactDOM = require("react-dom");
-var $ = require("jquery");
 
-var $_ = require("../shared-package/i18n.js").$_;
-var BigBingo = require("../shared-package/bigbingo.js");
-var Cookies = require("../shared-package/cookies.js");
-var LocalStore = require("../shared-package/local-store.js");
+var $_ = require("./i18n.js").$_;
+var BigBingo = require("./bigbingo.js");
+var Cookies = require("./cookies.js");
+var LocalStore = require("./local-store.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 var Survey = require("../react-package/kui/survey.jsx");
 
 // Don't error if hide_analytics is true
@@ -10315,6 +10067,10 @@ var SessionSurvey = React.createClass({ displayName: "SessionSurvey",
         var currentTime = Date.now() / 1000;
         var delay = this.state.surveyTime - currentTime + Math.random();
         setTimeout(function () {
+            if (!_this2.isMounted()) {
+                return;}
+
+
             // Local storage is set synchronously, so check it instead of
             // component state (which is set asynchronously) here.
             var latestState = LocalStore.get(SESSION_SURVEY_STORE_KEY) || {};
@@ -10370,7 +10126,7 @@ var SessionSurvey = React.createClass({ displayName: "SessionSurvey",
             // make sure this counts as activity by directly pinging the API.
             // This is so that a user coming back to a page with a triggered
             // survey will be guaranteed to have time to answer it.
-            $.get("/api/internal/ping");}} });
+            return khanFetch("/api/internal/ping");}} });
 
 
 
@@ -10383,7 +10139,9 @@ var initializeSessionSurvey = function () {
 
     var mountPoint = document.createElement("div");
     document.body.appendChild(mountPoint);
-    ReactDOM.render(React.createElement(SessionSurvey, { questions: QUESTIONS }), mountPoint);};
+    return ReactDOM.render(
+    React.createElement(SessionSurvey, { questions: QUESTIONS }), 
+    mountPoint);};
 
 
 module.exports = initializeSessionSurvey;
@@ -10494,7 +10252,6 @@ KAdefine("javascript/shared-package/pageutil.js", function(require, module, expo
 require(
 "../../third_party/javascript-khansrc/bootstrap-khansrc/js/bootstrap-modal.js"); // @Nolint
 var $ = require("jquery");
-var Backbone = require("backbone");
 var moment = require("moment");
 
 var i18n = require("./i18n.js");
@@ -10531,33 +10288,6 @@ var DemoNotifications = { // @Nolint(remove this nolint after moving to eslint, 
 
 
 
-
-
-// TODO(benkomalo): move to another file and unit test.
-// some browsers can't parse ISO 8601 with Date.parse
-// http://anentropic.wordpress.com/2009/06/25/javascript-iso8601-parser-and-pretty-dates/
-var parseISO8601 = function (str) {// @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-    // we assume str is a UTC date ending in 'Z'
-    var parts = str.split("T"), 
-    dateParts = parts[0].split("-"), 
-    timeParts = parts[1].split("Z"), 
-    timeSubParts = timeParts[0].split(":"), 
-    timeSecParts = timeSubParts[2].split("."), 
-    timeHours = Number(timeSubParts[0]), 
-    _date = new Date();
-
-    _date.setUTCFullYear(Number(dateParts[0]));
-    _date.setUTCMonth(Number(dateParts[1]) - 1);
-    _date.setUTCDate(Number(dateParts[2]));
-    _date.setUTCHours(Number(timeHours));
-    _date.setUTCMinutes(Number(timeSubParts[1]));
-    _date.setUTCSeconds(Number(timeSecParts[0]));
-    if (timeSecParts[1]) {
-        _date.setUTCMilliseconds(Number(timeSecParts[1]));}
-
-
-    // by using setUTC methods the date has already been converted to local time(?)
-    return _date;};
 
 
 /**
@@ -10638,16 +10368,6 @@ var Throbber = {
         if (Throbber.jElement) {
             Throbber.jElement.css("display", "none");}} };
 
-
-
-
-var ProgressLoadingView = Backbone.View.extend({ // @Nolint(remove this nolint after moving to eslint, definitely after 1 Nov 2015)
-    initialize: function () {
-        this.render();}, 
-
-
-    render: function () {
-        this.$el.html("<div class=\"loading-progress-bar ui-progressbar ui-widget ui-widget-content ui-corner-all\"><div class=\"ui-progressbar-value ui-widget-header ui-corner-left ui-corner-right\"></div></div>");} });
 
 
 
@@ -10769,12 +10489,10 @@ module.exports = {
     BigBingo: BigBingo, 
     CSSMenus: CSSMenus, 
     DemoNotifications: DemoNotifications, 
-    ProgressLoadingView: ProgressLoadingView, 
     Throbber: Throbber, 
     bookmarkMe: bookmarkMe, 
     hideGenericMessageBox: hideGenericMessageBox, 
     isLoadedFromBrowserCache: isLoadedFromBrowserCache, 
-    parseISO8601: parseISO8601, 
     toISO8601: toISO8601, 
     popupGenericMessageBox: popupGenericMessageBox, 
     temporaryDetachElement: temporaryDetachElement };
@@ -10903,7 +10621,8 @@ var i18n = require("./i18n.js");
 var Analytics = require("./analytics.js");
 var FacebookUtil = require("./facebookutil.js");
 var KA = require("./ka.js");
-var KAConsole = require("./console.js");
+var KAConsole = require("./console.js");var _require = 
+require("./khan-fetch.js");var khanFetch = _require.khanFetch;
 var Social = require("./social.js");
 
 /**
@@ -11303,13 +11022,13 @@ Badges.ShareLinksView = Backbone.View.extend({
     /**
      * Send request to Khan Academy API to publish an Open Graph "earn" action.
      */
-    openGraphShare: function (badgeSlug) {
+    openGraphShare: function (badgeSlug) {var _this = this;
         this.showQTip("<img src='/images/spinner-arrows-bg-1c1c1c.gif' style='margin-right: 5px; position: relative; top: 1px'> " + i18n._("Sharing on Facebook..."), true);
-        $.ajax({ 
-            type: "POST", 
-            url: "/api/internal/user/badges/" + badgeSlug + "/opengraph-earn", 
-            success: this.finishShare.bind(this), 
-            error: this.handleErrors.bind(this) });}, 
+        return khanFetch("/api/internal/user/badges/" + 
+        badgeSlug + "/opengraph-earn", 
+        { method: "POST" }).then(
+        function () {return _this.finishShare();}, 
+        function (error) {return _this.handleErrors(error);});}, 
 
 
 
@@ -11326,7 +11045,7 @@ Badges.ShareLinksView = Backbone.View.extend({
 
 
     /** Shows a qtip notification indicating that sharing has succeeded. */
-    showQTip: function (message, disableHide) {var _this = this;
+    showQTip: function (message, disableHide) {var _this2 = this;
         var options = { 
             content: message, 
             position: { 
@@ -11353,8 +11072,8 @@ Badges.ShareLinksView = Backbone.View.extend({
             // after 2s remove the delay - it's been on the screen long enough
             // at this point.
             setTimeout(function () {
-                _this.hide();
-                _this.removeHideDelay();}, 
+                _this2.hide();
+                _this2.removeHideDelay();}, 
             5000);}
 
 
@@ -11383,39 +11102,6 @@ Badges.ShareLinksView = Backbone.View.extend({
 
 
 module.exports = Badges;
-});
-KAdefine("javascript/shared-package/request-animation-frame.js", function(require, module, exports) {
-/* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
-/* eslint-disable brace-style, no-trailing-spaces, no-unused-vars, prefer-template, space-infix-ops */
-/* To fix, remove an entry above, run "make linc", and fix errors. */
-
-/*
- * Polyfill for browser animations - sets window.requestAnimationFrame
- * 
- * Usage: Instead of setInterval(callback, 16),
- * (function loop(){
- *      callback();
- *      window.requestAnimationFrame(loop); 
- * })();
- * 
- * Source: https://gist.github.com/paulirish/1579671
- */
-
-var vendors = ['ms', 'moz', 'webkit', 'o'];
-for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-    window.requestAnimationFrame = 
-    window[vendors[x] + 'RequestAnimationFrame'];}
-
-
-var lastTime = 0;
-if (!window.requestAnimationFrame) {
-    window.requestAnimationFrame = function (callback, element) {
-        var currTime = Date.now();
-        var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-        var id = window.setTimeout(function () 
-        {callback(Date.now());}, timeToCall);
-        lastTime = currTime + timeToCall;
-        return id;};}
 });
 KAdefine("javascript/shared-package/bind-signup-link.js", function(require, module, exports) {
 /* TODO(csilvers): fix these lint errors (http://eslint.org/docs/rules): */
@@ -11871,17 +11557,14 @@ var KA = require("./ka.js");
 $.migrateMute = !KA.IS_DEV_SERVER;
 
 // Install polyfills
-require("../../third_party/javascript-khansrc/es5-shim/function-prototype-bind-polyfill.js");
-require("./request-animation-frame.js");
+require("../../third_party/javascript-khansrc/es6-promise/dist/es6-promise.js");
+require("../../third_party/javascript-khansrc/fetch/fetch.js");
 
 // Install extensions
 require("./handlebars-extras.js");
 
 require("../../third_party/javascript-khansrc/jquery-placeholder/jquery.placeholder.js");
 require("../../third_party/javascript-khansrc/bootstrap-dropdown/dropdown.js");
-
-// This makes sure we can do https CORS requests on IE9
-require("../../third_party/javascript-khansrc/jQuery-ajaxTransport-XDomainRequest/jQuery.XDomainRequest.js");
 
 // Ensure that ka.js has been loaded to extend the global KA object with new
 // functions.
@@ -11929,15 +11612,6 @@ var SiteInfra = {
 
 
     _onDomReady: function () {
-        // $ is potentially stubbed out to queue up methods for
-        // DOMContentLoaded, prior to the full loading jQuery. Register any
-        // queued functions here.
-        if (window._qf) {
-            $.each(window._qf, function (idx, f) {
-                $(f);});}
-
-
-
         NotificationsLoader.init();
         APIActionResults.addDefaultHooks();
         Social.init();
