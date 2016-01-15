@@ -129,6 +129,9 @@ app.post('/render', (req, res) => {
  * 'secret' is a shared secret.  It must equal the value of the 'secret'
  * file in the server's base-directory, or the server will deny the request.
  * NOTE: In dev mode, the secret field is ignored.
+ *
+ * We respond with the instance that was flushed.
+ * TODO(csilvers): how do we flush *all* the instances??
  */
 app.post('/flush', (req, res) => {
     if (!renderSecret.matches(req.body.secret)) {
@@ -136,7 +139,7 @@ app.post('/flush', (req, res) => {
         return;
     }
     cache.reset();
-    res.send('Flushed\n');
+    res.send((process.env['GAE_MODULE_INSTANCE'] || 'dev') + '\n');
 });
 
 app.get('/_api/ping', (req, res) => { res.send('pong!\n'); });

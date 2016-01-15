@@ -197,15 +197,12 @@ describe('API endpoint /flush', () => {
             agent
                 .post('/flush')
                 .send({secret: 'sekret'})
-                .expect((res) => {
-                    assert.equal('Flushed\n', res.text);
-                })
-                .end(() => {
+                .expect('dev\n', (err) => {
                     fetchPackage(url).then((res) => {
                         assert.equal(res, "must refetch");
                         mockScope.done();
-                        done();
-                    });
+                        done(err);
+                    }).catch(done);
                 });
         });
     });

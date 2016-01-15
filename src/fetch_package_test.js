@@ -267,7 +267,7 @@ describe('fetchPackage', () => {
                 assert.equal(500, err.response.status);
                 mockScope.done();
                 done();
-            });
+            }).catch(done);
     });
 
     it("should succeed on 5xx followed by 200", () => {
