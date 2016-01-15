@@ -14,7 +14,8 @@
 
 const request = require('superagent');
 
-const cache = require("./cache");
+const cache = require("./cache.js");
+const profile = require("./profile.js");
 
 // fetchPackage takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -82,7 +83,10 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
         }
     }
 
+    const fetchProfile = profile.start("fetching " + url);
+
     const fetchPromise = new Promise((resolve, reject) => {
+
         const fetcher = request.get(url);
         // We give the fetcher 60 seconds to get a response that we
         // can cache.  (Note the promise returned by this function
@@ -139,6 +143,10 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
                 resolve(res.text);
             }
         });
+    });
+
+    fetchPromise.then(function() {
+        fetchProfile.end();
     });
 
     if (defaultTimeoutInMs == null) {

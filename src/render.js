@@ -15,6 +15,7 @@ const jsdom = require("jsdom");
 const ReactDOMServer = require('react-dom/server');
 
 const cache = require("./cache.js");
+const profile = require("./profile.js");
 
 // render takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -58,6 +59,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
             return cachedValue;
         }
     }
+
+    const vmConstructionProfile = profile.start("building VM for " +
+                                                pathToReactComponent);
 
     const sandbox = {};
 
@@ -135,6 +139,8 @@ const getVMContext = function(jsPackages, pathToReactComponent,
         cache.set(cacheKey, context, cachedSize);
     }
 
+    vmConstructionProfile.end();
+
     return context;
 };
 
@@ -173,10 +179,12 @@ const render = function(jsPackages, pathToReactComponent, props,
     context.pathToReactComponent = pathToReactComponent;
     context.reactProps = props;
 
+    const renderProfile = profile.start("rendering " + pathToReactComponent);
+
     // getVMContext sets up the sandbox to have react installed, as
     // well as everything else needed to load the react component, so
     // our work here is easy.
-    return runInContext(context, () => {
+    const ret = runInContext(context, () => {
         const Component = KAdefine.require(global.pathToReactComponent);
         const reactElement = React.createElement(Component, global.reactProps);
         const html = ReactDOMServer.renderToString(reactElement);
@@ -188,6 +196,10 @@ const render = function(jsPackages, pathToReactComponent, props,
             },
         };
     });
+
+    renderProfile.end();
+
+    return ret;
 };
 
 render.setDefaultCacheBehavior = function(cacheBehavior) {
