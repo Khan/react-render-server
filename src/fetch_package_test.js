@@ -232,9 +232,6 @@ describe('fetchPackage', () => {
         // test-runner timeout.
         fetchPackage.setTimeout(20);
 
-        // Due to retries, we'll try to fetch this thing 3 times.
-        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
-        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
         mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
         fetchPackage("https://www.ka.org/ok.js").then(
             (res) => done(new Error("Should have timed out")),
@@ -249,8 +246,6 @@ describe('fetchPackage', () => {
         fetchPackage.setTimeout(20);
 
         // Due to retries, we'll try to fetch this thing 3 times.
-        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
-        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
         mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
         fetchPackage("https://www.ka.org/ok.js").then(
             (res) => done(new Error("Should have timed out")),

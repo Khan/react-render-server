@@ -82,20 +82,28 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
         }
     }
 
-    const retval = new Promise((resolve, reject) => {
+    const fetchPromise = new Promise((resolve, reject) => {
         const fetcher = request.get(url);
-        // TODO(csilvers): always take 60 seconds here, and have the caller
-        // abort after defaultTimeoutInMs (so we can still populate the cache).
-        if (defaultTimeoutInMs != null) {
-            fetcher.timeout(defaultTimeoutInMs);
-        }
+        // We give the fetcher 60 seconds to get a response that we
+        // can cache.  (Note the promise returned by this function
+        // will probably time out sooner, due to the race() below.)
+        fetcher.timeout(60000);
         if (cachedValue && cachedValue.header['last-modified']) {
             fetcher.set('if-modified-since',
                         cachedValue.header['last-modified']);
         }
         fetcher.buffer().end((err, res) => {
             // The request is done: don't say it's inflight anymore!
+            // (Note: when running tests, our key may not be in
+            // inFlightRequests, if this promise resolves after the
+            // termination of the test.  In that case, we can just bail,
+            // since the test isn't running anymore anyway.)
+            if (!inFlightRequests[inFlightCacheKey]) {
+                reject("We've moved on to other tests, my friend");
+                return;
+            }
             delete inFlightRequests[inFlightCacheKey];
+
             if (err) {
                 // Due to a superagent bug(?), 304 "Not modified" ends up here.
                 if (err.response && err.response.status === 304) {
@@ -132,6 +140,18 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
             }
         });
     });
+
+    if (defaultTimeoutInMs == null) {
+        defaultTimeoutInMs = 60000;        // maximum timeout we allow
+    }
+    const timerPromise = new Promise((resolve, reject) => {
+        setTimeout(reject, defaultTimeoutInMs,
+                   {'error': 'timed out while fetching ' + url,
+                    'timeout': defaultTimeoutInMs});
+    });
+
+    // This resolves to whichever promise finishes first.
+    const retval = Promise.race([fetchPromise, timerPromise]);
 
     // Let other concurrent requests know that we're fetching this
     // url, so they don't try to do it too.
