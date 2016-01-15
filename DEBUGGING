@@ -1,0 +1,11 @@
+To log into an ssh container running an instance, do something like
+this:
+
+- ssh to the machine via a page like
+     https://console.developers.google.com/appengine/instances?project=khan-academy&moduleId=react-render
+- run `sudo docker ps` to find the container running google-fluentd, the logging agent
+- run `container_exec <name of container> /bin/bash`
+- cd'd to /var/log/saved_docker
+- cd'd to the only directory there (whose name was a 64-char string of hex characters)
+- you can look at <really-long-name>-json.log (you could parse this file to look for all entries with the "stream" attribute set to "stdout", "stderr", etc.)
+- you can also look at /var/log/nginx/access.log
