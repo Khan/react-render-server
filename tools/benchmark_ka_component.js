@@ -29,47 +29,105 @@ const secret = require("../src/secret.js");
 
 
 /**
- * Given a map from package-name to immediate dependencies, and a package
- * name of interest, return the transitive dependencies for the package
- * of interest.  The deps are topologically sorted, so no package in the
- * returned array depends on a package that comes earlier in the array.
+ * Given a map from package-name to immediate dependencies, and a
+ * package name of interest, update transitiveDeps[pkg] to be list of
+ * the transitive dependencies pkg.  It also may update
+ * transitiveDeps[otherPkg] of other packages, if it has to figure
+ * them out to resolve transitiveDeps[pkg].
+ *
+ * All entries in transitiveDeps are topologically sorted, so no
+ * package in the returned array depends on a package that comes
+ * after it in the array.
  */
-const getTransitiveDependencies = function(pkg, depmap) {
-    const retval = [];
-    const seenPkgs = {};
+const updateTransitiveDependencies = function(pkg, depmap, transitiveDeps) {
+    if (transitiveDeps[pkg] === 'calculating...') {
+        throw new Error(`Cyclic package dependency involving $pkg`);
+    } else if (transitiveDeps[pkg]) {
+        return;
+    }
 
-    const addDeps = function(currentPkg) {
-        if (seenPkgs[currentPkg]) {
-            return;
+    transitiveDeps[pkg] = 'calculating...';
+
+    let ourTransitiveDeps = [];
+    (depmap[pkg] || []).forEach((dep) => {
+        updateTransitiveDependencies(dep, depmap, transitiveDeps);
+        ourTransitiveDeps = ourTransitiveDeps.concat(transitiveDeps[dep]);
+    });
+    ourTransitiveDeps.push(pkg);
+
+    // Let's de-dup this list as we copy ourTransitiveDeps into
+    // transitiveDeps[pkg].
+    const seen = {};
+    transitiveDeps[pkg] = [];
+    ourTransitiveDeps.forEach((p) => {
+        if (!seen[p]) {
+            transitiveDeps[pkg].push(p);
+            seen[p] = true;
         }
-        seenPkgs[currentPkg] = true;
-        (depmap[currentPkg] || []).forEach(dep => addDeps(dep));
-        retval.push(currentPkg);
-    };
-
-    addDeps(pkg);
-    return retval;
+    });
 };
 
-/**
- * Given a package and a package-manifest.js file, return a list of
- * the urls of all the packages that the input package transitively
- * depends on (itself included).
- */
-const getDependentPackageUrls = function(pkg, manifestContents,
-                                         gaeHostPort) {
-    const dependencyString = manifestContents.replace(
-            /^.*"javascript": (\[.*\]), "stylesheets":.*/, '$1');
-    const dependencyInfo = JSON.parse(dependencyString);
 
-    const dependencyMap = {};    // for some value of "const"
-    const pkgToUrl = {};
-    dependencyInfo.forEach((packageInfo) => {
-        dependencyMap[packageInfo.name] = packageInfo.dependencies;
-        pkgToUrl[packageInfo.name] = gaeHostPort + packageInfo.url;
+/**
+ * Use the package-manifest contents to return (a promise of) a map
+ * from package-name to a list of the urls of all dependent packages
+ * (i.e. the transitive dependencies).  So if pkgA depends on pkgB
+ * depends on pkgC, then map that this function returns has an entry
+ *   'pkgA': ['url to fetch pkgC', 'url to fetch pkgB', 'url to fetch pkgA']
+ */
+const getPackageToDependentUrlsMap = function(gaeHostPort) {
+    // We need the transitive dependency map for the package
+    // containing our component.  This is a bit annoying for 3
+    // reasons:
+    // 1) On prod, the file containing the map has a hard-to-guess
+    //    filename, so we need to extract it from the homepage;
+    // 2) The file containing the map is not json, so we have to
+    //    extract out the info we want using regexps;
+    // 3) We need to figure out the transitive deps ourselves.
+    // We do (1) and (2), at least, here.
+    // TODO(csilvers): compute (3) here as well too.
+    return requestToPromise(superagent.get(gaeHostPort + '/')).then(res => {
+        const re = /['"]([^"']*\/package-manifest[^'"]*)["']/;
+        const results = re.exec(res.text);
+        if (!results) {
+            throw new Error("Can't find package-manifest in homepage");
+        }
+        let packageManifestUrl = results[1];
+        if (packageManifestUrl.indexOf('://') === -1) {
+            packageManifestUrl = gaeHostPort + packageManifestUrl;
+        }
+        return packageManifestUrl;
+    }).then((packageManifestUrl) => {
+        return requestToPromise(superagent.get(packageManifestUrl));
+    }).then((packageManifestResult) => {
+        const manifestContents = packageManifestResult.text;
+        const dependencyString = manifestContents.replace(
+                /^.*"javascript": (\[.*\]), "stylesheets":.*/, '$1');
+        const dependencyInfo = JSON.parse(dependencyString);
+
+        // Read the manifest into some useful data structures.
+        const pkgToUrl = {};       // for some value of "const"
+        const dependencyMap = {};  // direct dependencies, parsed from the file
+        dependencyInfo.forEach((packageInfo) => {
+            dependencyMap[packageInfo.name] = packageInfo.dependencies;
+            pkgToUrl[packageInfo.name] = gaeHostPort + packageInfo.url;
+        });
+
+        // For each package, go from direct deps to transitive deps.
+        const transitiveDependencyMap = {};
+        Object.keys(pkgToUrl).forEach((pkg) => {
+            updateTransitiveDependencies(pkg, dependencyMap,
+                                         transitiveDependencyMap);
+        });
+
+        // Replace each dependent package-name with the package-url instead.
+        const retval = {};
+        Object.keys(transitiveDependencyMap).forEach((pkg) => {
+            retval[pkg] = transitiveDependencyMap[pkg].map(p => pkgToUrl[p]);
+        });
+
+        return retval;
     });
-    const packageDeps = getTransitiveDependencies(pkg, dependencyMap);
-    return packageDeps.map(pkg => pkgToUrl[pkg]);
 };
 
 
@@ -144,41 +202,6 @@ const requestToPromise = function(req, extra) {
 
 
 /**
- * Return the package-manifest contents.
- *
- * This is needed for figuring out package dependencies for render.
- */
-const getPackageManifestContents = function(gaeHostPort) {
-    // We need the transitive dependency map for the package
-    // containing our component.  This is a bit annoying for 3
-    // reasons:
-    // 1) On prod, the file containing the map has a hard-to-guess
-    //    filename, so we need to extract it from the homepage;
-    // 2) The file containing the map is not json, so we have to
-    //    extract out the info we want using regexps;
-    // 3) We need to figure out the transitive deps ourselves.
-    // We do (1) and (2), at least, here.
-    // TODO(csilvers): compute (3) here as well too.
-    return requestToPromise(superagent.get(gaeHostPort + '/')).then(res => {
-        const re = /['"]([^"']*\/package-manifest[^'"]*)["']/;
-        const results = re.exec(res.text);
-        if (!results) {
-            throw new Error("Can't find package-manifest in homepage");
-        }
-        let packageManifestUrl = results[1];
-        if (packageManifestUrl.indexOf('://') === -1) {
-            packageManifestUrl = gaeHostPort + packageManifestUrl;
-        }
-        return packageManifestUrl;
-    }).then((packageManifestUrl) => {
-        return requestToPromise(superagent.get(packageManifestUrl));
-    }).then((packageManifestResult) => {
-        return packageManifestResult.text;
-    });
-};
-
-
-/**
  * Return profile information about rendering component with fixture.
  *
  * @param {string} componentPath - a path to the component,
@@ -194,12 +217,12 @@ const getPackageManifestContents = function(gaeHostPort) {
  *     the webapp server is running.
  * @param {string} renderHostPort - actually a protocol-host-port, where
  *      the react-render-server is running.
- * @param {string} packageManifestContents - the output of
- *      getPackageManifestContents().
+ * @param {string} packageToDependentUrlsMap - the output of
+ *      getPackageToDependentUrlsMap().
  */
 const render = function(componentPath, fixturePath, instanceSeed,
                         gaeHostPort, renderHostPort,
-                        packageManifestContents) {
+                        packageToDependentUrlsMap) {
     let props;
     const relativeFixturePath = path.relative(__dirname, fixturePath);
     try {
@@ -213,8 +236,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
     }
 
     return getPackage(componentPath, gaeHostPort).then((componentPackage) => {
-        const depPackageUrls = getDependentPackageUrls(
-            componentPackage, packageManifestContents, gaeHostPort);
+        const depPackageUrls = packageToDependentUrlsMap[componentPackage];
 
         const reqBody = {
             secret: secret.get(),
@@ -271,7 +293,7 @@ const renderFromQueue = () => {
  */
 const throttledRender = function(componentPath, fixturePath, instanceSeed,
                                  gaeHostPort, renderHostPort,
-                                 packageManifestContents,
+                                 packageToDependentUrlsMap,
                                  maxConcurrentRequests) {
     renderQueue.push([
         componentPath,
@@ -279,7 +301,7 @@ const throttledRender = function(componentPath, fixturePath, instanceSeed,
         instanceSeed,
         gaeHostPort,
         renderHostPort,
-        packageManifestContents,
+        packageToDependentUrlsMap,
     ]);
 
     if (inflightRequestCount < maxConcurrentRequests) {
@@ -304,7 +326,7 @@ const main = function(parseArgs) {
         rrsHostPort = "https://react-render-dot-khan-academy.appspot.com";
     }
 
-    getPackageManifestContents(gaeHostPort).then((packageManifestContents) => {
+    getPackageToDependentUrlsMap(gaeHostPort).then((pkgToDepUrlsMap) => {
         const fixtureToComponent = {};
 
         // To get the path to the component, we just remove the trailing
@@ -333,7 +355,7 @@ const main = function(parseArgs) {
                     const componentPath = fixtureToComponent[fixtureAbspath];
                     throttledRender(componentPath, fixtureAbspath, i,
                                     gaeHostPort, rrsHostPort,
-                                    packageManifestContents,
+                                    pkgToDepUrlsMap,
                                     parseArgs.max_concurrent_requests);
                 } catch (err) {
                     console.log(`Skipping ${fixturePath}: ${err}`);
