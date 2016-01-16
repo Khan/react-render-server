@@ -101,6 +101,9 @@ app.post('/render', (req, res) => {
                 logging.error('Fetching failure: ' + err.response.error + ': ',
                               err.stack);
                 res.status(500).json({error: err});
+            } else if (err.error) {        // set for timeouts, in particular
+                logging.error(err.error);
+                res.status(500).json(err);
             } else {
                 logging.error('Fetching failure: ', err.stack);
                 res.status(500).json({error: err.toString(),
