@@ -211,6 +211,9 @@ const render = function(componentPath, fixturePath, instanceSeed,
             props: props,
         };
 
+        // The `?path=` query param we add onto the end is completely ignored
+        // by the server -- we add it here in order to make reading request
+        // logs easier.
         const url = renderHostPort + "/render?path=" + componentPath;
 
         return requestToPromise(
