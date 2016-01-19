@@ -22,17 +22,17 @@ const hrtToMs = (hrt) => {
     return hrt[0] * 1000 + hrt[1] / 1e6;
 };
 
-const start = (msg, includeStartMessage) => {
+const start = (msg) => {
     // TODO(csilvers): return an empty function if the log-level is >= debug?
-    if (includeStartMessage) {
+    if (msg) {
         logging.debug('PROFILE: %s (start)', msg);
     }
     const startTime = process.hrtime();
     return {
-        end: () => {
+        end: (endMsg) => {
             const endTime = process.hrtime();
             logging.debug('PROFILE: %s (finished after %d ms)',
-                msg,
+                endMsg || msg,
                 (hrtToMs(endTime) - hrtToMs(startTime)).toFixed(4));
         },
     };

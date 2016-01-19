@@ -54,7 +54,10 @@ resetGlobals();
 
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
- * return a promise holding the package contents.
+ * return a promise holding
+ *    [the package contents, num-network-fetches-needed]
+ * num-network-fetches-needed will be 0 if we got the item out of
+ * the cache, or 1 if we had to go out to the network to get it.
  */
 const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
     if (cacheBehavior == null) {
@@ -79,7 +82,7 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
     } else if (cacheBehavior === 'yes') {
         cachedValue = cache.get(url);
         if (cachedValue != null) {
-            return Promise.resolve(cachedValue.text);
+            return Promise.resolve([cachedValue.text, 0]);
         }
     }
 
@@ -111,7 +114,7 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
             if (err) {
                 // Due to a superagent bug(?), 304 "Not modified" ends up here.
                 if (err.response && err.response.status === 304) {
-                    resolve(cachedValue.text);
+                    resolve([cachedValue.text, 1]);
                     return;
                 }
                 if (err.response && err.response.status >= 400 &&
@@ -140,7 +143,7 @@ const fetchPackage = function(url, cacheBehavior, triesLeftAfterThisOne) {
                 if (cacheBehavior !== 'ignore') {
                     cache.set(url, res, res.text.length);
                 }
-                resolve(res.text);
+                resolve([res.text, 1]);
             }
         });
     });

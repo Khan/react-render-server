@@ -5,8 +5,10 @@
   "main": "src/main.js",
   "scripts": {
     "start": "nodemon src/main.js -- -p 8080",
-    "serve_local": "nodemon src/main.js -- --dev",
+    "dev": "nodemon src/main.js -- --dev",
+    "debug": "nodemon src/main.js -- --dev --log-level=debug",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
+    "serve_local": "nodemon src/main.js -- --dev",
     "test": "mocha --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "set_default": "./set_default.sh"

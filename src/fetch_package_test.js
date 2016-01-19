@@ -51,7 +51,7 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(200, "'yay!'");
 
         return fetchPackage("https://www.ka.org/ok.js").then(res => {
-            assert.equal(res, "'yay!'");
+            assert.deepEqual(res, ["'yay!'", 1]);
             mockScope.done();
         });
     });
@@ -75,7 +75,7 @@ describe('fetchPackage', () => {
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
             // Should still have the cached value.
-            assert.equal(res, "'yay!'");
+            assert.deepEqual(res, ["'yay!'", 0]);
             // We shouldn't have even fetched /ok.js the second time.
             assert.equal(1, mockScope.pendingMocks().length);
         });
@@ -89,7 +89,7 @@ describe('fetchPackage', () => {
             return fetchPackage("https://www.ka.org/ok.js", 'no');
         }).then((res) => {
             // Should have the new value due to the 'true' above.
-            assert.equal(res, "new");
+            assert.deepEqual(res, ["new", 1]);
             mockScope.done();
         });
     });
@@ -104,7 +104,7 @@ describe('fetchPackage', () => {
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
             // Should have the new value due to being too big for the cache.
-            assert.equal(res, "new");
+            assert.deepEqual(res, ["new", 1]);
             mockScope.done();
         });
     });
@@ -121,19 +121,19 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(200, "'boo!'");
         mockScope.get("/ok2.js").reply(200, "'ignored: cached'");
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            assert.equal(res, "'early to the party'");
+            assert.deepEqual(res, ["'early to the party'", 1]);
             return fetchPackage("https://www.ka.org/ok2.js");
         }).then((res) => {
-            assert.equal(res, "'late to the party'");
+            assert.deepEqual(res, ["'late to the party'", 1]);
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
             // This value should be fetched anew because ok.js should
             // have been evicted from the cache.
-            assert.equal(res, "'boo!'");
+            assert.deepEqual(res, ["'boo!'", 1]);
             return fetchPackage("https://www.ka.org/ok2.js");
         }).then((res) => {
             // This should still be in the cache.
-            assert.equal(res, "'late to the party'");
+            assert.deepEqual(res, ["'late to the party'", 0]);
             // We shouldn't have fetched /ok2.js the second time.
             assert.equal(1, mockScope.pendingMocks().length);
         });
@@ -152,19 +152,19 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
         return fetchPackage("https://www.ka.org/ok.js", 'ims').then((res) => {
             // Original fetch
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 1]);
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
-            // lmDate
-            assert.equal(res, "'hi'");
+            // lmDate (still requires a fetch to get the 304 back).
+            assert.deepEqual(res, ["'hi'", 1]);
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
             // lmAfter
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 1]);
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
             // lmBefore
-            assert.equal(res, "'new content'");
+            assert.deepEqual(res, ["'new content'", 1]);
             mockScope.done();
         });
     });
@@ -180,16 +180,16 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(maybe304(lmBefore, "'no-see-um 2'"));
         mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
         return fetchPackage("https://www.ka.org/ok.js", 'yes').then((res) => {
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 1]);
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 0]);
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 0]);
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            assert.deepEqual(res, ["'hi'", 0]);
             // We should still have pending mocks; in 'yes' mode we
             // don't even hit the server when there's a cache hit.
             assert.notEqual(0, mockScope.pendingMocks().length);
@@ -204,8 +204,8 @@ describe('fetchPackage', () => {
             [fetchPackage("https://www.ka.org/ok.js"),
              fetchPackage("https://www.ka.org/ok.js")]
         ).then(e => {
-            assert.equal(e[0], "'yay!'");
-            assert.equal(e[1], "'yay!'");
+            assert.deepEqual(e[0], ["'yay!'", 1]);
+            assert.deepEqual(e[1], ["'yay!'", 1]);
             // We should still have pending mocks; the second request
             // should never have gotten sent.
             assert.notEqual(0, mockScope.pendingMocks().length);
@@ -220,8 +220,8 @@ describe('fetchPackage', () => {
             [fetchPackage("https://www.ka.org/ok.js", "yes"),
              fetchPackage("https://www.ka.org/ok.js", "no")]
         ).then(e => {
-            assert.equal(e[0], "'yay!'");
-            assert.equal(e[1], "'not ignored'");
+            assert.deepEqual(e[0], ["'yay!'", 1]);
+            assert.deepEqual(e[1], ["'not ignored'", 1]);
             mockScope.done();
         });
     });
@@ -275,7 +275,7 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(200, "'yay!'");
 
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            assert.equal(res, "'yay!'");
+            assert.deepEqual(res, ["'yay!'", 1]);
             mockScope.done();
         });
     });

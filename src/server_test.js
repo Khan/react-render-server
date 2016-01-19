@@ -189,22 +189,24 @@ describe('API endpoint /flush', () => {
         mockScope.get('/corelibs-package.js').reply(200, 'must refetch');
 
         fetchPackage(url).then((res) => {
-            assert.equal(res, "test contents");
+            assert.deepEqual(res, ["test contents", 1]);
             return fetchPackage(url);
-        }).then((res) => {
-            // Should still be cached.
-            assert.equal(res, "test contents");
-            agent
-                .post('/flush')
-                .send({secret: 'sekret'})
-                .expect('dev\n', (err) => {
-                    fetchPackage(url).then((res) => {
-                        assert.equal(res, "must refetch");
-                        mockScope.done();
-                        done(err);
-                    }).catch(done);
-                });
-        });
+        }).then(
+            (res) => {
+                // Should still be cached.
+                assert.deepEqual(res, ["test contents", 0]);
+                agent
+                    .post('/flush')
+                    .send({secret: 'sekret'})
+                    .expect('dev\n', (err) => {
+                        fetchPackage(url).then((res) => {
+                            assert.deepEqual(res, ["must refetch", 1]);
+                            mockScope.done();
+                            done(err);
+                        }).catch(done);
+                    });
+            },
+            (err) => done(err));
     });
 
     it("should require a valid secret", (done) => {

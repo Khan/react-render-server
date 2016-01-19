@@ -10,11 +10,17 @@ const logging = require("winston");
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
+const profile = require("./profile.js");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
 
+// We keep track of how many render requests are currently "in
+// flight", to help us estimate how long a new request will take.
+let pendingRenderRequests = 0;
+
 const app = express();
 app.use(bodyParser.json());
+
 
 /**
  * Server-side render a react component.
@@ -60,6 +66,36 @@ app.use(bodyParser.json());
  * css will only be returned if the component makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
+
+// This middleware manages the number of connections, and logs about it.
+app.use('/render', (req, res, next) => {
+    // The number of concurrent requests will fluctuate as this
+    // request is evaluated.  We arbitrarily take the number at
+    // our-request-start as the value we log.
+    // We store the stats-to-log in `req` as a hacky way of holding
+    // per-request stats.
+    req.renderStats = {
+        pendingRenderRequests: pendingRenderRequests,
+        packageFetches: 0,
+    };
+
+    pendingRenderRequests++;
+    const renderProfile = profile.start();
+
+    // Monkey-patch res.end so we can do our logging at request-end.
+    const end = res.end;
+    res.end = (chunk, encoding) => {
+        pendingRenderRequests--;
+        if (res.statusCode < 300) {   // only log on successful fetches
+            renderProfile.end(`render-stats for ${req.body.path}: ` +
+                              JSON.stringify(req.renderStats));
+        }
+        res.end = end;
+        res.end(chunk, encoding);
+    };
+    next();
+});
+
 app.post('/render', (req, res) => {
     // Validate the input.
     let err;
@@ -85,12 +121,18 @@ app.post('/render', (req, res) => {
     }
 
     const fetchPromises = req.body.urls.map(
-        url => fetchPackage(url).then(contents => [url, contents])
+        url => fetchPackage(url).then(    // map to (url, contents, #fetches)
+            (contentsAndnumFetches) => [url].concat(contentsAndnumFetches))
     );
 
     Promise.all(fetchPromises).then(
-        (fetchBodies) => {
-            const renderedState = render(fetchBodies,
+        (fetchUrlsAndBodiesAndNumFetches) => {
+            const fetchUrlsAndBodies = fetchUrlsAndBodiesAndNumFetches.map(
+                e => [e[0], e[1]]);
+            fetchUrlsAndBodiesAndNumFetches.forEach(
+                e => req.renderStats.packageFetches += e[2]);
+
+            const renderedState = render(fetchUrlsAndBodies,
                                          req.body.path,
                                          req.body.props);
             res.json(renderedState);

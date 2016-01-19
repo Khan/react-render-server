@@ -32,6 +32,11 @@ parser.addArgument(['--dev'],
 parser.addArgument(['--cache-size'],
                    {type: 'int', defaultValue: 100,
                     help: "Internal cache size, in MB."});
+parser.addArgument(['--log-level'],
+                   {defaultValue: 'info',
+                    choices: ['silly', 'debug', 'verbose', 'info',
+                              'warn', 'error'],
+                    help: "What level to log at."});
 
 const args = parser.parseArgs();
 
@@ -49,20 +54,16 @@ if (args.dev) {
     fetchPackage.setTimeout(null);
     // Disable the need for secrets.
     renderSecret.matches = (actual) => true;
+    process.env.NODE_ENV = 'dev';
 } else {
-    // In production, we write to a file which magically gets picked up by the
-    // AppEngine log service so we can see them in the log viewer.
-    //
-    // https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#logging
-    // TODO(csilvers): is this necessary?  This page hints no:
-    // https://cloud.google.com/nodejs/getting-started/logging-application-events
-    //const managedVMLogPath = "/var/log/app_engine/request.log";
-    //const accessLogStream = fs.createWriteStream(managedVMLogPath,
-    //                                             {flags: 'a'});
+    // This is important for the default catch-all error handler:
+    // http://expressjs.com/en/guide/error-handling.html
+    process.env.NODE_ENV = 'production';
 }
 
 // Add logging support, based on
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
+winston.level = args.log_level;
 const appWithLogging = express();
 appWithLogging.use(expressWinston.logger({      // request logging
     transports: [
@@ -82,11 +83,7 @@ appWithLogging.use(expressWinston.errorLogger({      // error logging
         }),
     ],
 }));
-// Send a 500 on all uncaught exceptions.
-// We also append the normal app on after this, and we're all set!
-appWithLogging.use(function(err, req, res, next) {
-    res.status(500).send('Something broke!');
-}, app);
+appWithLogging.use(app);
 
 cache.init(args.cacheSize * 1024 * 1024);
 
