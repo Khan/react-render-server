@@ -46,8 +46,23 @@ done
 # TODO(csilvers): git tag the release.
 
 echo "Default set, now deleting old versions."
-# TODO(csilvers): support 'good' and 'bad' versions via git tag.
 
+# TODO(csilvers): make this more sophisticated, a la audit_gae_versions.py:
+# 1) support 'good' and 'bad' versions via git tag.
+# 2) prefer to keep versions that have a long uptime.
+# 3) always keep the most recent deploys.
 
+# This lists the module-name, version, and traffic-split.  First we
+# grep to remove versions that are getting traffic (so the candidates
+# to delete will include only versions getting no traffic).  Then we
+# grep again to extract out the version-names.
+VERSIONS=`gcloud preview app modules list react-render --project "$PROJECT" | fgrep -w 0.0 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
+# This keeps the most recent 5 versions (that are not getting any traffic).
+VERSIONS_TO_DELETE=`echo "$VERSIONS" | sort -r | tail -n+6`
+for version $VERSIONS_TO_DELETE; do
+    echo "Deleting old version $version"
+    gcloud preview app modules delete react-render \
+        --project "$PROJECT" --version "$version"
+done
 
 echo "DONE"
