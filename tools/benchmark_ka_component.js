@@ -28,6 +28,16 @@ const packageInfo = require("../package.json");
 const secret = require("../src/secret.js");
 
 
+// Used to report our queries per second (QPS).
+let requestsMadeInTheLastSecond = 0;
+
+
+const periodicLogger = setInterval(() => {
+    console.log(`REQUESTS IN THE LAST SECOND: ${requestsMadeInTheLastSecond}`);
+    requestsMadeInTheLastSecond = 0;
+}, 1000);
+
+
 /**
  * Given a map from package-name to immediate dependencies, and a
  * package name of interest, update transitiveDeps[pkg] to be list of
@@ -250,6 +260,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
         // logs easier.
         const url = renderHostPort + "/render?path=" + componentPath;
 
+        requestsMadeInTheLastSecond++;
         return requestToPromise(
             superagent.post(url).send(reqBody),
             +new Date      // "extra" param: time when the request is sent off
@@ -270,42 +281,30 @@ const render = function(componentPath, fixturePath, instanceSeed,
     });
 };
 
-const renderQueue = [];
-let inflightRequestCount = 0;
 
-const renderFromQueue = () => {
-    if (renderQueue.length > 0) {
-        inflightRequestCount++;
-        render.apply(null, renderQueue.shift()).then(() => { // @Nolint(apply)
-            inflightRequestCount--;
-            renderFromQueue();
-        });
+// We'll have up to max_concurrent_requests render-loops running at a
+// time.  After we exhaust the render-queue, each loop will stop
+// running one by one as they go to get a new set of render-args and
+// there aren't any more.
+let loopsRunning = 0;
+
+const loopingRender = (renderQueue, isRecursive) => {
+    if (!isRecursive) {   // then we're starting this loop for the first time!
+        loopsRunning++;
     }
-};
-
-
-/**
- * Call render(), but only allow maxConcurrentRequests in flight at a time to
- * avoid making thousands of concurrent connections.
- *
- * When we're at the limit for max concurrent requests, we'll queue the render
- * call for later.
- */
-const throttledRender = function(componentPath, fixturePath, instanceSeed,
-                                 gaeHostPort, renderHostPort,
-                                 packageToDependentUrlsMap,
-                                 maxConcurrentRequests) {
-    renderQueue.push([
-        componentPath,
-        fixturePath,
-        instanceSeed,
-        gaeHostPort,
-        renderHostPort,
-        packageToDependentUrlsMap,
-    ]);
-
-    if (inflightRequestCount < maxConcurrentRequests) {
-        renderFromQueue();
+    if (renderQueue.length > 0) {
+        render.apply(null, renderQueue.shift()).then(   // @Nolint(apply: we are not ES7 so can't use spread operator)
+            // We're done with this render, let's keep the loop going!
+            () => loopingRender(renderQueue, true)
+        );
+    } else {
+        // We're done -- nothing more to render!
+        loopsRunning--;
+        // If we were the last loop, we're *done* done.
+        if (loopsRunning === 0) {
+            clearInterval(periodicLogger);
+            console.log("DONE!");
+        }
     }
 };
 
@@ -327,41 +326,47 @@ const main = function(parseArgs) {
     }
 
     getPackageToDependentUrlsMap(gaeHostPort).then((pkgToDepUrlsMap) => {
-        const fixtureToComponent = {};
+        // Collect up all the render calls and put them in the render queue.
+        const renderQueue = [];
 
-        // To get the path to the component, we just remove the trailing
-        // .fixture.js, and the leading ka-root prefix.  For now, we
-        // assume that the fixture is at <ka_root>/javascript/...
-        // TODO(csilvers): figure out ka-root better.
-        for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
-            parseArgs.fixtures.forEach((fixturePath) => {
-                const fixtureAbspath = path.resolve(fixturePath);
-                try {
-                    if (!fixtureToComponent[fixtureAbspath]) {
-                        const re = /(javascript\/.*)\.fixture\./;
-                        const result = re.exec(fixtureAbspath);
-                        if (result) {
-                            fixtureToComponent[fixtureAbspath] = result[1];
-                        } else {
-                            throw new Error('cannot infer component from ' +
-                                            fixtureAbspath);
-                        }
-                    } else if (fixtureToComponent[fixtureAbspath] === 'error') {
-                        // We've already logged that this fixture is broken,
-                        // so we can just skip it.
-                        return;
-                    }
-                    // Let's do the work!
-                    const componentPath = fixtureToComponent[fixtureAbspath];
-                    throttledRender(componentPath, fixtureAbspath, i,
-                                    gaeHostPort, rrsHostPort,
-                                    pkgToDepUrlsMap,
-                                    parseArgs.max_concurrent_requests);
-                } catch (err) {
-                    console.log(`Skipping ${fixturePath}: ${err}`);
-                    fixtureToComponent[fixtureAbspath] = 'error';
+        parseArgs.fixtures.forEach((fixturePath) => {
+            const fixtureAbspath = path.resolve(fixturePath);
+            // To get the path to the component, we just remove the
+            // trailing .fixture.js, and the leading ka-root prefix.
+            // For now, we assume that the fixture is at
+            // <ka_root>/javascript/...  TODO(csilvers): figure out
+            // ka-root better.
+            const re = /(javascript\/.*)\.fixture\./;
+            const result = re.exec(fixtureAbspath);
+            if (!result) {
+                console.log(`Skipping ${fixturePath}: cannot infer ` +
+                            `component from ${fixtureAbspath}`);
+            } else {
+                const componentPath = result[1];
+                for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
+                    renderQueue.push([componentPath, fixtureAbspath, i,
+                                      gaeHostPort, rrsHostPort,
+                                      pkgToDepUrlsMap]);
                 }
-            });
+            }
+        });
+
+        // Now randomly shuffle the render calls to get rid of any
+        // patterns in the order we render components in.  This is the
+        // classic Durstenfeld (aka Knuth) shuffle.
+        for (let i = renderQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = renderQueue[i];
+            renderQueue[i] = renderQueue[j];
+            renderQueue[j] = temp;
+        }
+
+        // Now let's start the rendering!
+        for (let i = 0; i < parseArgs.max_concurrent_requests; i++) {
+            // Each of these calls will start a new render as soon as
+            // the previous one has finished, keeping
+            // maxConcurrentRequests renders in flight at once.
+            loopingRender(renderQueue);
         }
     });
 };
