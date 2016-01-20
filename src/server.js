@@ -78,6 +78,7 @@ app.use('/render', (req, res, next) => {
         pendingRenderRequests: pendingRenderRequests,
         packageFetches: 0,
         createdVmContext: false,
+        vmContextSize: 0,
     };
 
     pendingRenderRequests++;

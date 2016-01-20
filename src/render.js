@@ -102,10 +102,13 @@ const getVMContext = function(jsPackages, pathToReactComponent,
     // This makes sure that qTip2 doesn't try to use the canvas.
     sandbox.HTMLCanvasElement.prototype.getContext = undefined;
 
+    let cumulativePackageSize = 0;
+
     const context = vm.createContext(sandbox);
 
     jsPackages.forEach((pkg) => {
         vm.runInContext(pkg[1], context);   // pkg is [url path, contents]
+        cumulativePackageSize += pkg[1].length;
     });
 
     // KA code is transpiled via babel.  The resulting code can't run
@@ -170,6 +173,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
 
     if (requestStats) {
         requestStats.createdVmContext = true;
+        requestStats.vmContextSize = cumulativePackageSize;
     }
 
     return context;

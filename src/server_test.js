@@ -191,7 +191,8 @@ describe('API endpoint /render', () => {
             './javascript/server-package/test-component.jsx: {' +
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
-            '"createdVmContext":true' +
+            '"createdVmContext":true,' +
+            '"vmContextSize":1298191' +
             "}");
 
         agent
