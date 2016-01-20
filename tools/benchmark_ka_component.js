@@ -196,9 +196,17 @@ const getPackageManifestContents = function(gaeHostPort) {
 const render = function(componentPath, fixturePath, instanceSeed,
                         gaeHostPort, renderHostPort,
                         packageManifestContents) {
+    let props;
     const relativeFixturePath = path.relative(__dirname, fixturePath);
-    const allProps = require(relativeFixturePath).instances;
-    const props = allProps[instanceSeed % allProps.length];
+    try {
+        const allProps = require(relativeFixturePath).instances;
+        props = allProps[instanceSeed % allProps.length];
+    } catch (err) {
+        console.log(`Skipping ${fixturePath}: ${err}`);
+        // Maybe semantically this is a reject(), but resolve() means
+        // we don't have to capture reject()'s below.
+        return Promise.resolve(err);
+    }
 
     return getPackage(componentPath, gaeHostPort).then((componentPackage) => {
         const depPackageUrls = getDependentPackageUrls(
@@ -290,31 +298,42 @@ const main = function(parseArgs) {
     }
 
     getPackageManifestContents(gaeHostPort).then((packageManifestContents) => {
+        const fixtureToComponent = {};
+
         // To get the path to the component, we just remove the trailing
         // .fixture.js, and the leading ka-root prefix.  For now, we
         // assume that the fixture is at <ka_root>/javascript/...
         // TODO(csilvers): figure out ka-root better.
-        parseArgs.fixtures.forEach((fixturePath) => {
-            try {
+        for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
+            parseArgs.fixtures.forEach((fixturePath) => {
                 const fixtureAbspath = path.resolve(fixturePath);
-                const re = /(javascript\/.*)\.fixture\./;
-                const result = re.exec(fixtureAbspath);
-                if (!result) {
-                    throw new Error('cannot infer component from ' +
-                                    fixtureAbspath);
-                }
-                const componentPath = result[1];
-                for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
+                try {
+                    if (!fixtureToComponent[fixtureAbspath]) {
+                        const re = /(javascript\/.*)\.fixture\./;
+                        const result = re.exec(fixtureAbspath);
+                        if (result) {
+                            fixtureToComponent[fixtureAbspath] = result[1];
+                        } else {
+                            throw new Error('cannot infer component from ' +
+                                            fixtureAbspath);
+                        }
+                    } else if (fixtureToComponent[fixtureAbspath] === 'error') {
+                        // We've already logged that this fixture is broken,
+                        // so we can just skip it.
+                        return;
+                    }
                     // Let's do the work!
+                    const componentPath = fixtureToComponent[fixtureAbspath];
                     throttledRender(componentPath, fixtureAbspath, i,
                                     gaeHostPort, rrsHostPort,
                                     packageManifestContents,
                                     parseArgs.max_concurrent_requests);
+                } catch (err) {
+                    console.log(`Skipping ${fixturePath}: ${err}`);
+                    fixtureToComponent[fixtureAbspath] = 'error';
                 }
-            } catch (err) {
-                console.log(`Skipping ${fixturePath}: ${err}`);
-            }
-        });
+            });
+        }
     });
 };
 
