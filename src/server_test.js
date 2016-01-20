@@ -4,6 +4,7 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
+const logging = require("winston");
 const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
@@ -77,6 +78,7 @@ describe('API endpoint /render', () => {
     const agent = supertest.agent(server);
 
     let mockScope;
+    let debugLoggingSpy;
 
     before(() => {
         nock.disableNetConnect();
@@ -87,12 +89,14 @@ describe('API endpoint /render', () => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
+        debugLoggingSpy = sinon.spy(logging, "debug");
     });
 
     afterEach(() => {
         nock.cleanAll();
         cache.destroy();
         renderSecret.matches.restore();
+        logging.debug.restore();
     });
 
     it('should render a simple react component', (done) => {
@@ -159,6 +163,57 @@ describe('API endpoint /render', () => {
             });
         });
     });
+
+    it('should log render-stats', (done) => {
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number'],
+        };
+        const testJson = {
+            urls: ['https://www.khanacademy.org/corelibs-package.js',
+                   'https://www.khanacademy.org/corelibs-legacy-package.js',
+                   'https://www.khanacademy.org/shared-package.js',
+                   'https://www.khanacademy.org/server-package.js'],
+            path: "./javascript/server-package/test-component.jsx",
+            props: testProps,
+            secret: 'sekret',
+        };
+
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
+                                             "utf-8");
+            mockScope.get(path).reply(200, contents);
+        });
+
+        const expected = (
+            'render-stats for ' +
+            './javascript/server-package/test-component.jsx: {' +
+            '"pendingRenderRequests":0,' +
+            '"packageFetches":4,' +
+            '"createdVmContext":true' +
+            "}");
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                // We just make sure one of the logging.debug args has
+                // the information we expect to be logged.
+                let foundRenderStats = false;
+                debugLoggingSpy.args.forEach((arglist) => {
+                    arglist.forEach((arg) => {
+                        if (arg === expected) {
+                            foundRenderStats = true;
+                        }
+                    });
+                });
+                assert.equal(foundRenderStats, true,
+                             JSON.stringify(debugLoggingSpy.args));
+                mockScope.done();
+            })
+            .end(done);
+    });
 });
 
 describe('API endpoint /flush', () => {
@@ -189,18 +244,18 @@ describe('API endpoint /flush', () => {
         mockScope.get('/corelibs-package.js').reply(200, 'must refetch');
 
         fetchPackage(url).then((res) => {
-            assert.deepEqual(res, ["test contents", 1]);
+            assert.equal(res, "test contents");
             return fetchPackage(url);
         }).then(
             (res) => {
                 // Should still be cached.
-                assert.deepEqual(res, ["test contents", 0]);
+                assert.equal(res, "test contents");
                 agent
                     .post('/flush')
                     .send({secret: 'sekret'})
                     .expect('dev\n', (err) => {
                         fetchPackage(url).then((res) => {
-                            assert.deepEqual(res, ["must refetch", 1]);
+                            assert.equal(res, "must refetch");
                             mockScope.done();
                             done(err);
                         }).catch(done);

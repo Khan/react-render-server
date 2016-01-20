@@ -41,9 +41,11 @@ const runInContext = function(context, fn) {
 /**
  * Retrieve a vm context object that's been preloaded by having all of
  * the jsPackages executed and the react environment initialized.
+ * If requestStats is non-empty, set requestStats.createdVmContext to
+ * whether we got the context from the cache or not.
  */
 const getVMContext = function(jsPackages, pathToReactComponent,
-                              cacheBehavior) {
+                              cacheBehavior, requestStats) {
     if (cacheBehavior == null) {
         cacheBehavior = defaultCacheBehavior;
     }
@@ -56,6 +58,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
     if (cacheBehavior === 'yes') {
         const cachedValue = cache.get(cacheKey);
         if (cachedValue) {
+            if (requestStats) {
+                requestStats.createdVmContext = false;
+            }
             return cachedValue;
         }
     }
@@ -163,6 +168,10 @@ const getVMContext = function(jsPackages, pathToReactComponent,
 
     vmConstructionProfile.end();
 
+    if (requestStats) {
+        requestStats.createdVmContext = true;
+    }
+
     return context;
 };
 
@@ -178,7 +187,11 @@ const getVMContext = function(jsPackages, pathToReactComponent,
  *     renderer; the props used to render the react component.
  * @param {string} cacheBehaviour - One of 'yes', 'no', or 'ignore'. Used to
  *     determine caching behaviour. See comment on defaultCacheBehaviour.
- *
+ * @param {object} requestStats -- If defined, should be a dict. Used to
+ *     store stats about the current request.  In this case, we set
+ *     requestStats.createdVmContext based on whether we had to create a
+ *     new vm context or could get an existing one from the cache.
+
  * @returns an object like follows:
  *   {
  *       "html": "<a href='http://www.google.com' class='link141'>Google</a>",
@@ -194,9 +207,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
  */
 
 const render = function(jsPackages, pathToReactComponent, props,
-                        cacheBehavior) {
+                        cacheBehavior, requestStats) {
     const context = getVMContext(jsPackages, pathToReactComponent,
-                                 cacheBehavior);
+                                 cacheBehavior, requestStats);
 
     context.pathToReactComponent = pathToReactComponent;
     context.reactProps = props;

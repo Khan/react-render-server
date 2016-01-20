@@ -74,9 +74,10 @@ app.use('/render', (req, res, next) => {
     // our-request-start as the value we log.
     // We store the stats-to-log in `req` as a hacky way of holding
     // per-request stats.
-    req.renderStats = {
+    req.requestStats = {
         pendingRenderRequests: pendingRenderRequests,
         packageFetches: 0,
+        createdVmContext: false,
     };
 
     pendingRenderRequests++;
@@ -88,7 +89,7 @@ app.use('/render', (req, res, next) => {
         pendingRenderRequests--;
         if (res.statusCode < 300) {   // only log on successful fetches
             renderProfile.end(`render-stats for ${req.body.path}: ` +
-                              JSON.stringify(req.renderStats));
+                              JSON.stringify(req.requestStats));
         }
         res.end = end;
         res.end(chunk, encoding);
@@ -121,20 +122,17 @@ app.post('/render', (req, res) => {
     }
 
     const fetchPromises = req.body.urls.map(
-        url => fetchPackage(url).then(    // map to (url, contents, #fetches)
-            (contentsAndnumFetches) => [url].concat(contentsAndnumFetches))
+        url => fetchPackage(url, undefined, req.requestStats).then(
+            contents => [url, contents])
     );
 
     Promise.all(fetchPromises).then(
-        (fetchUrlsAndBodiesAndNumFetches) => {
-            const fetchUrlsAndBodies = fetchUrlsAndBodiesAndNumFetches.map(
-                e => [e[0], e[1]]);
-            fetchUrlsAndBodiesAndNumFetches.forEach(
-                e => req.renderStats.packageFetches += e[2]);
-
-            const renderedState = render(fetchUrlsAndBodies,
+        (fetchBodies) => {
+            const renderedState = render(fetchBodies,
                                          req.body.path,
-                                         req.body.props);
+                                         req.body.props,
+                                         undefined,
+                                         req.requestStats);
             res.json(renderedState);
         },
         (err) => {
