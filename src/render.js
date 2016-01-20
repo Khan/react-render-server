@@ -111,15 +111,6 @@ const getVMContext = function(jsPackages, pathToReactComponent,
         cumulativePackageSize += pkg[1].length;
     });
 
-    // KA code is transpiled via babel.  The resulting code can't run
-    // unless we load these shims first.
-    // TODO(csilvers): Automatically run the shims whenever corelibs.js
-    // (or maybe shared.js) is loaded, then get rid of this.
-    runInContext(context, () => {
-        KAdefine.require("./third_party/javascript-khansrc/core-js/shim.min.js");
-        KAdefine.require("./third_party/javascript-khansrc/babeljs/babel-external-helpers.js");
-    });
-
     runInContext(context, () => {
         // Get stuff out of the context and into local vars.
         const ReactDOMServer = global.ReactDOMServer;
