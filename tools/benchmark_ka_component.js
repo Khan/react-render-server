@@ -200,7 +200,7 @@ const render = function(componentPath, fixturePath, instanceSeed,
     const allProps = require(relativeFixturePath).instances;
     const props = allProps[instanceSeed % allProps.length];
 
-    getPackage(componentPath, gaeHostPort).then((componentPackage) => {
+    return getPackage(componentPath, gaeHostPort).then((componentPackage) => {
         const depPackageUrls = getDependentPackageUrls(
             componentPackage, packageManifestContents, gaeHostPort);
 
@@ -231,6 +231,45 @@ const render = function(componentPath, fixturePath, instanceSeed,
             console.log(`${componentPath}: ${err})`);
         }
     });
+};
+
+const renderQueue = [];
+let inflightRequestCount = 0;
+
+const renderFromQueue = () => {
+    if (renderQueue.length > 0) {
+        inflightRequestCount++;
+        render.apply(null, renderQueue.shift()).then(() => { // @Nolint(apply)
+            inflightRequestCount--;
+            renderFromQueue();
+        });
+    }
+};
+
+
+/**
+ * Call render(), but only allow maxConcurrentRequests in flight at a time to
+ * avoid making thousands of concurrent connections.
+ *
+ * When we're at the limit for max concurrent requests, we'll queue the render
+ * call for later.
+ */
+const throttledRender = function(componentPath, fixturePath, instanceSeed,
+                                 gaeHostPort, renderHostPort,
+                                 packageManifestContents,
+                                 maxConcurrentRequests) {
+    renderQueue.push([
+        componentPath,
+        fixturePath,
+        instanceSeed,
+        gaeHostPort,
+        renderHostPort,
+        packageManifestContents,
+    ]);
+
+    if (inflightRequestCount < maxConcurrentRequests) {
+        renderFromQueue();
+    }
 };
 
 
@@ -267,9 +306,10 @@ const main = function(parseArgs) {
                 const componentPath = result[1];
                 for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
                     // Let's do the work!
-                    render(componentPath, fixtureAbspath, i,
-                           gaeHostPort, rrsHostPort,
-                           packageManifestContents);
+                    throttledRender(componentPath, fixtureAbspath, i,
+                                    gaeHostPort, rrsHostPort,
+                                    packageManifestContents,
+                                    parseArgs.max_concurrent_requests);
                 }
             } catch (err) {
                 console.log(`Skipping ${fixturePath}: ${err}`);
@@ -306,6 +346,10 @@ parser.addArgument(['-n', '--num-trials-per-component'],
                    {type: 'int', defaultValue: 1,
                     help: ("How many times we render a given component " +
                            "with a given fixture file (for load testing)")});
+parser.addArgument(['-r', '--max-concurrent-requests'],
+                   {type: 'int', defaultValue: 500,
+                    help: ("We have at most this many requests in flight " +
+                           "at once")});
 
 main(parser.parseArgs());
 
