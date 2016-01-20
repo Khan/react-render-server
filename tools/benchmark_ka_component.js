@@ -126,13 +126,17 @@ const getPackage = function(componentPath, gaeHostPort) {
 
 
 // Convert superagent-style callbacks to promises.
-const requestToPromise = function(req) {
+const requestToPromise = function(req, extra) {
     return new Promise((resolve, reject) => {
         req.buffer().end((err, res) => {
             if (err) {
                 reject(err);
             } else {
-                resolve(res);
+                if (extra) {
+                    resolve([res, extra]);
+                } else {
+                    resolve(res);
+                }
             }
         });
     });
@@ -225,10 +229,13 @@ const render = function(componentPath, fixturePath, instanceSeed,
         const url = renderHostPort + "/render?path=" + componentPath;
 
         return requestToPromise(
-            superagent.post(url).send(reqBody)
+            superagent.post(url).send(reqBody),
+            +new Date      // "extra" param: time when the request is sent off
         );
-    }).then(res => {
-        console.log(`${componentPath}: ${res.text.length}`);
+    }).then(resAndStartTime => {
+        const elapsedTime = +new Date - resAndStartTime[1];
+        console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
+                    `${elapsedTime}ms`);
     }).catch(err => {
         // If it's an http error, print the status code rather than name,
         // and the error text if the body is json.
