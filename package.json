@@ -4,7 +4,7 @@
   "description": "A node.js server for server-side rendering Khan Academy react components.",
   "main": "src/main.js",
   "scripts": {
-    "start": "nodemon src/main.js -- -p 8080",
+    "start": "nodemon src/main.js -- -p 8080 --log-level=debug",
     "dev": "nodemon src/main.js -- --dev",
     "debug": "nodemon src/main.js -- --dev --log-level=debug",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
