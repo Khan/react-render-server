@@ -34,7 +34,7 @@ let requestTimesInTheLastSecond = [];
 
 const periodicLogger = setInterval(() => {
     // Get some stats about the recent requests.
-    requestTimesInTheLastSecond.sort();
+    requestTimesInTheLastSecond.sort((a, b) => a - b);
     const times = [0.1, 0.5, 0.9].map((pctile) => {
         const i = parseInt(requestTimesInTheLastSecond.length * pctile, 10);
         return requestTimesInTheLastSecond[i] || '-';
