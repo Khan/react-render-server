@@ -29,12 +29,21 @@ const secret = require("../src/secret.js");
 
 
 // Used to report our queries per second (QPS).
-let requestsMadeInTheLastSecond = 0;
+let requestTimesInTheLastSecond = [];
 
 
 const periodicLogger = setInterval(() => {
-    console.log(`REQUESTS IN THE LAST SECOND: ${requestsMadeInTheLastSecond}`);
-    requestsMadeInTheLastSecond = 0;
+    // Get some stats about the recent requests.
+    requestTimesInTheLastSecond.sort();
+    const times = [0.1, 0.5, 0.9].map((pctile) => {
+        const i = parseInt(requestTimesInTheLastSecond.length * pctile, 10);
+        return requestTimesInTheLastSecond[i] || '-';
+    });
+
+    console.log('REQUESTS IN THE LAST SECOND: ' +
+                `${requestTimesInTheLastSecond.length} ` +
+                `(${times[0]}ms/${times[1]}ms/${times[2]}ms)`);
+    requestTimesInTheLastSecond = [];
 }, 1000);
 
 
@@ -260,13 +269,13 @@ const render = function(componentPath, fixturePath, instanceSeed,
         // logs easier.
         const url = renderHostPort + "/render?path=" + componentPath;
 
-        requestsMadeInTheLastSecond++;
         return requestToPromise(
             superagent.post(url).send(reqBody),
             +new Date      // "extra" param: time when the request is sent off
         );
     }).then(resAndStartTime => {
         const elapsedTime = +new Date - resAndStartTime[1];
+        requestTimesInTheLastSecond.push(elapsedTime);
         console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
                     `${elapsedTime}ms`);
     }).catch(err => {
