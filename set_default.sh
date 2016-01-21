@@ -59,7 +59,7 @@ echo "Default set, now deleting old versions."
 VERSIONS=`gcloud preview app modules list react-render --project "$PROJECT" | fgrep -w 0.0 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
 # This keeps the most recent 5 versions (that are not getting any traffic).
 VERSIONS_TO_DELETE=`echo "$VERSIONS" | sort -r | tail -n+6`
-for version $VERSIONS_TO_DELETE; do
+for version in $VERSIONS_TO_DELETE; do
     echo "Deleting old version $version"
     gcloud preview app modules delete react-render \
         --project "$PROJECT" --version "$version"
