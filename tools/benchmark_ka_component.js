@@ -30,6 +30,7 @@ const secret = require("../src/secret.js");
 
 // Used to report our queries per second (QPS).
 let requestTimesInTheLastSecond = [];
+let errorResponsesInTheLastSecond = 0;
 
 
 const periodicLogger = setInterval(() => {
@@ -41,9 +42,11 @@ const periodicLogger = setInterval(() => {
     });
 
     console.log('REQUESTS IN THE LAST SECOND: ' +
-                `${requestTimesInTheLastSecond.length} ` +
+                `${requestTimesInTheLastSecond.length} ok, ` +
+                `${errorResponsesInTheLastSecond} errors ` +
                 `(${times[0]}ms/${times[1]}ms/${times[2]}ms)`);
     requestTimesInTheLastSecond = [];
+    errorResponsesInTheLastSecond = 0;
 }, 1000);
 
 
@@ -262,6 +265,7 @@ const render = function(componentPath, props,
         console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
                     `${elapsedTime}ms`);
     }).catch(err => {
+        errorResponsesInTheLastSecond++;
         // If it's an http error, print the status code rather than name,
         // and the error text if the body is json.
         if (err.response && err.response.status && err.response.text) {
