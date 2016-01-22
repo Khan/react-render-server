@@ -147,10 +147,7 @@ app.post('/render', (req, res) => {
                 res.status(500).json(err);
             } else {
                 logging.error('Fetching failure: ', err.stack);
-                res.status(500).json({error: err.toString(),
-                                      // TODO(csilvers): remove 'key' once
-                                      // we've debugged error types better.
-                                      keys: Object.keys(err)});
+                res.status(500).json({error: err.toString()});
             }
         })
         .catch((err) => {

@@ -117,7 +117,6 @@ const getVMContext = function(jsPackages, pathToReactComponent,
         const ReactDOMServer = global.ReactDOMServer;
 
         const React = KAdefine.require("react");
-        // TODO(csilvers): handle aphrodite
 
         // Verify we have the right version of react.  ReactDOMServer
         // holds the react version that we've installed here, for this
