@@ -111,6 +111,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
         cumulativePackageSize += pkg[1].length;
     });
 
+    context.pathToReactComponent = pathToReactComponent;
     runInContext(context, () => {
         // Get stuff out of the context and into local vars.
         const ReactDOMServer = global.ReactDOMServer;
@@ -128,6 +129,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
                             `${React.version}, but is using React ` +
                             `version ${ReactDOMServer.version}`);
         }
+
+        // Not strictly necessary, but saves us a bit of time later.
+        global.Component = KAdefine.require(global.pathToReactComponent);
 
         try {
             global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
@@ -206,7 +210,6 @@ const render = function(jsPackages, pathToReactComponent, props,
     const context = getVMContext(jsPackages, pathToReactComponent,
                                  cacheBehavior, requestStats);
 
-    context.pathToReactComponent = pathToReactComponent;
     context.reactProps = props;
 
     const renderProfile = profile.start("rendering " + pathToReactComponent);
@@ -215,8 +218,8 @@ const render = function(jsPackages, pathToReactComponent, props,
     // well as everything else needed to load the react component, so
     // our work here is easy.
     const ret = runInContext(context, () => {
-        const Component = KAdefine.require(global.pathToReactComponent);
-        const reactElement = React.createElement(Component, global.reactProps);
+        const reactElement = React.createElement(global.Component,
+                                                 global.reactProps);
         return global.StyleSheetServer.renderStatic(
             () => ReactDOMServer.renderToString(reactElement));
     });
