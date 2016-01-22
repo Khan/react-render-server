@@ -225,13 +225,8 @@ const requestToPromise = function(req, extra) {
  *
  * @param {string} componentPath - a path to the component,
  *     relative to webapp's ka-root.
- * @param {string} fixturePath - where the fixture file lives on
- *     the local filesystem.  Should be an absolute path.
- * @param {number} instanceSeed - a (preferably large) integer.
- *     When the props file has multiple instances that could be used
- *     to populate the fixture, we use the instanceSeed to decide which
- *     one to use.  The mapping from seed to instance is arbitrary but
- *     fixed -- using the same seed again will yield the same instance.
+ * @param {string} props - the props to use to render this
+ *     component (obtained from a fixture file, presuambly).
  * @param {string} gaeHostPort - actually a protocol-host-port, where
  *     the webapp server is running.
  * @param {string} renderHostPort - actually a protocol-host-port, where
@@ -239,21 +234,9 @@ const requestToPromise = function(req, extra) {
  * @param {string} packageToDependentUrlsMap - the output of
  *      getPackageToDependentUrlsMap().
  */
-const render = function(componentPath, fixturePath, instanceSeed,
+const render = function(componentPath, props,
                         gaeHostPort, renderHostPort,
                         packageToDependentUrlsMap) {
-    let props;
-    const relativeFixturePath = path.relative(__dirname, fixturePath);
-    try {
-        const allProps = require(relativeFixturePath).instances;
-        props = allProps[instanceSeed % allProps.length];
-    } catch (err) {
-        console.log(`Skipping ${fixturePath}: ${err}`);
-        // Maybe semantically this is a reject(), but resolve() means
-        // we don't have to capture reject()'s below.
-        return Promise.resolve(err);
-    }
-
     return getPackage(componentPath, gaeHostPort).then((componentPackage) => {
         const depPackageUrls = packageToDependentUrlsMap[componentPackage];
 
@@ -353,24 +336,35 @@ const main = function(parseArgs) {
             // To get the path to the component, we just remove the
             // trailing .fixture.js, and the leading ka-root prefix.
             // For now, we assume that the fixture is at
-            // <ka_root>/javascript/...  TODO(csilvers): figure out
-            // ka-root better.
+            // <ka_root>/javascript/...
+            // TODO(csilvers): figure out ka-root better.
             const re = /(javascript\/.*)\.fixture\./;
             const result = re.exec(fixtureAbspath);
             if (!result) {
                 console.log(`Skipping ${fixturePath}: cannot infer ` +
                             `component from ${fixtureAbspath}`);
-            } else {
-                const componentPath = result[1];
-                for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
-                    // We push a pair: [render-args, target-start-time]
-                    // But we fill in the target start time later, so we
-                    // just leave a placeholder for now.
-                    renderQueue.push([[componentPath, fixtureAbspath, i,
-                                       gaeHostPort, rrsHostPort,
-                                       pkgToDepUrlsMap],
-                                      0]);
-                }
+                return;
+            }
+            const componentPath = result[1];
+
+            const relativeFixturePath = path.relative(__dirname, fixturePath);
+            let allProps;
+            try {
+                allProps = require(relativeFixturePath).instances;
+            } catch (err) {
+                console.log(`Skipping ${fixturePath}: ${err}`);
+                return;
+            }
+
+            for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
+                const props = allProps[i % allProps.length];
+                // We push a pair: [render-args, target-start-time]
+                // But we fill in the target start time later, so we
+                // just leave a placeholder for now.
+                renderQueue.push([[componentPath, props,
+                                   gaeHostPort, rrsHostPort,
+                                   pkgToDepUrlsMap],
+                                  0]);
             }
         });
 
