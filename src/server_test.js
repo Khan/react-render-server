@@ -11,6 +11,7 @@ const supertest = require("supertest");
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
+const graphiteUtil = require("./graphite_util.js");
 const renderSecret = require("./secret.js");
 const server = require("./server.js");
 
@@ -79,6 +80,7 @@ describe('API endpoint /render', () => {
 
     let mockScope;
     let debugLoggingSpy;
+    let graphiteSendSpy;
 
     before(() => {
         nock.disableNetConnect();
@@ -90,13 +92,20 @@ describe('API endpoint /render', () => {
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
         debugLoggingSpy = sinon.spy(logging, "debug");
+
+        sinon.stub(graphiteUtil, 'initArgs',
+                   () => { return {prefix: 'hgsekret', interval: 1}; });
+        graphiteSendSpy = sinon.spy(graphiteUtil.graphiteClient, "add");
     });
 
     afterEach(() => {
         nock.cleanAll();
         cache.destroy();
+        fetchPackage.resetGlobals();
         renderSecret.matches.restore();
         logging.debug.restore();
+        graphiteUtil.initArgs.restore();
+        graphiteUtil.graphiteClient.add.restore();
     });
 
     it('should render a simple react component', (done) => {
@@ -211,6 +220,42 @@ describe('API endpoint /render', () => {
                 });
                 assert.equal(foundRenderStats, true,
                              JSON.stringify(debugLoggingSpy.args));
+                mockScope.done();
+            })
+            .end(done);
+    });
+
+    it('should send to graphite on timeout', (done) => {
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number'],
+        };
+        const testJson = {
+            urls: ['https://www.khanacademy.org/corelibs-package.js',
+                   'https://www.khanacademy.org/corelibs-legacy-package.js',
+                   'https://www.khanacademy.org/shared-package.js',
+                   'https://www.khanacademy.org/server-package.js'],
+            path: "./javascript/server-package/test-component.jsx",
+            props: testProps,
+            secret: 'sekret',
+        };
+
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
+                                             "utf-8");
+            mockScope.get(path).delay(500).reply(200, contents);
+        });
+
+        // Make sure we time out well before those delays finish.
+        fetchPackage.setTimeout(20);
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                assert.deepEqual([['react_render_server.stats.timeout', 1]],
+                                 graphiteSendSpy.args);
                 mockScope.done();
             })
             .end(done);

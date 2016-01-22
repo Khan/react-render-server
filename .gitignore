@@ -1,5 +1,6 @@
-# The secrets file used for /render requests.
+# The secrets files used for /render requests, graphite logging, etc.
 secret
+hostedgraphite.api_key
 
 #### git defaults:
 

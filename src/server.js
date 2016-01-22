@@ -10,6 +10,7 @@ const logging = require("winston");
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
+const graphiteUtil = require("./graphite_util.js");
 const profile = require("./profile.js");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
@@ -101,24 +102,29 @@ app.use('/render', (req, res, next) => {
 app.post('/render', (req, res) => {
     // Validate the input.
     let err;
+    let value;
     if (!renderSecret.matches(req.body.secret)) {
         err = 'Missing or invalid secret';
+        value = '<redacted>';
     } else if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
                !req.body.urls.every(e => typeof e === 'string') ||
                !req.body.urls.every(e => e.indexOf('http') === 0)) {
         err = ('Missing "urls" keyword in POST JSON input, ' +
                'or "urls" is not a list of full urls');
+        value = req.body.urls;
     } else if (typeof req.body.path !== 'string' ||
                req.body.path.indexOf("./") !== 0) {
         err = ('Missing "path" keyword in POST JSON input, ' +
                'or "path" does not start with "./"');
+        value = req.body.path;
     } else if (typeof req.body.props !== 'object' ||
                Array.isArray(req.body.props)) {
         err = ('Missing "props" keyword in POST JSON input, ' +
                'or "props" is not an object, or it has non-string keys.');
+        value = req.body.props;
     }
     if (err) {
-        res.status(400).json({error: err});
+        res.status(400).json({error: err, value: value});
         return;
     }
 
@@ -149,6 +155,11 @@ app.post('/render', (req, res) => {
                 logging.error('Fetching failure: ', err.stack);
                 res.status(500).json({error: err.toString()});
             }
+            // If the error was a timeout, log that fact to graphite.
+            if (err.timeout) {
+                graphiteUtil.log("react_render_server.stats.timeout", 1);
+            }
+
         })
         .catch((err) => {
             // Error handler for rendering failures

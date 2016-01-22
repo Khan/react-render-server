@@ -28,6 +28,7 @@
     "body-parser": "^1.14.2",
     "express": "^4.13.3",
     "express-winston": "^1.2.0",
+    "graphite-udp": "^1.0.0",
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",
     "nodemon": "^1.8.1",
