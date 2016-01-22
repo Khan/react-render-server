@@ -302,10 +302,21 @@ const loopingRender = (renderQueue, isRecursive) => {
         loopsRunning++;
     }
     if (renderQueue.length > 0) {
-        render.apply(null, renderQueue.shift()).then(   // @Nolint(apply: we are not ES7 so can't use spread operator)
-            // We're done with this render, let's keep the loop going!
-            () => loopingRender(renderQueue, true)
-        );
+        const entry = renderQueue.shift();
+        const renderArgs = entry[0];
+        const renderStartTime = entry[1];
+
+        let waitTime = renderStartTime - new Date;
+        if (waitTime < 0) {
+            waitTime = 0;
+        }
+
+        setTimeout(() => {
+            render.apply(null, renderArgs).then(   // @Nolint(apply: we are not ES7 so can't use spread operator)
+                // We're done with this render, let's keep the loop going!
+                () => loopingRender(renderQueue, true)
+            );
+        }, waitTime);
     } else {
         // We're done -- nothing more to render!
         loopsRunning--;
@@ -337,7 +348,6 @@ const main = function(parseArgs) {
     getPackageToDependentUrlsMap(gaeHostPort).then((pkgToDepUrlsMap) => {
         // Collect up all the render calls and put them in the render queue.
         const renderQueue = [];
-
         parseArgs.fixtures.forEach((fixturePath) => {
             const fixtureAbspath = path.resolve(fixturePath);
             // To get the path to the component, we just remove the
@@ -353,9 +363,13 @@ const main = function(parseArgs) {
             } else {
                 const componentPath = result[1];
                 for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
-                    renderQueue.push([componentPath, fixtureAbspath, i,
-                                      gaeHostPort, rrsHostPort,
-                                      pkgToDepUrlsMap]);
+                    // We push a pair: [render-args, target-start-time]
+                    // But we fill in the target start time later, so we
+                    // just leave a placeholder for now.
+                    renderQueue.push([[componentPath, fixtureAbspath, i,
+                                       gaeHostPort, rrsHostPort,
+                                       pkgToDepUrlsMap],
+                                      0]);
                 }
             }
         });
@@ -368,6 +382,15 @@ const main = function(parseArgs) {
             const temp = renderQueue[i];
             renderQueue[i] = renderQueue[j];
             renderQueue[j] = temp;
+        }
+
+        // When the delay flag is in use, set the target start time for
+        // each render.
+        if (parseArgs.delay > 0) {
+            const startTime = +new Date;
+            renderQueue.forEach((e, i) => {
+                e[1] = startTime + (i * parseArgs.delay);
+            });
         }
 
         // Now let's start the rendering!
@@ -412,6 +435,10 @@ parser.addArgument(['-r', '--max-concurrent-requests'],
                    {type: 'int', defaultValue: 500,
                     help: ("We have at most this many requests in flight " +
                            "at once")});
+parser.addArgument(['-d', '--delay'],
+                   {type: 'int', defaultValue: 0,
+                    help: ("Rate we add fixtures from the commandline to th" +
+                           "e render queue (i.e. <delay> ms between each)")});
 
 main(parser.parseArgs());
 
