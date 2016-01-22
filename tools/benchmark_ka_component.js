@@ -230,36 +230,28 @@ const requestToPromise = function(req, extra) {
  *     relative to webapp's ka-root.
  * @param {string} props - the props to use to render this
  *     component (obtained from a fixture file, presuambly).
- * @param {string} gaeHostPort - actually a protocol-host-port, where
- *     the webapp server is running.
  * @param {string} renderHostPort - actually a protocol-host-port, where
  *      the react-render-server is running.
- * @param {string} packageToDependentUrlsMap - the output of
- *      getPackageToDependentUrlsMap().
+ * @param {string} depPackageUrls - a list of urls that can be used to
+ *      fetch all the packages that componentPath depends on.
  */
-const render = function(componentPath, props,
-                        gaeHostPort, renderHostPort,
-                        packageToDependentUrlsMap) {
-    return getPackage(componentPath, gaeHostPort).then((componentPackage) => {
-        const depPackageUrls = packageToDependentUrlsMap[componentPackage];
+const render = function(componentPath, props, renderHostPort, depPackageUrls) {
+    const reqBody = {
+        secret: secret.get(),
+        urls: depPackageUrls,
+        path: "./" + componentPath,
+        props: props,
+    };
 
-        const reqBody = {
-            secret: secret.get(),
-            urls: depPackageUrls,
-            path: "./" + componentPath,
-            props: props,
-        };
+    // The `?path=` query param we add onto the end is completely ignored
+    // by the server -- we add it here in order to make reading request
+    // logs easier.
+    const url = renderHostPort + "/render?path=" + componentPath;
 
-        // The `?path=` query param we add onto the end is completely ignored
-        // by the server -- we add it here in order to make reading request
-        // logs easier.
-        const url = renderHostPort + "/render?path=" + componentPath;
-
-        return requestToPromise(
-            superagent.post(url).send(reqBody),
-            +new Date      // "extra" param: time when the request is sent off
-        );
-    }).then(resAndStartTime => {
+    return requestToPromise(
+        superagent.post(url).send(reqBody),
+        +new Date      // "extra" param: time when the request is sent off
+    ).then(resAndStartTime => {
         const elapsedTime = +new Date - resAndStartTime[1];
         requestTimesInTheLastSecond.push(elapsedTime);
         console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
@@ -334,7 +326,7 @@ const main = function(parseArgs) {
 
     getPackageToDependentUrlsMap(gaeHostPort).then((pkgToDepUrlsMap) => {
         // Collect up all the render calls and put them in the render queue.
-        const renderQueue = [];
+        const renderQueuePromises = [];
         parseArgs.fixtures.forEach((fixturePath) => {
             const fixtureAbspath = path.resolve(fixturePath);
             // To get the path to the component, we just remove the
@@ -362,42 +354,53 @@ const main = function(parseArgs) {
 
             for (let i = 0; i < parseArgs.num_trials_per_component; i++) {
                 const props = allProps[i % allProps.length];
-                // We push a pair: [render-args, target-start-time]
-                // But we fill in the target start time later, so we
-                // just leave a placeholder for now.
-                renderQueue.push([[componentPath, props,
-                                   gaeHostPort, rrsHostPort,
-                                   pkgToDepUrlsMap],
-                                  0]);
+                const host = gaeHostPort;    // alias to save some characters!
+                const promise = (
+                    getPackage(componentPath, host).then((componentPkg) => {
+                        const depPkgUrls = pkgToDepUrlsMap[componentPkg];
+                        // We store a pair in the render-queue:
+                        // [render-args, target-start-time]
+                        // But we fill in the target start time later, so we
+                        // just leave a placeholder for now.
+                        return [
+                            [componentPath, props, rrsHostPort, depPkgUrls],
+                            0,
+                        ];
+                    })
+                );
+                renderQueuePromises.push(promise);
             }
         });
 
-        // Now randomly shuffle the render calls to get rid of any
-        // patterns in the order we render components in.  This is the
-        // classic Durstenfeld (aka Knuth) shuffle.
-        for (let i = renderQueue.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            const temp = renderQueue[i];
-            renderQueue[i] = renderQueue[j];
-            renderQueue[j] = temp;
-        }
+        // Wait for the render-queue to be fully populated.
+        Promise.all(renderQueuePromises).then((renderQueue) => {
+            // Now randomly shuffle the render calls to get rid of any
+            // patterns in the order we render components in.  This is the
+            // classic Durstenfeld (aka Knuth) shuffle.
+            for (let i = renderQueue.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const temp = renderQueue[i];
+                renderQueue[i] = renderQueue[j];
+                renderQueue[j] = temp;
+            }
 
-        // When the delay flag is in use, set the target start time for
-        // each render.
-        if (parseArgs.delay > 0) {
-            const startTime = +new Date;
-            renderQueue.forEach((e, i) => {
-                e[1] = startTime + (i * parseArgs.delay);
-            });
-        }
+            // When the delay flag is in use, set the target start time for
+            // each render.
+            if (parseArgs.delay > 0) {
+                const startTime = +new Date;
+                renderQueue.forEach((e, i) => {
+                    e[1] = startTime + (i * parseArgs.delay);
+                });
+            }
 
-        // Now let's start the rendering!
-        for (let i = 0; i < parseArgs.max_concurrent_requests; i++) {
-            // Each of these calls will start a new render as soon as
-            // the previous one has finished, keeping
-            // maxConcurrentRequests renders in flight at once.
-            loopingRender(renderQueue);
-        }
+            // Now let's start the rendering!
+            for (let i = 0; i < parseArgs.max_concurrent_requests; i++) {
+                // Each of these calls will start a new render as soon as
+                // the previous one has finished, keeping
+                // maxConcurrentRequests renders in flight at once.
+                loopingRender(renderQueue);
+            }
+        });
     });
 };
 
