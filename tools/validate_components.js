@@ -7,17 +7,18 @@
  * with the given properties (specified via a fixture file).
  *
  * Not all react components can be server-side rendered: they may
- * use globals, or access the DOM, or what hafve you.  This script
+ * use globals, or access the DOM, or what have you.  This script
  * can be used to validate that the component *can* be server-side
  * rendered.
  *
- * The input is a bit difficult to construct: it's a json list of
- * objects like so:
+ * The input is a bit difficult to construct: it's a json-encoded
+ * list of objects like so:
  *    {
  *      jsPackages: [[pkg_name, pkg_contents], [pkg_name, pkg_contents], ...],
  *      pathToReactComponent: "./in/require/format.js",
  *      fixtureFile: "/ideally/an/absolute/path",
  *    }
+ * passed in via sttdin.
  *
  * We require() the fixture file and try to server-side render the
  * component using each fixture found therein.  jsPackages are the
