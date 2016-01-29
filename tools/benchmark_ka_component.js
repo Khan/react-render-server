@@ -318,17 +318,22 @@ const main = function(parseArgs) {
     let gaeHostPort;
     let rrsHostPort;
 
-    if (parseArgs.dev || parseArgs.dev_webapp) {
+    if (parseArgs.webapp_host) {
+        gaeHostPort = parseArgs.webapp_host;
+    } else if (parseArgs.dev || parseArgs.dev_webapp) {
         gaeHostPort = "http://localhost:8080";
     } else {
         gaeHostPort = "https://www.khanacademy.org";
     }
 
-    if (parseArgs.dev || parseArgs.dev_render) {
+    if (parseArgs.render_host) {
+        rrsHostPort = parseArgs.render_host;
+    } else if (parseArgs.dev || parseArgs.dev_render) {
         rrsHostPort = "http://localhost:8060";
     } else {
         rrsHostPort = "https://react-render-dot-khan-academy.appspot.com";
     }
+
 
     getPackageToDependentUrlsMap(gaeHostPort).then((pkgToDepUrlsMap) => {
         // Collect up all the render calls and put them in the render queue.
@@ -437,6 +442,10 @@ parser.addArgument(['--dev-webapp'],
 parser.addArgument(['--dev-render'],
                    {action: 'storeTrue',
                     help: "Use local render-server (on localhost:8060)"});
+parser.addArgument(['--webapp-host'],
+                   {help: "Use the webapp on this protocol-host-port"});
+parser.addArgument(['--render-host'],
+                   {help: "Use the render-server on this protocol-host-port"});
 parser.addArgument(['-n', '--num-trials-per-component'],
                    {type: 'int', defaultValue: 1,
                     help: ("How many times we render a given component " +
