@@ -32,6 +32,9 @@ const secret = require("../src/secret.js");
 let requestTimesInTheLastSecond = [];
 let errorResponsesInTheLastSecond = 0;
 
+// The return value from the main process: how many errors seen.
+let numErrors = 0;
+
 
 const periodicLogger = setInterval(() => {
     // Get some stats about the recent requests.
@@ -257,6 +260,7 @@ const render = function(componentPath, props, renderHostPort, depPackageUrls) {
         console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
                     `${elapsedTime}ms`);
     }).catch(err => {
+        numErrors++;
         errorResponsesInTheLastSecond++;
         // If it's an http error, print the status code rather than name,
         // and the error text if the body is json.
@@ -303,6 +307,8 @@ const loopingRender = (renderQueue, isRecursive) => {
         if (loopsRunning === 0) {
             clearInterval(periodicLogger);
             console.log("DONE!");
+            // exit values > 127 are reserved for signals.
+            process.exit(numErrors > 127 ? 127 : numErrors);
         }
     }
 };
@@ -337,6 +343,7 @@ const main = function(parseArgs) {
             const re = /(javascript\/.*)\.fixture\./;
             const result = re.exec(fixtureAbspath);
             if (!result) {
+                numErrors++;
                 console.log(`Skipping ${fixturePath}: cannot infer ` +
                             `component from ${fixtureAbspath}`);
                 return;
@@ -348,6 +355,7 @@ const main = function(parseArgs) {
             try {
                 allProps = require(relativeFixturePath).instances;
             } catch (err) {
+                numErrors++;
                 console.log(`Skipping ${fixturePath}: ${err}`);
                 return;
             }
@@ -406,6 +414,7 @@ const main = function(parseArgs) {
 
 
 process.on('unhandledRejection', (reason, p) => {
+    numErrors++;
     console.log("Unhandled Rejection at: Promise ", p,
                 " reason: ", reason.stack);
 });
