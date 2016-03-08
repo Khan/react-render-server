@@ -80,7 +80,7 @@ describe('API endpoint /render', () => {
 
     let mockScope;
     let debugLoggingSpy;
-    let graphiteSendSpy;
+    let graphiteLogStub;
 
     before(() => {
         nock.disableNetConnect();
@@ -92,10 +92,7 @@ describe('API endpoint /render', () => {
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
         debugLoggingSpy = sinon.spy(logging, "debug");
-
-        sinon.stub(graphiteUtil, 'initArgs',
-                   () => { return {prefix: 'hgsekret', interval: 1}; });
-        graphiteSendSpy = sinon.spy(graphiteUtil.graphiteClient, "add");
+        graphiteLogStub = sinon.stub(graphiteUtil, "log");
     });
 
     afterEach(() => {
@@ -104,8 +101,7 @@ describe('API endpoint /render', () => {
         fetchPackage.resetGlobals();
         renderSecret.matches.restore();
         logging.debug.restore();
-        graphiteUtil.initArgs.restore();
-        graphiteUtil.graphiteClient.add.restore();
+        graphiteLogStub.restore();
     });
 
     it('should render a simple react component', (done) => {
@@ -255,7 +251,7 @@ describe('API endpoint /render', () => {
             .send(testJson)
             .expect((res) => {
                 assert.deepEqual([['react_render_server.stats.timeout', 1]],
-                                 graphiteSendSpy.args);
+                                 graphiteLogStub.args);
                 mockScope.done();
             })
             .end(done);

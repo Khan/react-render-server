@@ -39,15 +39,10 @@ const graphiteSecret = function() {
 };
 
 
-// This is a function so we can mock it for tests.
-const args = function() {
-    return {
-        host: 'carbon.hostedgraphite.com',
-        prefix: graphiteSecret(),
-    };
-};
-
-const graphiteClient = graphiteSecret() ? graphite.createClient(args()) : null;
+const graphiteClient = graphiteSecret() ? graphite.createClient({
+    host: 'carbon.hostedgraphite.com',
+    prefix: graphiteSecret(),
+}) : null;
 
 
 const log = function(key, value) {
@@ -57,5 +52,4 @@ const log = function(key, value) {
 };
 
 
-// graphiteClient is exposed for unittesting purposes ONLY.
-module.exports = { log: log, initArgs: args, graphiteClient: graphiteClient };
+module.exports = { log: log };
