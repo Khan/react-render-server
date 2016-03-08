@@ -1,5 +1,6 @@
 react-render-server
 ===================
+[![Build Status](https://travis-ci.org/Khan/react-render-server.svg?branch=master)](https://travis-ci.org/Khan/react-render-server)
 
 react-render-server is a node.js server for server-side rendering Khan
 Academy React components. It allows you to do server-side rendering of React 
