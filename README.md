@@ -18,6 +18,12 @@ that looks like so:
             "http://kastatic.org/genfiles/javascript/en/content-library-xx.js"
         ],
         "path": "./javascript/content-library-package/components/link.jsx",
+        "globals": {
+            "location": "http://khanacademy.org/science/physics",
+            "KA": {
+                "language": "en"
+            }
+        },
         "props": {
             "href": "http://www.google.com",
             "children": "Google"
@@ -41,6 +47,9 @@ In the request:
   of the React component to render and all of their transitive dependencies. The 
   files listed will be executed in order.
 - `path` is the `require()` path to the React component you wish to render.
+- `globals` is a map of global variables to their values. These values will be 
+  set in the JavaScript VM context before the React component specified by 
+  `path` is `require()`'d.
 - `props` will be passed verbatim as props to the component.
 - `secret` is a shared secret that will be pulled from disk on server bootup in 
   order to discourage arbitrary code execution attempts against the server.

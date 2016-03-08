@@ -35,6 +35,12 @@ app.use(bodyParser.json());
  *        "http://kastatic.org/genfiles/javascript/en/content-library-xx.js"
  *    ],
  *    "path": "./javascript/content-library-package/components/link.jsx",
+ *    "globals": {
+ *        "location": "http://khanacademy.org/science/physics",
+ *        "KA": {
+ *            "language": "en"
+ *        }
+ *    },
  *    "props": {
  *        "href": "http://www.google.com",
  *        "children": "Google"
@@ -48,6 +54,10 @@ app.use(bodyParser.json());
  * 'path' is a path in nodejs require() format, which exports the react
  * component we wish to render.  It must be included in one of the files
  * specified in 'urls'.
+ *
+ * `globals` is a map of global variables to their values. These values will be
+ * set in the JavaScript VM context before the React component specified by
+ * `path` is `require()`'d.
  *
  * 'props' are passed as the props to the react component being rendered.
  *
@@ -138,6 +148,7 @@ app.post('/render', (req, res) => {
             const renderedState = render(fetchBodies,
                                          req.body.path,
                                          req.body.props,
+                                         req.body.globals,
                                          undefined,
                                          req.requestStats);
             res.json(renderedState);

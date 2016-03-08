@@ -155,6 +155,7 @@ describe('API endpoint /render', () => {
             {urls: [url], path: "./foo", props: [{}, {}], secret: 'sekret'},
             {urls: [url], path: "./foo", props: {bar: 4}},
             {urls: [url], path: "./foo", props: {bar: 4}, secret: 'bad'},
+            {urls: [url], path: "./foo", props: {bar: 4}, secret: 'bad'},
         ];
         let remainingTests = invalidInputs.length;
 

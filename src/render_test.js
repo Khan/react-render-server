@@ -34,7 +34,8 @@ describe('render', () => {
                               'corelibs-legacy-package.js',
                               'shared-package.js',
                               'server-package.js',
-                              'canvas-test-package.js'];
+                              'canvas-test-package.js',
+                              'globals-package.js'];
 
         packages = packageNames.map(filename => {
             const filepath = `${__dirname}/testdata/${filename}`;
@@ -95,6 +96,7 @@ describe('render', () => {
         render(packages,
                "./javascript/server-package/test-component.jsx",
                props,
+               {},
                'no');
 
         assert.equal(2, createContextSpy.callCount);
@@ -140,5 +142,22 @@ describe('render', () => {
         render(packages,
                "./javascript/canvas-test-package/test-component.jsx",
                props);
+    });
+
+    it('can reference manually set global variables', () => {
+        const globals = {
+            "location":  "http://www.khanacademy.org/science/physics",
+            "KA": {
+                "language": "es",
+            },
+        };
+
+        const path = "./javascript/globals-package/test-component.jsx";
+        const actual = render(packages, path, {}, globals);
+        const actualHtml = normalizeReactOutput(actual.html);
+
+        assert.include(actualHtml, 'es');
+        assert.include(actualHtml,
+                       'http://www.khanacademy.org/science/physics');
     });
 });

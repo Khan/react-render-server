@@ -174,7 +174,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
 };
 
 /**
- * Actually render a react component.
+ * Actually render a React component.
  *
  * @param {string[][]} jsPackages - A list of [filename, source code]
  *     pairs for js packages that we need to include in order to render the
@@ -182,7 +182,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
  * @param {string} pathToReactComponent - What to require() in order
  *     to render the react component.
  * @param {object} props - the props object to pass in to the react
- *     renderer; the props used to render the react component.
+ *     renderer; the props used to render the React component.
+ * @param {object} globals - the map of global variable name to their values to
+ *     be set before the React component is require()'d.
  * @param {string} cacheBehaviour - One of 'yes', 'no', or 'ignore'. Used to
  *     determine caching behaviour. See comment on defaultCacheBehaviour.
  * @param {object} requestStats -- If defined, should be a dict. Used to
@@ -199,13 +201,12 @@ const getVMContext = function(jsPackages, pathToReactComponent,
  *       }
  *   }
  *
- * html is the rendered html of the react component.
+ * html is the rendered html of the React component.
  * css will only be returned if the component makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
-
 const render = function(jsPackages, pathToReactComponent, props,
-                        cacheBehavior, requestStats) {
+                        globals, cacheBehavior, requestStats) {
     const context = getVMContext(jsPackages, pathToReactComponent,
                                  cacheBehavior, requestStats);
 
@@ -213,8 +214,19 @@ const render = function(jsPackages, pathToReactComponent, props,
 
     const renderProfile = profile.start("rendering " + pathToReactComponent);
 
-    // getVMContext sets up the sandbox to have react installed, as
-    // well as everything else needed to load the react component, so
+    if (globals) {
+        Object.keys(globals).forEach(key => {
+            // Location is a special case.
+            if (key === 'location') {
+                context.location.replace(globals[key]);
+            } else {
+                context[key] = globals[key];
+            }
+        });
+    }
+
+    // getVMContext sets up the sandbox to have React installed, as
+    // well as everything else needed to load the React component, so
     // our work here is easy.
     const ret = runInContext(context, () => {
         const reactElement = React.createElement(global.Component,
