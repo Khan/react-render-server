@@ -129,9 +129,6 @@ const getVMContext = function(jsPackages, pathToReactComponent,
                             `version ${ReactDOMServer.version}`);
         }
 
-        // Not strictly necessary, but saves us a bit of time later.
-        global.Component = KAdefine.require(global.pathToReactComponent);
-
         try {
             global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
 
@@ -229,7 +226,8 @@ const render = function(jsPackages, pathToReactComponent, props,
     // well as everything else needed to load the React component, so
     // our work here is easy.
     const ret = runInContext(context, () => {
-        const reactElement = React.createElement(global.Component,
+        const Component = KAdefine.require(global.pathToReactComponent);
+        const reactElement = React.createElement(Component,
                                                  global.reactProps);
         return global.StyleSheetServer.renderStatic(
             () => ReactDOMServer.renderToString(reactElement));
