@@ -30,7 +30,7 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # khanacademy.org.
 
 gcloud -q --verbosity info preview app modules set-default "$MODULE" \
-    --project "$PROJECT" --version "$VERSION"
+    --project "$PROJECT" --version "$VERSION" --no-stop-previous-version
 
 # Ensure that the version flipped
 DEFAULT_HOSTNAME="https://${MODULE}-dot-${PROJECT}.appspot.com/_api/version"

@@ -11,6 +11,7 @@
     "serve_local": "nodemon src/main.js -- --dev",
     "test": "mocha --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
+    "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh"
   },
   "repository": {

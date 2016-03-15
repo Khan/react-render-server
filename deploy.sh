@@ -4,6 +4,7 @@
 
 : ${PROJECT:=khan-academy}
 : ${VERBOSITY:=info}
+: ${DOCKER:=}
 
 die() {
     echo "FATAL ERROR: $@"
@@ -41,8 +42,23 @@ npm test
 gcloud config set "app/use_appengine_api" "True"
 
 # Yay we're good to go!
-echo "Deploying ${VERSION}..."
-gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
-    --project "$PROJECT" --version "$VERSION" --no-promote
+if [ -n "$DOCKER" ]; then
+    echo "Building docker image..."
+    docker build -t react-render-server .
+    docker tag react-render-server "us.gcr.io/khan-academy/react-render-server-$VERSION"
+
+    echo "Pushing docker image..."
+    gcloud docker push "us.gcr.io/khan-academy/react-render-server-$VERSION"
+
+    echo "Deploying ${VERSION} via docker..."
+
+    gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
+        --project "$PROJECT" --version "$VERSION" --no-promote \
+        --image-url=us.gcr.io/khan-academy/react-render-server-$VERSION
+else
+    echo "Deploying ${VERSION}..."
+    gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
+        --project "$PROJECT" --version "$VERSION" --no-promote
+fi
 
 echo "DONE"
