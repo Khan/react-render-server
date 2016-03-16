@@ -4,7 +4,7 @@ vm: true
 
 # TODO(jlfwong): Figure out what the right scaling policy is
 automatic_scaling:
-  min_num_instances: 2
+  min_num_instances: 8
   max_num_instances: 20
   cool_down_period_sec: 60
   cpu_utilization:
