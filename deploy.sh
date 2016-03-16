@@ -44,7 +44,7 @@ gcloud config set "app/use_appengine_api" "True"
 # Yay we're good to go!
 if [ -n "$DOCKER" ]; then
     echo "Building docker image..."
-    docker build -t react-render-server .
+    docker build -f Dockerfile.prod -t react-render-server .
     docker tag react-render-server "us.gcr.io/khan-academy/react-render-server-$VERSION"
 
     echo "Pushing docker image..."
@@ -57,6 +57,8 @@ if [ -n "$DOCKER" ]; then
         --image-url=us.gcr.io/khan-academy/react-render-server-$VERSION
 else
     echo "Deploying ${VERSION}..."
+
+    # gcloud gets upset if 
     gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
         --project "$PROJECT" --version "$VERSION" --no-promote
 fi
