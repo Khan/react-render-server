@@ -58,7 +58,6 @@ if [ -n "$DOCKER" ]; then
 else
     echo "Deploying ${VERSION}..."
 
-    # gcloud gets upset if 
     gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
         --project "$PROJECT" --version "$VERSION" --no-promote
 fi
