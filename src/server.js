@@ -20,7 +20,7 @@ const renderSecret = require("./secret.js");
 let pendingRenderRequests = 0;
 
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '5mb'}));
 
 
 /**
