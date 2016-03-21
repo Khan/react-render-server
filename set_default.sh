@@ -61,7 +61,7 @@ VERSIONS=`gcloud preview app modules list react-render --project "$PROJECT" | fg
 VERSIONS_TO_DELETE=`echo "$VERSIONS" | sort -r | tail -n+6`
 for version in $VERSIONS_TO_DELETE; do
     echo "Deleting old version $version"
-    gcloud preview app modules delete react-render \
+    gcloud -q --verbosity info preview app modules delete react-render \
         --project "$PROJECT" --version "$version"
 done
 
