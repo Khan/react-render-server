@@ -2,13 +2,18 @@ module: react-render
 runtime: nodejs
 vm: true
 
-# TODO(jlfwong): Figure out what the right scaling policy is
-automatic_scaling:
-  min_num_instances: 8
-  max_num_instances: 40
-  cool_down_period_sec: 60
-  cpu_utilization:
-    target_utilization: 0.6
+manual_scaling:
+  instances: 40
+
+# TODO(csilvers): re-enable this instead when the problem with
+# vm instance-scaling and locking is resolved.
+## # TODO(jlfwong): Figure out what the right scaling policy is
+## automatic_scaling:
+##   min_num_instances: 8
+##   max_num_instances: 40
+##   cool_down_period_sec: 60
+##   cpu_utilization:
+##     target_utilization: 0.6
 
 resources:
   cpu: 1
