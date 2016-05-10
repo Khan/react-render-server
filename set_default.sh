@@ -29,7 +29,7 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # want them to load their caches with the most frequently used JS packages from
 # khanacademy.org.
 
-gcloud -q --verbosity info preview app modules set-default "$MODULE" \
+gcloud -q --verbosity info preview app services set-default "$MODULE" \
     --project "$PROJECT" --version "$VERSION"
 
 # Ensure that the version flipped
@@ -56,13 +56,22 @@ echo "Default set, now deleting old versions."
 # grep to remove versions that are getting traffic (so the candidates
 # to delete will include only versions getting no traffic).  Then we
 # grep again to extract out the version-names.
-VERSIONS=`gcloud preview app modules list react-render --project "$PROJECT" | fgrep -w 0.0 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
+VERSIONS=`gcloud preview app services list react-render --project "$PROJECT" | fgrep -w 0.0 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
 # This keeps the most recent 5 versions (that are not getting any traffic).
 VERSIONS_TO_DELETE=`echo "$VERSIONS" | sort -r | tail -n+6`
 for version in $VERSIONS_TO_DELETE; do
     echo "Deleting old version $version"
-    gcloud -q --verbosity info preview app modules delete react-render \
+    gcloud -q --verbosity info preview app services delete react-render \
         --project "$PROJECT" --version "$version"
+done
+
+# And we'll stop the recent versions that are not getting any traffic,
+# so we're not charged for them.
+VERSIONS_TO_STOP=`echo "$VERSIONS" | sort -r | tail -n+2 | head -n4`
+for version in $VERSIONS_TO_STOP; do
+    echo "Stopping old version $version"
+    gcloud -q --verbosity info preview app versions stop "$version" \
+        --project "$PROJECT" --service react-render
 done
 
 echo "DONE"
