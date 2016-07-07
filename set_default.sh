@@ -29,8 +29,8 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # want them to load their caches with the most frequently used JS packages from
 # khanacademy.org.
 
-gcloud -q --verbosity info preview app services set-default "$MODULE" \
-    --project "$PROJECT" --version "$VERSION"
+gcloud -q --verbosity info preview app services set-traffic \
+    --project "$PROJECT" --splits "$VERSION"=1 "$MODULE"
 
 # Ensure that the version flipped
 DEFAULT_HOSTNAME="https://${MODULE}-dot-${PROJECT}.appspot.com/_api/version"
