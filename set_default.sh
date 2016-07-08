@@ -56,22 +56,22 @@ echo "Default set, now deleting old versions."
 # grep to remove versions that are getting traffic (so the candidates
 # to delete will include only versions getting no traffic).  Then we
 # grep again to extract out the version-names.
-VERSIONS=`gcloud preview app services list react-render --project "$PROJECT" | fgrep -w 0.0 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
+VERSIONS=`gcloud preview app versions list --project "$PROJECT" --service react-render | fgrep -w 0.00 | grep -o '[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9a-fA-F]*'`
 # This keeps the most recent 5 versions (that are not getting any traffic).
 VERSIONS_TO_DELETE=`echo "$VERSIONS" | sort -r | tail -n+6`
-for version in $VERSIONS_TO_DELETE; do
-    echo "Deleting old version $version"
-    gcloud -q --verbosity info preview app services delete react-render \
-        --project "$PROJECT" --version "$version"
-done
+if [ -n "$VERSIONS_TO_DELETE" ]; then
+    echo "Deleting old versions: $VERSIONS_TO_DELETE"
+    gcloud -q --verbosity info preview app versions delete \
+        --project "$PROJECT" --service react-render $VERSIONS_TO_DELETE
+fi
 
 # And we'll stop the recent versions that are not getting any traffic,
 # so we're not charged for them.
 VERSIONS_TO_STOP=`echo "$VERSIONS" | sort -r | tail -n+2 | head -n4`
-for version in $VERSIONS_TO_STOP; do
-    echo "Stopping old version $version"
-    gcloud -q --verbosity info preview app versions stop "$version" \
-        --project "$PROJECT" --service react-render
-done
+if [ -n "$VERSIONS_TO_STOP" ]; then
+    echo "Stopping old versions: $VERSIONS_TO_STOP"
+    gcloud -q --verbosity info preview app versions stop \
+        --project "$PROJECT" --service react-render $VERSIONS_TO_STOP
+fi
 
 echo "DONE"
