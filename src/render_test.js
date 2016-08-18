@@ -35,7 +35,8 @@ describe('render', () => {
                               'shared-package.js',
                               'server-package.js',
                               'canvas-test-package.js',
-                              'globals-package.js'];
+                              'globals-package.js',
+                              'polyfill-package.js'];
 
         packages = packageNames.map(filename => {
             const filepath = `${__dirname}/testdata/${filename}`;
@@ -159,5 +160,26 @@ describe('render', () => {
         assert.include(actualHtml, 'es');
         assert.include(actualHtml,
                        'http://www.khanacademy.org/science/physics');
+    });
+
+    it('polyfills methods on props', () => {
+        // Remove the Array.prototype.includes method to ensure that it gets
+        // polyfilled.
+        const oldIncludes = Array.prototype.includes;
+        Array.prototype.includes = undefined;
+
+        const props = {array: [1, 2, 3]};
+
+        assert.equal(props.array.includes, undefined);
+
+        // Rendering this component depends on props.array.includes being
+        // defined.
+        const path = "./javascript/polyfill-package/test-component.jsx";
+        const actual = render(packages, path, props);
+        const actualHtml = normalizeReactOutput(actual.html);
+
+        assert.include(actualHtml, 'true');
+
+        Array.prototype.includes = oldIncludes;
     });
 });

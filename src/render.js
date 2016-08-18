@@ -227,8 +227,13 @@ const render = function(jsPackages, pathToReactComponent, props,
     // our work here is easy.
     const ret = runInContext(context, () => {
         const Component = KAdefine.require(global.pathToReactComponent);
-        const reactElement = React.createElement(Component,
-                                                 global.reactProps);
+
+        // Make a deep of the props in the context before rendering them, so
+        // that any polyfills we have in the context (like
+        // Array.prototype.includes) are applied to the elements of the props.
+        const clonedProps = JSON.parse(JSON.stringify(global.reactProps));
+
+        const reactElement = React.createElement(Component, clonedProps);
         return global.StyleSheetServer.renderStatic(
             () => ReactDOMServer.renderToString(reactElement));
     });
