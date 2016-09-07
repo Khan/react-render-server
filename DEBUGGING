@@ -20,7 +20,7 @@ To copy fixtures files to an existing instance:
 - gcloud compute instances list
   * find an instance for an old vesion we're no longer using
   * Also note the zone it's in, we'll need it for later.
-- gcloud preview app modules set-managed-by react-render --version <version> --self
+- gcloud app modules set-managed-by react-render --version <version> --self
   * you can get the version from the instance name, just turn '--' into '-'
 - cat /tmp/fixtures.tar | gcloud compute --project "khan-academy" ssh <instance> --zone <zone> --command 'cat > fixtures.tar'
 - gcloud compute --project "khan-academy" ssh <instance> --zone <zone>

@@ -1,6 +1,6 @@
 # This was generated via:
 #
-#   gcloud preview app gen-config --custom --config=app.yaml --project=khan-academy
+#   gcloud app gen-config --custom --config=app.yaml --project=khan-academy
 
 # Dockerfile extending the generic Node image with application files for a
 # single application.

@@ -52,13 +52,13 @@ if [ -n "$DOCKER" ]; then
 
     echo "Deploying ${VERSION} via docker..."
 
-    gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
+    gcloud -q --verbosity "${VERBOSITY}" app deploy app.yaml \
         --project "$PROJECT" --version "$VERSION" --no-promote \
         --image-url=us.gcr.io/khan-academy/react-render-server-$VERSION
 else
     echo "Deploying ${VERSION}..."
 
-    gcloud -q --verbosity "${VERBOSITY}" preview app deploy app.yaml \
+    gcloud -q --verbosity "${VERBOSITY}" app deploy app.yaml \
         --project "$PROJECT" --version "$VERSION" --no-promote
 fi
 
