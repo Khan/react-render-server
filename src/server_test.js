@@ -80,6 +80,7 @@ describe('API endpoint /render', () => {
 
     let mockScope;
     let debugLoggingSpy;
+    let errorLoggingSpy;
     let graphiteLogStub;
 
     before(() => {
@@ -92,6 +93,7 @@ describe('API endpoint /render', () => {
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', actual => actual === "sekret");
         debugLoggingSpy = sinon.spy(logging, "debug");
+        errorLoggingSpy = sinon.spy(logging, "error");
         graphiteLogStub = sinon.stub(graphiteUtil, "log");
     });
 
@@ -101,6 +103,7 @@ describe('API endpoint /render', () => {
         fetchPackage.resetGlobals();
         renderSecret.matches.restore();
         logging.debug.restore();
+        logging.error.restore();
         graphiteLogStub.restore();
     });
 
@@ -252,6 +255,97 @@ describe('API endpoint /render', () => {
             .expect((res) => {
                 assert.deepEqual([['react_render_server.stats.timeout', 1]],
                                  graphiteLogStub.args);
+                mockScope.done();
+            })
+            .end(done);
+    });
+
+    it('should log an error on timeout', (done) => {
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number'],
+        };
+        const testJson = {
+            urls: ['https://www.khanacademy.org/corelibs-package.js',
+                   'https://www.khanacademy.org/corelibs-legacy-package.js',
+                   'https://www.khanacademy.org/shared-package.js',
+                   'https://www.khanacademy.org/server-package.js'],
+            path: "./javascript/server-package/test-component.jsx",
+            props: testProps,
+            secret: 'sekret',
+        };
+
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
+                                             "utf-8");
+            mockScope.get(path).delay(500).reply(200, contents);
+        });
+
+        // Make sure we time out well before those delays finish.
+        fetchPackage.setTimeout(20);
+
+        const expected = ("timed out while fetching " +
+                          "https://www.khanacademy.org/corelibs-package.js");
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                let foundLogMessage = false;
+                errorLoggingSpy.args.forEach((arglist) => {
+                    arglist.forEach((arg) => {
+                        if (arg === expected) {
+                            foundLogMessage = true;
+                        }
+                    });
+                });
+
+                assert.equal(foundLogMessage, true,
+                             JSON.stringify(errorLoggingSpy.args));
+                mockScope.done();
+            })
+            .end(done);
+    });
+
+    it('should log an error on fetching failure', (done) => {
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number'],
+        };
+        const testJson = {
+            urls: ['https://www.khanacademy.org/corelibs-package.js',
+                   'https://www.khanacademy.org/corelibs-legacy-package.js',
+                   'https://www.khanacademy.org/shared-package.js',
+                   'https://www.khanacademy.org/server-package.js'],
+            path: "./javascript/server-package/test-component.jsx",
+            props: testProps,
+            secret: 'sekret',
+        };
+
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            mockScope.get(path).reply(404);
+        });
+
+        const expected = ("Fetching failure: Error: " +
+                          "cannot undefined /corelibs-package.js (404): ");
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                let foundLogMessage = false;
+                errorLoggingSpy.args.forEach((arglist) => {
+                    arglist.forEach((arg) => {
+                        if (arg === expected) {
+                            foundLogMessage = true;
+                        }
+                    });
+                });
+
+                assert.equal(foundLogMessage, true,
+                             JSON.stringify(errorLoggingSpy.args));
                 mockScope.done();
             })
             .end(done);
