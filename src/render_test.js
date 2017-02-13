@@ -53,7 +53,7 @@ describe('render', () => {
     });
 
     const expected = {
-        html: '<div data-reactid="..." data-react-checksum="..."><span data-reactid="...">6</span><ol class="red_im3wl1" data-reactid="..."><li data-reactid="...">I</li><li data-reactid="...">am</li><li data-reactid="...">not</li><li data-reactid="...">a</li><li data-reactid="...">number</li></ol></div>',     // @Nolint(long line)
+        html: '<div data-reactroot="" data-reactid="..." data-react-checksum="..."><!-- react-text: 2 -->6<!-- /react-text --><ol class="red_im3wl1" data-reactid="..."><li data-reactid="...">I</li><li data-reactid="...">am</li><li data-reactid="...">not</li><li data-reactid="...">a</li><li data-reactid="...">number</li></ol></div>',     // @Nolint(long line)
         css: {
             content: ".red_im3wl1{color:red !important;}",
             renderedClassNames: ["red_im3wl1"],
