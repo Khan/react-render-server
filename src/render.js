@@ -13,6 +13,10 @@ const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
 const ReactDOMServer = require('react-dom/server');
+const ApolloClient = require("apollo-client");
+const ReactApollo = require("react-apollo");
+const gqlPrinter = require("graphql-tag/printer").print;
+const request = require("request");
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
@@ -136,7 +140,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
             global.StyleSheetServer.renderStatic;
         } catch (e) {
             // If we're here, it should mean that the component being rendered
-            // does not depend on Aphrodite. We'll make a stub instead ot make
+            // does not depend on Aphrodite. We'll make a stub instead to make
             // the code below simpler.
             global.StyleSheetServer = {
                 renderStatic: (cb) => {
@@ -168,6 +172,93 @@ const getVMContext = function(jsPackages, pathToReactComponent,
     }
 
     return context;
+};
+
+// If Apollo network settings were provided then we need to expose some
+// important objects to the vm context. ApolloNetwork should have two
+// properties: 'url' (for the URL of the GraphQL endpoint) and 'headers'
+// for a key-value map of headers to send to the GraphQL endpoint. This
+// can include things such as cookies and xsrf tokens.
+// Requests will automatically timeout after 1000ms, unless another
+// timeout is provided via a 'timeout' property.
+const handleApolloNetwork = function(context) {
+    const handleNetwork = (params) => (resolve, reject) => {
+        let complete = false;
+        const url = context.ApolloNetwork.url;
+
+        if (!url) {
+            return reject(new Error("ApolloNetwork must have a valid url."));
+        }
+
+        const req = request({
+            method: "POST",
+            url,
+            headers: Object.assign({
+                "Content-Type": "application/json",
+            }, context.ApolloNetwork.headers),
+            body: JSON.stringify({
+                // We need to use the graphql-tag printer to
+                // serialize the output for the server.
+                query: gqlPrinter(params.query),
+                variables: params.variables,
+            }),
+        }, (err, res, body) => {
+            // Ignore requests that've already been aborted
+            // (this should never happen)
+            if (complete) {
+                return;
+            }
+
+            complete = true;
+
+            // Handle request errors
+            if (err) {
+                return reject(err);
+            }
+
+            // Handle server errors
+            if (res.statusCode !== 200) {
+                return reject(
+                    new Error("Server returned an error."));
+            }
+
+            // Attempt to parse the response as JSON
+            try {
+                resolve(JSON.parse(body));
+            } catch (e) {
+                reject(e);
+            }
+        });
+
+        // After a specified timeout we abort the request if
+        // it's still on-going.
+        setTimeout(() => {
+            if (!complete) {
+                complete = true;
+                req.abort();
+                reject(new Error(
+                    "Server response exceeded timeout."));
+            }
+        }, context.ApolloNetwork.timeout || 1000);
+    };
+
+    Object.assign(context, {
+        // Specifically we need to use the server-side Node.js versions of
+        // apollo-client and react-apollo (the ones we use on the main site
+        // don't include the server-side rendering logic).
+        ApolloClient: ApolloClient,
+        ReactApollo: ReactApollo,
+
+        // Additionally, we need to build a request mechanism for actually
+        // making a network request to our GraphQL endpoint. We use the
+        // Node.js 'request' module for making this request. This logic
+        // should be very similar to the logic held in apollo-wrapper.jsx.
+        ApolloNetworkInterface: {
+            query(params) {
+                return new Promise(handleNetwork(params));
+            },
+        },
+    });
 };
 
 /**
@@ -209,7 +300,8 @@ const render = function(jsPackages, pathToReactComponent, props,
 
     context.reactProps = props;
 
-    const renderProfile = profile.start("rendering " + pathToReactComponent);
+    const renderProfile = profile.start("rendering " +
+        pathToReactComponent);
 
     if (globals) {
         Object.keys(globals).forEach(key => {
@@ -222,25 +314,93 @@ const render = function(jsPackages, pathToReactComponent, props,
         });
     }
 
+    if (context.ApolloNetwork) {
+        handleApolloNetwork(context);
+    }
+
     // getVMContext sets up the sandbox to have React installed, as
     // well as everything else needed to load the React component, so
     // our work here is easy.
-    const ret = runInContext(context, () => {
-        const Component = KAdefine.require(global.pathToReactComponent);
+    return runInContext(context, () => {
+        return new Promise((resolve, reject) => {
+            const Component = KAdefine.require(global.pathToReactComponent);
 
-        // Make a deep of the props in the context before rendering them, so
-        // that any polyfills we have in the context (like
-        // Array.prototype.includes) are applied to the elements of the props.
-        const clonedProps = JSON.parse(JSON.stringify(global.reactProps));
+            // Make a deep clone of the props in the context before rendering
+            // them, so that any polyfills we have in the context (like
+            // Array.prototype.includes) are applied to the elements of
+            // the props.
+            const clonedProps = JSON.parse(JSON.stringify(global.reactProps));
 
-        const reactElement = React.createElement(Component, clonedProps);
-        return global.StyleSheetServer.renderStatic(
-            () => ReactDOMServer.renderToString(reactElement));
+            const reactElement = React.createElement(Component, clonedProps);
+
+            // Render a React element and sent the string back to the main
+            // Node.js process. The object will have an 'html' property (from
+            // the React element), a 'css' property (from Aphrodite), and
+            // possibly a 'data' property (from Apollo, if it exists).
+            const renderElement = (element, data) => {
+                const result = global.StyleSheetServer.renderStatic(() =>
+                    ReactDOMServer.renderToString(element));
+
+                if (data) {
+                    result.data = data;
+                }
+
+                resolve(result);
+            };
+
+            // For React elements that have no Apollo-centric logic, we just
+            // render them as normal.
+            if (!global.ApolloNetworkInterface) {
+                return renderElement(reactElement);
+            }
+
+            // If network details were provided for Apollo then we go about
+            // wrapping the element in an Apollo provider (which will collect
+            // the data requirements of the child components and send off a
+            // network request to a GraphQL endpoint).
+
+            // Build an Apollo client. This is responsible for making the
+            // network requests to the GraphQL endpoint and bringing back
+            // the data.
+            const client = new global.ApolloClient.ApolloClient({
+                ssrMode: true,
+                networkInterface: global.ApolloNetworkInterface,
+            });
+
+            // We wrap the React element with an Apollo Provider (which
+            // takes a React element and a client)
+            const wrappedElement = React.createElement(
+                global.ReactApollo.ApolloProvider,
+                {
+                    children: reactElement,
+                    client: client,
+                }
+            );
+
+            // From the Apollo Provider and the wrapped React element we
+            // use React Apollo to traverse through the full React element
+            // tree to find all the GraphQL data requirements that've been
+            // specified by the components. These requirements are pulled
+            // together and sent to the serve as a single request.
+            global.ReactApollo.getDataFromTree(wrappedElement)
+                .then(() => {
+                    // All of the data comes back as a single object which
+                    // we can then pass back to the client to be rendered
+                    // directly into the page (for the re-hydration).
+                    const initialState = {};
+                    initialState[client.reduxRootKey] =
+                        client.getInitialState();
+
+                    renderElement(wrappedElement, initialState);
+                }).catch((err) => reject(err));
+        });
+    }).then((data) => {
+        renderProfile.end();
+        return data;
+    }).catch((err) => {
+        renderProfile.end();
+        return Promise.reject(err);
     });
-
-    renderProfile.end();
-
-    return ret;
 };
 
 render.setDefaultCacheBehavior = function(cacheBehavior) {

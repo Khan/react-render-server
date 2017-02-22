@@ -30,13 +30,15 @@ describe('render', () => {
         render.resetGlobals();
         cache.init(10000);
 
-        const packageNames = ['corelibs-package.js',
-                              'corelibs-legacy-package.js',
-                              'shared-package.js',
-                              'server-package.js',
-                              'canvas-test-package.js',
-                              'globals-package.js',
-                              'polyfill-package.js'];
+        const packageNames = [
+            'corelibs-package.js',
+            'corelibs-legacy-package.js',
+            'shared-package.js',
+            'server-package.js',
+            'canvas-test-package.js',
+            'globals-package.js',
+            'polyfill-package.js',
+        ];
 
         packages = packageNames.map(filename => {
             const filepath = `${__dirname}/testdata/${filename}`;
@@ -53,7 +55,12 @@ describe('render', () => {
     });
 
     const expected = {
-        html: '<div data-reactroot="" data-reactid="..." data-react-checksum="..."><!-- react-text: 2 -->6<!-- /react-text --><ol class="red_im3wl1" data-reactid="..."><li data-reactid="...">I</li><li data-reactid="...">am</li><li data-reactid="...">not</li><li data-reactid="...">a</li><li data-reactid="...">number</li></ol></div>',     // @Nolint(long line)
+        html: '<div data-reactroot="" data-reactid="..." data-react-checksum=' +
+            '"..."><!-- react-text: 2 -->6<!-- /react-text --><ol class=' +
+            '"red_im3wl1" data-reactid="..."><li data-reactid="...">I</li>' +
+            '<li data-reactid="...">am</li><li data-reactid="...">not</li>' +
+            '<li data-reactid="...">a</li><li data-reactid="...">number</li>' +
+            '</ol></div>',
         css: {
             content: ".red_im3wl1{color:red !important;}",
             renderedClassNames: ["red_im3wl1"],
@@ -65,28 +72,34 @@ describe('render', () => {
         list: ['I', 'am', 'not', 'a', 'number'],
     };
 
-    it('should correctly render a simple react component', () => {
-        const actual = render(packages,
-                              "./javascript/server-package/test-component.jsx",
-                              props);
-        actual.html = normalizeReactOutput(actual.html);  // "const"? ha!
-
-        assert.deepEqual(expected, actual);
-    });
-
-    it('should pull vm context from cache when possible', () => {
+    it('should correctly render a simple react component', (done) => {
         render(packages,
                "./javascript/server-package/test-component.jsx",
-               props);
+               props
+        ).then(actual => {
+            actual.html = normalizeReactOutput(actual.html);
+            assert.deepEqual(expected, actual);
+            done();
+        }).catch(done);
+    });
 
-        const actual = render(packages,
-                              "./javascript/server-package/test-component.jsx",
-                              props);
-        assert.equal(1, createContextSpy.callCount);
+    it('should pull vm context from cache when possible', (done) => {
+        render(packages,
+               "./javascript/server-package/test-component.jsx",
+               props
+        ).then(() => {
+            render(packages,
+                   "./javascript/server-package/test-component.jsx",
+                   props
+            ).then(actual => {
+                assert.equal(1, createContextSpy.callCount);
 
-        // Ensure it gives back correct results from the cached version
-        actual.html = normalizeReactOutput(actual.html);  // "const"? ha!
-        assert.deepEqual(expected, actual);
+                // Ensure it gives back correct results from the cached version
+                actual.html = normalizeReactOutput(actual.html);
+                assert.deepEqual(expected, actual);
+                done();
+            }).catch(done);
+        });
     });
 
     it('should not pull vm context from cache when asked not to', () => {
@@ -145,7 +158,7 @@ describe('render', () => {
                props);
     });
 
-    it('can reference manually set global variables', () => {
+    it('can reference manually set global variables', (done) => {
         const globals = {
             "location":  "http://www.khanacademy.org/science/physics",
             "KA": {
@@ -154,15 +167,17 @@ describe('render', () => {
         };
 
         const path = "./javascript/globals-package/test-component.jsx";
-        const actual = render(packages, path, {}, globals);
-        const actualHtml = normalizeReactOutput(actual.html);
+        render(packages, path, {}, globals).then(actual => {
+            const actualHtml = normalizeReactOutput(actual.html);
 
-        assert.include(actualHtml, 'es');
-        assert.include(actualHtml,
-                       'http://www.khanacademy.org/science/physics');
+            assert.include(actualHtml, 'es');
+            assert.include(actualHtml,
+                           'http://www.khanacademy.org/science/physics');
+            done();
+        }).catch(done);
     });
 
-    it('polyfills methods on props', () => {
+    it('polyfills methods on props', (done) => {
         // Remove the Array.prototype.includes method to ensure that it gets
         // polyfilled.
         const oldIncludes = Array.prototype.includes;
@@ -175,11 +190,13 @@ describe('render', () => {
         // Rendering this component depends on props.array.includes being
         // defined.
         const path = "./javascript/polyfill-package/test-component.jsx";
-        const actual = render(packages, path, props);
-        const actualHtml = normalizeReactOutput(actual.html);
+        render(packages, path, props).then(actual => {
+            const actualHtml = normalizeReactOutput(actual.html);
 
-        assert.include(actualHtml, 'true');
+            assert.include(actualHtml, 'true');
 
-        Array.prototype.includes = oldIncludes;
+            Array.prototype.includes = oldIncludes;
+            done();
+        }).catch(done);
     });
 });
