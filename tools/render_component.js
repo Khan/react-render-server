@@ -35,22 +35,6 @@
 
 const render = require("../src/render.js");
 
-// Returns the number of errors found trying to render the component.
-const main = function(jsPackages, pathToReactComponent, props, globals) {
-    try {
-        return render(jsPackages, pathToReactComponent,
-                      props, globals, 'ignore');
-    } catch (err) {
-        return {
-            html: `${pathToReactComponent}: ERROR ${err.stack}`,
-            css: {
-                content: "",
-                renderedClassNames: [],
-            },
-        };
-    }
-};
-
 
 let inputText = '';
 process.stdin.on('data', function(chunk) {
@@ -58,9 +42,21 @@ process.stdin.on('data', function(chunk) {
 });
 process.stdin.on('end', function() {
     const inputJson = JSON.parse(inputText);
-    const outputJson = main(inputJson.jsPackages,
-                            inputJson.pathToReactComponent,
-                            inputJson.props,
-                            inputJson.globals);
-    console.log(JSON.stringify(outputJson));
+    render(
+        inputJson.jsPackages,
+        inputJson.pathToReactComponent,
+        inputJson.props,
+        inputJson.globals,
+        'ignore'
+    ).then((outputJson) => {
+        console.log(JSON.stringify(outputJson));
+    }).catch((err) => {
+        console.log(JSON.stringify({
+            html: `${inputJson.pathToReactComponent}: ERROR ${err.stack}`,
+            css: {
+                content: "",
+                renderedClassNames: [],
+            },
+        }));
+    });
 });
