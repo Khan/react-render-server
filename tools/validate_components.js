@@ -37,7 +37,7 @@ const render = require("../src/render.js");
 // https://github.com/facebook/react/blob/92530b4ddcc77be49a50ce4cbffb32ee38a98247/src/renderers/dom/client/ReactMount.js
 function firstDifferenceIndex(string1, string2) {
     const minLen = Math.min(string1.length, string2.length);
-    for (var i = 0; i < minLen; i++) {
+    for (let i = 0; i < minLen; i++) {
         if (string1.charAt(i) !== string2.charAt(i)) {
             return i;
         }
@@ -55,6 +55,13 @@ const normalizeReactOutput = function(html) {
     return html;
 };
 
+const mismatchMsg = (
+    "There was a mismatch between the server and client rendered" +
+    " HTML. Server-side rendered components must not do feature" +
+    " feature detection, because the features detected will be" +
+    " different on the client and server!\n\n" +
+    "Here's where the server and client may differ");
+
 // Returns the number of errors found trying to render the component.
 const validate = function(jsPackages, pathToReactComponent, fixtureFile) {
     let allProps;
@@ -63,11 +70,19 @@ const validate = function(jsPackages, pathToReactComponent, fixtureFile) {
         allProps = require(relativeFixturePath).instances;
     } catch (err) {
         console.log(`Error reading fixtures from ${fixtureFile}: ${err}`);
-        return 1;
+        // NOTE(jeresig): We should really be returning 1 here as it is an
+        // error, however we now have some fixture tests that do more than
+        // just return an object (they build React components and wrappers).
+        // The only way to make these run correctly is to bring in the full
+        // dev package and run it with all of the dev dependencies. For
+        // example right now a fixture that does `require("react")` will fail
+        // with "require.withVars not found". Note that this is only an issue
+        // with validate_components.js. The code normally runs fine server-
+        // side and also runs fine in the normal fixture tests.
+        return Promise.resolve(0);
     }
 
-    let numErrors = 0;
-    allProps.forEach((props, i) => {
+    return Promise.all(allProps.map((props, i) => {
         // For each fixture file, we'll try rendering the component three
         // times:
         //
@@ -84,77 +99,78 @@ const validate = function(jsPackages, pathToReactComponent, fixtureFile) {
         //
         // This also helps us find non-determinism in the rendering output
         // (e.g. using random numbers as IDs).
-        try {
-            const serverHtml = normalizeReactOutput(
-                render(jsPackages, pathToReactComponent, props, {},
-                       'ignore').html);
-
-            const desktopHtml = normalizeReactOutput(
-                render(jsPackages, pathToReactComponent, props, {
-                    width: 2000,
-                    height: 900,
-                    innerWidth: 2000,
-                    innerHeight: 900,
-                    outerWidth: 2000,
-                    outerHeight: 900,
-                }, 'ignore').html);
-            const mobileHtml = normalizeReactOutput(
-                render(jsPackages, pathToReactComponent, props, {
-                    width: 400,
-                    height: 600,
-                    innerWidth: 400,
-                    innerHeight: 600,
-                    outerWidth: 400,
-                    outerHeight: 600,
-                    ontouchstart: function() {},
-                    onorientationchange: function() {},
-                    orientation: 'portrait',
-                }, 'ignore').html);
-
-            const mismatchMsg = (
-                "There was a mismatch between the server and client rendered" +
-                " HTML. Server-side rendered components must not do feature" +
-                " feature detection, because the features detected will be" +
-                " different on the client and server!\n\n" +
-                "Here's where the server and client may differ");
+        return Promise.all([
+            render(jsPackages, pathToReactComponent, props, {}, 'ignore'),
+            render(jsPackages, pathToReactComponent, props, {
+                width: 2000,
+                height: 900,
+                innerWidth: 2000,
+                innerHeight: 900,
+                outerWidth: 2000,
+                outerHeight: 900,
+            }, 'ignore'),
+            render(jsPackages, pathToReactComponent, props, {
+                width: 400,
+                height: 600,
+                innerWidth: 400,
+                innerHeight: 600,
+                outerWidth: 400,
+                outerHeight: 600,
+                ontouchstart: function() {},
+                onorientationchange: function() {},
+                orientation: 'portrait',
+            }, 'ignore'),
+        ]).then(([serverHtml, desktopHtml, mobileHtml]) => {
+            serverHtml = normalizeReactOutput(serverHtml.html);
+            desktopHtml = normalizeReactOutput(desktopHtml.html);
+            mobileHtml = normalizeReactOutput(mobileHtml.html);
 
             if (serverHtml !== desktopHtml) {
                 const diffIndex = firstDifferenceIndex(serverHtml,
                                                        desktopHtml);
-                throw new Error(
+                return Promise.reject(new Error(
                     mismatchMsg +
                     "\n(server) " + serverHtml.substring(diffIndex - 20,
                                                          diffIndex + 40) +
                     "\n(desktop) " + desktopHtml.substring(diffIndex - 20,
-                                                           diffIndex + 40));
+                                                           diffIndex + 40)));
             } else if (serverHtml !== mobileHtml) {
                 const diffIndex = firstDifferenceIndex(serverHtml,
                                                        mobileHtml);
-                throw new Error(
+                return Promise.reject(new Error(
                     mismatchMsg +
                     "\n(server) " + serverHtml.substring(diffIndex - 20,
                                                          diffIndex + 40) +
                     "\n(mobile) " + mobileHtml.substring(diffIndex - 20,
-                                                         diffIndex + 40));
+                                                         diffIndex + 40)));
             }
+        }).then(() => {
             console.log(`${pathToReactComponent} #${i}: OK`);
-        } catch (err) {
+            return 0;
+        }).catch((err) => {
             console.log(`${pathToReactComponent} #${i}: ERROR ${err.stack}`);
-            numErrors++;
-        }
+            return 1;
+        });
+    })).then((results) => {
+        // Total up all of the errors
+        return results.reduce((a, b) => a + b, 0);
+    }).catch((err) => {
+        // Some uncaught error!? Should hopefully never happen!
+        console.log(`${pathToReactComponent}: ERROR ${err.stack}`);
+        return 1;
     });
-    return numErrors;
 };
 
 
 const main = function(inputJson) {
-    let numErrors = 0;
-    inputJson.forEach((oneInput) => {
-        numErrors += validate(oneInput.jsPackages,
-                              oneInput.pathToReactComponent,
-                              oneInput.fixtureFile);
-    });
-    return numErrors;
+    // Run all the validation calls as async promises
+    const promises = inputJson.map(
+        (oneInput) => validate(oneInput.jsPackages,
+            oneInput.pathToReactComponent, oneInput.fixtureFile));
+
+    // Return a promise that has a total number of errors generated
+    return Promise.all(promises)
+        .then((errors) => errors.reduce((a, b) => a + b, 0));
 };
 
 
@@ -164,7 +180,11 @@ process.stdin.on('data', function(chunk) {
 });
 process.stdin.on('end', function() {
     const inputJson = JSON.parse(inputText);
-    const numErrors = main(inputJson);
-    console.log('DONE');
-    process.exit(numErrors);
+    main(inputJson).then((numErrors) => {
+        console.log('DONE');
+        process.exit(numErrors);
+    }).catch((err) => {
+        console.log('UNCAUGHT ERROR', err, err.stack);
+        process.exit(1);
+    });
 });
