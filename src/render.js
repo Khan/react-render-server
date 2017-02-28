@@ -323,7 +323,13 @@ const render = function(jsPackages, pathToReactComponent, props,
     // our work here is easy.
     return runInContext(context, () => {
         return new Promise((resolve, reject) => {
-            const Component = KAdefine.require(global.pathToReactComponent);
+            let Component = KAdefine.require(global.pathToReactComponent);
+
+            // The Component could have been exported using `export default`
+            // We check for that case and use that component here.
+            if (Component.default) {
+                Component = Component.default;
+            }
 
             // Make a deep clone of the props in the context before rendering
             // them, so that any polyfills we have in the context (like
