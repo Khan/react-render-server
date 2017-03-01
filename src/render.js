@@ -323,7 +323,10 @@ const render = function(jsPackages, pathToReactComponent, props,
     // our work here is easy.
     return runInContext(context, () => {
         return new Promise((resolve, reject) => {
-            let Component = KAdefine.require(global.pathToReactComponent);
+            // NOTE(jeresig): We should be using `let` here but the current
+            // version of the Node.js runtime we use in production doesn't
+            // understand `let` inside runInContext (known bug).
+            var Component = KAdefine.require(global.pathToReactComponent); // eslint-disable-line no-var
 
             // The Component could have been exported using `export default`
             // We check for that case and use that component here.
