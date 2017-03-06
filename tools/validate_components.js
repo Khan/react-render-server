@@ -120,10 +120,10 @@ const validate = function(jsPackages, pathToReactComponent, fixtureFile) {
                 onorientationchange: function() {},
                 orientation: 'portrait',
             }, 'ignore'),
-        ]).then(([serverHtml, desktopHtml, mobileHtml]) => {
-            serverHtml = normalizeReactOutput(serverHtml.html);
-            desktopHtml = normalizeReactOutput(desktopHtml.html);
-            mobileHtml = normalizeReactOutput(mobileHtml.html);
+        ]).then((results) => {
+            const serverHtml = normalizeReactOutput(results[0].html);
+            const desktopHtml = normalizeReactOutput(results[1].html);
+            const mobileHtml = normalizeReactOutput(results[2].html);
 
             if (serverHtml !== desktopHtml) {
                 const diffIndex = firstDifferenceIndex(serverHtml,
