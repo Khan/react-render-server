@@ -20,30 +20,39 @@ const secretPath = path.normalize(__dirname + "/../secret");
 let secret;
 
 // Used by the benchmark/loadtest tool.
-const get = function() {
-    if (!secret) {
-        try {
-            secret = fs.readFileSync(secretPath, "utf-8").trim();
-            if (!secret) {     // empty file?
-                throw new Error('secret file is empty!');
-            }
-        } catch (err) {
-            logging.error(`FATAL ERROR (${err}): You must create a file:`);
-            logging.error('    ' + secretPath);
-            logging.error('Its contents should be the secret-string at');
-            logging.error('    https://phabricator.khanacademy.org/K121');
-            throw err;
-        }
+const get = function(done) {
+  if (secret) {
+    return done(null, done);
+  }
+  fs.readFile(secretPath, "utf-8", (err, contents) =>{
+    if (err) {
+      logging.error(`FATAL ERROR (${err}): You must create a file:`);
+      logging.error('    ' + secretPath);
+      logging.error('Its contents should be the secret-string at');
+      logging.error('    https://phabricator.khanacademy.org/K121');
+      return done(err);
     }
-    return secret;
+
+    var secret = contents.trim();
+    if (!secret) {
+        return done(new Error('secret file is empty!'));
+    }
+
+    return done(secret);
+  });
 };
 
 
-const matches = function(actual) {
-    return get() === actual;
+const matches = function(actual, done) {
+    return get((err, secret) =>{
+      if (err) {
+        return done(err);
+      }
+
+      return done(secret === actual);
+    });
 };
 
 
 // get is only used by the benchmarking/loadtest tool.
 module.exports = { matches: matches, get: get };
-
