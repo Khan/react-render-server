@@ -112,9 +112,7 @@ app.use('/render', (req, res, next) => {
 const checkSecret = function (req, res, next) {
   renderSecret.matches(req.body.secret, (err, secretMatches) => {
     if (err || !secretMatches) {
-      var error  = new Error("Missing or invalid secret");
-      error.status = 400;
-      return next(error);
+      return res.status(400).send({error: "Missing or invalid secret"});
     }
     return next();
   });
