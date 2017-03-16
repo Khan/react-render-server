@@ -53,7 +53,10 @@ if (args.dev) {
     // We also turn off the timeout in dev; it's not as important there.
     fetchPackage.setTimeout(null);
     // Disable the need for secrets.
-    renderSecret.matches = (actual) => true;
+    renderSecret.matches = (actual, callback) => {
+      return callback(null, true);
+    };
+
     process.env.NODE_ENV = 'dev';
 } else {
     // This is important for the default catch-all error handler:
@@ -93,4 +96,3 @@ const server = appWithLogging.listen(port, () => {
 
     logging.info('react-render-server running at http://%s:%s', host, port);
 });
-

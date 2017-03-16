@@ -22,9 +22,10 @@ let secret;
 // Used by the benchmark/loadtest tool.
 const get = function(done) {
   if (secret) {
-    return done(null, done);
+    return done(null, secret);
   }
-  fs.readFile(secretPath, "utf-8", (err, contents) =>{
+
+  fs.readFile(secretPath, "utf-8", (err, contents) => {
     if (err) {
       logging.error(`FATAL ERROR (${err}): You must create a file:`);
       logging.error('    ' + secretPath);
@@ -33,23 +34,23 @@ const get = function(done) {
       return done(err);
     }
 
-    var secret = contents.trim();
+    secret = contents.trim();
     if (!secret) {
         return done(new Error('secret file is empty!'));
     }
 
-    return done(secret);
+    return done(null, secret);
   });
 };
 
 
 const matches = function(actual, done) {
-    return get((err, secret) =>{
+    return get((err, secret) => {
       if (err) {
         return done(err);
       }
 
-      return done(secret === actual);
+      return done(null, secret === actual);
     });
 };
 

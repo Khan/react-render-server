@@ -91,7 +91,7 @@ describe('API endpoint /render', () => {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
-        sinon.stub(renderSecret, 'matches', ( secret, callback) =>{
+        sinon.stub(renderSecret, 'matches', ( secret, callback) => {
           return callback(null, secret === "sekret");
         });
         debugLoggingSpy = sinon.spy(logging, "debug");
@@ -367,7 +367,7 @@ describe('API endpoint /flush', () => {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
-        sinon.stub(renderSecret, 'matches', ( secret, callback) =>{
+        sinon.stub(renderSecret, 'matches', ( secret, callback) => {
           return callback(null, secret === "sekret");
         });
     });
