@@ -109,14 +109,20 @@ app.use('/render', (req, res, next) => {
     next();
 });
 
-app.post('/render', (req, res) => {
+const checkSecret = function (req, res, next) {
+  renderSecret.matches(req.body.secret, (err, secretMatches) => {
+    if (err || !secretMatches) {
+      return res.status(400).send({error: "Missing or invalid secret"});
+    }
+    return next();
+  });
+};
+
+app.post('/render', checkSecret, (req, res) => {
     // Validate the input.
     let err;
     let value;
-    if (!renderSecret.matches(req.body.secret)) {
-        err = 'Missing or invalid secret';
-        value = '<redacted>';
-    } else if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
+    if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
                !req.body.urls.every(e => typeof e === 'string') ||
                !req.body.urls.every(e => e.indexOf('http') === 0)) {
         err = ('Missing "urls" keyword in POST JSON input, ' +
@@ -198,11 +204,7 @@ app.post('/render', (req, res) => {
  * We respond with the instance that was flushed.
  * TODO(csilvers): how do we flush *all* the instances??
  */
-app.post('/flush', (req, res) => {
-    if (!renderSecret.matches(req.body.secret)) {
-        res.status(400).json({error: 'Missing or invalid secret'});
-        return;
-    }
+app.post('/flush', checkSecret, (req, res) => {
     cache.reset();
     res.send((process.env['GAE_MODULE_INSTANCE'] || 'dev') + '\n');
 });
@@ -222,4 +224,3 @@ app.get('/_ah/stop', (req, res) => res.send('ok!\n'));
 
 
 module.exports = app;
-
