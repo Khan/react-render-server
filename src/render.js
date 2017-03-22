@@ -201,6 +201,7 @@ const handleApolloNetwork = function(context) {
                 // serialize the output for the server.
                 query: gqlPrinter(params.query),
                 variables: params.variables,
+                operationName: params.operationName,
             }),
         }, (err, res, body) => {
             // Ignore requests that've already been aborted
