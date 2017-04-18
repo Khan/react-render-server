@@ -1,6 +1,6 @@
 module: react-render
 runtime: nodejs
-vm: true
+env: flex
 
 # TODO(jlfwong): Figure out what the right scaling policy is
 automatic_scaling:

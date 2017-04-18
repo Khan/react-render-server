@@ -28,11 +28,11 @@ describe('API endpoint /_api/ping', () => {
 describe('API endpoint /_api/version', () => {
     const agent = supertest.agent(server);
     afterEach(function() {
-        delete process.env['GAE_MODULE_VERSION'];
+        delete process.env['GAE_VERSION'];
     });
 
     it("should return the module version in production", (done) => {
-        process.env['GAE_MODULE_VERSION'] = 'foo-version';
+        process.env['GAE_VERSION'] = 'foo-version';
         agent
             .get('/_api/version')
             .expect("foo-version\n", done);

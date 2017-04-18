@@ -206,14 +206,14 @@ app.post('/render', checkSecret, (req, res) => {
  */
 app.post('/flush', checkSecret, (req, res) => {
     cache.reset();
-    res.send((process.env['GAE_MODULE_INSTANCE'] || 'dev') + '\n');
+    res.send((process.env['GAE_INSTANCE'] || 'dev') + '\n');
 });
 
 app.get('/_api/ping', (req, res) => res.send('pong!\n'));
 
 app.get('/_api/version', (req, res) => {
     // This will return the module version ID we set when deploying.
-    res.send((process.env['GAE_MODULE_VERSION'] || 'dev') + '\n');
+    res.send((process.env['GAE_VERSION'] || 'dev') + '\n');
 });
 
 // These are used by the Managed VM lifecycle functions:
