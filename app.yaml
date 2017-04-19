@@ -12,7 +12,8 @@ automatic_scaling:
 
 resources:
   cpu: 1
-  memory_gb: 1
+  # TODO(benkraft): This feels like more memory than we should need!
+  memory_gb: 3
   disk_size_gb: 10
 
 skip_files:
