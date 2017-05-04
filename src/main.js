@@ -8,6 +8,7 @@ const argparse = require("argparse");
 const express = require("express");
 const expressWinston = require('express-winston');
 const winston = require('winston');
+const traceAgent = require('@google-cloud/trace-agent');
 
 const app = require("./server.js");
 const cache = require("./cache.js");
@@ -62,6 +63,8 @@ if (args.dev) {
     // This is important for the default catch-all error handler:
     // http://expressjs.com/en/guide/error-handling.html
     process.env.NODE_ENV = 'production';
+    // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
+    traceAgent.start();
 }
 
 // Add logging support, based on

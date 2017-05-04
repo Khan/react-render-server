@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
+    "@google-cloud/trace-agent": "^1.1.0",
     "apollo-client": "0.8.5",
     "argparse": "^1.0.3",
     "body-parser": "^1.14.2",
