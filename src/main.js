@@ -5,19 +5,8 @@
 'use strict';
 
 const argparse = require("argparse");
-const express = require("express");
-const expressWinston = require('express-winston');
-const winston = require('winston');
-const traceAgent = require('@google-cloud/trace-agent');
 
-const app = require("./server.js");
-const cache = require("./cache.js");
-const fetchPackage = require("./fetch_package.js");
 const packageInfo = require("../package.json");
-const render = require("./render.js");
-const renderSecret = require("./secret.js");
-
-const logging = winston;     // just an alias, for clarity
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -41,6 +30,27 @@ parser.addArgument(['--log-level'],
 
 const args = parser.parseArgs();
 
+if (!args.dev) {
+    // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
+    // We need to do this as soon as possible so it can patch future requires.
+    const traceAgent = require('@google-cloud/trace-agent');
+    traceAgent.start({logLevel: 3});  // log at INFO
+}
+
+
+// Now that cloud trace is set up, we can require() everything else.
+const express = require("express");
+const expressWinston = require('express-winston');
+const winston = require('winston');
+
+const app = require("./server.js");
+const cache = require("./cache.js");
+const fetchPackage = require("./fetch_package.js");
+const render = require("./render.js");
+const renderSecret = require("./secret.js");
+
+const logging = winston;     // just an alias, for clarity
+
 const port = args.port;
 
 // Set up our globals and singletons
@@ -63,8 +73,6 @@ if (args.dev) {
     // This is important for the default catch-all error handler:
     // http://expressjs.com/en/guide/error-handling.html
     process.env.NODE_ENV = 'production';
-    // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
-    traceAgent.start();
 }
 
 // Add logging support, based on
