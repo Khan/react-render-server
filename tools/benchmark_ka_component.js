@@ -239,22 +239,30 @@ const requestToPromise = function(req, extra) {
  *      fetch all the packages that componentPath depends on.
  */
 const render = function(componentPath, props, renderHostPort, depPackageUrls) {
-    const reqBody = {
-        secret: secret.get(),
-        urls: depPackageUrls,
-        path: "./" + componentPath,
-        props: props,
-    };
+    return new Promise((resolve, reject) => {
+        secret.get((err, secretString) => {
+            if (err) {
+                reject(err);
+            }
+            const reqBody = {
+                secret: secretString,
+                urls: depPackageUrls,
+                path: "./" + componentPath,
+                props: props,
+            };
 
-    // The `?path=` query param we add onto the end is completely ignored
-    // by the server -- we add it here in order to make reading request
-    // logs easier.
-    const url = renderHostPort + "/render?path=" + componentPath;
+            // The `?path=` query param we add onto the end is
+            // completely ignored by the server -- we add it here in
+            // order to make reading request logs easier.
+            const url = renderHostPort + "/render?path=" + componentPath;
 
-    return requestToPromise(
-        superagent.post(url).send(reqBody),
-        +new Date      // "extra" param: time when the request is sent off
-    ).then(resAndStartTime => {
+            resolve(requestToPromise(
+                superagent.post(url).send(reqBody),
+                +new Date   // "extra" param: time when the request is sent off
+
+            ));
+        });
+    }).then(resAndStartTime => {
         const elapsedTime = +new Date - resAndStartTime[1];
         requestTimesInTheLastSecond.push(elapsedTime);
         console.log(`${componentPath}: ${resAndStartTime[0].text.length} ` +
@@ -429,6 +437,7 @@ const parser = new argparse.ArgumentParser({
     addHelp: true,
     description: "A load tester/benchmarker for the react-render-server",
 });
+/* eslint-disable indent */
 parser.addArgument(['fixtures'],
                    {nargs: '*',
                     defaultValue: ["../webapp/javascript/content-library-package/components/concept-thumbnail.jsx.fixture.js"],  // @Nolint(long line)
@@ -458,6 +467,7 @@ parser.addArgument(['-d', '--delay'],
                    {type: 'int', defaultValue: 0,
                     help: ("Rate we add fixtures from the commandline to th" +
                            "e render queue (i.e. <delay> ms between each)")});
+/* eslint-enable indent */
 
 main(parser.parseArgs());
 
