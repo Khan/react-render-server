@@ -4,7 +4,7 @@
 
 : ${PROJECT:=khan-academy}
 : ${VERBOSITY:=info}
-: ${DOCKER:=}
+: ${DOCKER:=1}
 
 die() {
     echo "FATAL ERROR: $@"
@@ -48,7 +48,7 @@ if [ -n "$DOCKER" ]; then
     docker tag react-render-server "us.gcr.io/khan-academy/react-render-server-$VERSION"
 
     echo "Pushing docker image..."
-    gcloud docker push "us.gcr.io/khan-academy/react-render-server-$VERSION"
+    gcloud docker -- push "us.gcr.io/khan-academy/react-render-server-$VERSION"
 
     echo "Deploying ${VERSION} via docker..."
 
