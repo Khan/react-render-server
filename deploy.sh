@@ -4,7 +4,7 @@
 
 : ${PROJECT:=khan-academy}
 : ${VERBOSITY:=info}
-: ${DOCKER:=1}
+: ${DOCKER:=}
 
 die() {
     echo "FATAL ERROR: $@"
@@ -33,6 +33,9 @@ VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific
 git fetch origin
 [ `git rev-parse HEAD` = `git rev-parse origin/master` ] \
     || die "You must deploy from latest origin/master."
+
+# Make sure we have all our deps in place
+npm install
 
 # Don't deploy if tests fail
 npm test
