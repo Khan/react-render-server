@@ -132,12 +132,12 @@ appWithLogging.use(app);
 
 // We give 20% of the cache to the main process, to cache the package
 // contents, and split the rest up among the workers.
-const mainCacheSize = args.cacheSize * 1024 * 1024 * 0.2;
-const workerCacheSize = (mainCacheSize * 4) / args.numWorkers;
+const mainCacheSize = args.cache_size * 1024 * 1024 * 0.2;
+const workerCacheSize = (mainCacheSize * 4) / args.num_workers;
 cache.init(mainCacheSize);
 renderWorkers.init(workerCacheSize, {
-    maxWorkers: args.numWorkers,
-    taskTimeout: args.renderTimeout,
+    maxWorkers: args.num_workers,
+    taskTimeout: args.render_timeout,
 });
 
 const server = appWithLogging.listen(port, () => {
