@@ -52,5 +52,10 @@ const destroy = function() {
     gCache = undefined;
 };
 
-module.exports = {init: init, get: get, set: set, reset: reset,
-                  destroy: destroy};
+module.exports = {
+    init: init,
+    get: get,
+    set: set,
+    reset: reset,
+    destroy: destroy,
+};

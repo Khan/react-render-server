@@ -406,6 +406,12 @@ const render = function(jsPackages, pathToReactComponent, props,
         });
     }).then((data) => {
         renderProfile.end();
+        // If we passed in request-stats, we've modified them in this
+        // function (to update the stats).  Pass back the updated
+        // stats as part of our response object.
+        if (requestStats) {
+            data.requestStats = requestStats;
+        }
         return data;
     }).catch((err) => {
         renderProfile.end();

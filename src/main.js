@@ -5,6 +5,7 @@
 'use strict';
 
 const argparse = require("argparse");
+const os = require("os");
 
 const packageInfo = require("../package.json");
 
@@ -13,20 +14,49 @@ const parser = new argparse.ArgumentParser({
     addHelp: true,
     description: packageInfo.description,
 });
-parser.addArgument(['-p', '--port'],
-                   {type: 'int', defaultValue: 8060,
-                    help: "Port to run on."});
-parser.addArgument(['--dev'],
-                   {action: 'storeTrue',
-                    help: "Set if running on dev; controls caching/etc."});
-parser.addArgument(['--cache-size'],
-                   {type: 'int', defaultValue: 100,
-                    help: "Internal cache size, in MB."});
-parser.addArgument(['--log-level'],
-                   {defaultValue: 'info',
-                    choices: ['silly', 'debug', 'verbose', 'info',
-                              'warn', 'error'],
-                    help: "What level to log at."});
+parser.addArgument(
+    ['-p', '--port'],
+    {
+        type: 'int',
+        defaultValue: 8060,
+        help: "Port to run on.",
+    });
+parser.addArgument(
+    ['--dev'],
+    {
+        action: 'storeTrue',
+        help: "Set if running on dev; controls caching/etc.",
+    });
+parser.addArgument(
+    ['--cache-size'],
+    {
+        type: 'int',
+        defaultValue: 100,
+        help: "Internal cache size, in MB.",
+    });
+parser.addArgument(
+    ['--num-workers'],
+    {
+        type: 'int',
+        // We have two render-workers per CPU, since rendering is
+        // *sometimes* I/O bound (when doing apollo calls).
+        defaultValue: os.cpus().length * 2,
+        help: "Number of render-workers.",
+    });
+parser.addArgument(
+    ['--render-timeout'],
+    {
+        type: 'int',
+        defaultValue: 1000,
+        help: "How many ms until we abort a render as taking too long.",
+    });
+parser.addArgument(
+    ['--log-level'],
+    {
+        defaultValue: 'info',
+        choices: ['silly', 'debug', 'verbose', 'info', 'warn', 'error'],
+        help: "What level to log at.",
+    });
 
 const args = parser.parseArgs();
 
@@ -48,6 +78,7 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
+const renderWorkers = require("./render_workers.js");
 
 const logging = winston;     // just an alias, for clarity
 
@@ -65,7 +96,7 @@ if (args.dev) {
     fetchPackage.setTimeout(null);
     // Disable the need for secrets.
     renderSecret.matches = (actual, callback) => {
-      return callback(null, true);
+        return callback(null, true);
     };
 
     process.env.NODE_ENV = 'dev';
@@ -99,7 +130,15 @@ appWithLogging.use(expressWinston.errorLogger({      // error logging
 }));
 appWithLogging.use(app);
 
-cache.init(args.cacheSize * 1024 * 1024);
+// We give 20% of the cache to the main process, to cache the package
+// contents, and split the rest up among the workers.
+const mainCacheSize = args.cacheSize * 1024 * 1024 * 0.2;
+const workerCacheSize = (mainCacheSize * 4) / args.numWorkers;
+cache.init(mainCacheSize);
+renderWorkers.init(workerCacheSize, {
+    maxWorkers: args.numWorkers,
+    taskTimeout: args.renderTimeout,
+});
 
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;

@@ -1,16 +1,20 @@
 # This was generated via:
 #
 #   gcloud app gen-config --custom --config=app.yaml --project=khan-academy
+#
+# Then manually modified to use node v8.3 (the latest at the time I
+# last edited this, 15 Aug 2017).  We need at least node v6.6.0 to
+# use worker-nodes, and might as well use the latest.
 
 # Dockerfile extending the generic Node image with application files for a
 # single application.
 FROM gcr.io/google_appengine/nodejs
 # Check to see if the the version included in the base runtime satisfies \
-# ^4.2.1, if not then do an npm install of the latest available \
+# ^6.6.0, if not then do an npm install of the latest available \
 # version that satisfies it. \
 RUN npm install         https://storage.googleapis.com/gae_node_packages/semver.tar.gz && \
   (node -e 'var semver = require("semver"); \
-            if (!semver.satisfies(process.version, "^4.2.1")) \
+            if (!semver.satisfies(process.version, "^8.3.0")) \
               process.exit(1);' || \
    (version=$(curl -L https://storage.googleapis.com/gae_node_packages/node_versions | \
               node -e ' \
@@ -56,7 +60,7 @@ RUN npm install         https://storage.googleapis.com/gae_node_packages/semver.
                     process.exit(1); \
                   } \
                 });' \
-                "^4.2.1") && \
+                "^8.3.0") && \
                 rm -rf /nodejs/* && \
                 (curl https://storage.googleapis.com/gae_node_packages/node-$version-linux-x64.tar.gz | \
                  tar xzf - -C /nodejs --strip-components=1 \

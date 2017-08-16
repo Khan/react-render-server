@@ -7,13 +7,15 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const logging = require("winston");
+const workerNodeErrors = require("worker-nodes/lib/errors.js");
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const graphiteUtil = require("./graphite_util.js");
 const profile = require("./profile.js");
-const render = require("./render.js");
 const renderSecret = require("./secret.js");
+const renderWorkers = require("./render_workers.js");
+
 
 // We keep track of how many render requests are currently "in
 // flight", to help us estimate how long a new request will take.
@@ -109,13 +111,13 @@ app.use('/render', (req, res, next) => {
     next();
 });
 
-const checkSecret = function (req, res, next) {
-  renderSecret.matches(req.body.secret, (err, secretMatches) => {
-    if (err || !secretMatches) {
-      return res.status(400).send({error: "Missing or invalid secret"});
-    }
-    return next();
-  });
+const checkSecret = function(req, res, next) {
+    renderSecret.matches(req.body.secret, (err, secretMatches) => {
+        if (err || !secretMatches) {
+            return res.status(400).send({error: "Missing or invalid secret"});
+        }
+        return next();
+    });
 };
 
 app.post('/render', checkSecret, (req, res) => {
@@ -151,13 +153,20 @@ app.post('/render', checkSecret, (req, res) => {
 
     Promise.all(fetchPromises).then(
         (fetchBodies) => {
-            return render(fetchBodies,
+            return renderWorkers.render(fetchBodies,
                 req.body.path,
                 req.body.props,
                 req.body.globals,
                 undefined,
                 req.requestStats
-            ).then(renderedState => res.json(renderedState));
+            ).then(renderedState => {
+                // We store the updated request-stats in renderedState
+                // (the only way to get the updated data back from our
+                // subprocess); pop that out into update req.requestStats.
+                req.requestStats = renderedState.requestStats;
+                delete renderedState.requestStats;
+                res.json(renderedState);
+            });
         },
         (err) => {
             // Error handler for fetching failures.
@@ -180,8 +189,14 @@ app.post('/render', checkSecret, (req, res) => {
         })
         .catch((err) => {
             // Error handler for rendering failures
-            logging.error('Rendering failure:', err.stack);
-            res.status(500).json({error: err.toString()});
+            if (err instanceof workerNodeErrors.TimeoutError) {
+                const errorText = `Timeout rendering ${req.body.path}`;
+                logging.error('Rendering failure:', errorText);
+                res.status(500).json({error: errorText});
+            } else {
+                logging.error('Rendering failure:', err.stack);
+                res.status(500).json({error: err.toString()});
+            }
         });
 });
 
