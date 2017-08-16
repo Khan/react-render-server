@@ -25,13 +25,12 @@ const init = function(cacheSize, options) {
     // and I don't see a better way to do this than to create the
     // necessary file at runtime.  I use `tmp` for its automatic
     // cleanup.
-    const template = `${__dirname}/render_cache_${cacheSize}_XXXXXX.js`;
+    const template = `${__dirname}/render_cache/cache_${cacheSize}_XXXXXX.js`;
     const tmpobj = tmp.fileSync({template: template, discardDescriptor: true});
     const filename = tmpobj.name;
     const contents = `
-const cache = require("./cache.js");
-cache.init(${cacheSize});
-module.exports = require("./render.js");
+require("../cache.js").init(${cacheSize});
+module.exports = require("../render.js");
 `;
     fs.writeFileSync(filename, contents);
 

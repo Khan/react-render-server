@@ -5,10 +5,10 @@
   "main": "src/main.js",
   "scripts": {
     "start": "ulimit -n 999999 || ulimit -n 2048; node src/main.js -p 8080 --log-level=debug",
-    "dev": "nodemon src/main.js -- --dev",
-    "debug": "nodemon src/main.js -- --dev --log-level=debug",
+    "dev": "nodemon -i src/render_cache src/main.js -- --dev",
+    "debug": "nodemon -i src/render_cache src/main.js -- --dev --log-level=debug",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
-    "serve_local": "nodemon src/main.js -- --dev",
+    "serve_local": "nodemon -i src/render_cache src/main.js -- --dev",
     "test": "mocha --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
