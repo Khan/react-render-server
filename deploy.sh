@@ -35,9 +35,7 @@ git fetch origin
     || die "You must deploy from latest origin/master."
 
 # Make sure we have all our deps in place
-npm install
-# (This can update package-lock.json which we don't care about.)
-git checkout -- package-lock.json
+npm install --no-save
 
 # Don't deploy if tests fail
 npm test
