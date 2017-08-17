@@ -77,6 +77,9 @@ describe('API endpoint /_ah/stop', () => {
 });
 
 describe('API endpoint /render', function() {
+    // Jenkins can be a slow machine, and each of these tests has to
+    // start up a subprocess to actually do the rendering, which can
+    // be a slow operation.  So double the timeout from the 2s default.
     this.timeout(4000);
 
     const agent = supertest.agent(server);
