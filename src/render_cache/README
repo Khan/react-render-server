@@ -1,6 +1,0 @@
-This directory holds the auto-generated cache_<size>.js files, which
-are created to work around a lack of support for init-functions in
-worker-nodes.js.
-
-We put these auto-generated files in their own directory so it's easy
-for nodemon to ignore them.

@@ -6,35 +6,20 @@
  * that take too long.  By using a process pool, we can.
  */
 
-const fs = require("fs");
-const tmp = require("tmp");
-
 const workerNodes = require("worker-nodes");
 
 
-tmp.setGracefulCleanup();     // always clean up the tmpfiles we create
 let renderWorkers = null;
 
 
 // options are as in
 // https://www.npmjs.com/package/worker-nodes#WorkerNodesOptions
 const init = function(cacheSize, options) {
-    // We want to create workers that initialize a cache to a given
-    // size, at worker-startup, and then exposes a render() function.
-    // But sadly worker-nodes doesn't support initialization code,
-    // and I don't see a better way to do this than to create the
-    // necessary file at runtime.  I use `tmp` for its automatic
-    // cleanup.
-    const template = `${__dirname}/render_cache/cache_${cacheSize}_XXXXXX.js`;
-    const tmpobj = tmp.fileSync({template: template, discardDescriptor: true});
-    const filename = tmpobj.name;
-    const contents = `
-require("../cache.js").init(${cacheSize});
-module.exports = require("../render.js");
-`;
-    fs.writeFileSync(filename, contents);
-
-    renderWorkers = new workerNodes(filename, options);
+    // worker-nodes doesn't support initialization code, so
+    // instead we set an envvar telling render.js to run
+    // appropriate initialization code at import-time.
+    process.env._RENDER_CACHE_SIZE = cacheSize;
+    renderWorkers = new workerNodes(`${__dirname}/render.js`, options);
 };
 
 
