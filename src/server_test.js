@@ -76,7 +76,9 @@ describe('API endpoint /_ah/stop', () => {
     });
 });
 
-describe('API endpoint /render', () => {
+describe('API endpoint /render', function() {
+    this.timeout(4000);
+
     const agent = supertest.agent(server);
 
     let mockScope;
