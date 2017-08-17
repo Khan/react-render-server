@@ -34,9 +34,6 @@ git fetch origin
 [ `git rev-parse HEAD` = `git rev-parse origin/master` ] \
     || die "You must deploy from latest origin/master."
 
-# Make sure we have all our deps in place
-npm install --no-save
-
 # Don't deploy if tests fail
 npm test
 
