@@ -36,6 +36,8 @@ git fetch origin
 
 # Make sure we have all our deps in place
 npm install
+# (This can update package-lock.json which we don't care about.)
+git checkout -- package-lock.json
 
 # Don't deploy if tests fail
 npm test
