@@ -13,7 +13,6 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const graphiteUtil = require("./graphite_util.js");
 const renderSecret = require("./secret.js");
-const renderWorkers = require("./render_workers.js");
 const server = require("./server.js");
 
 describe('API endpoint /_api/ping', () => {
@@ -77,11 +76,6 @@ describe('API endpoint /_ah/stop', () => {
 });
 
 describe('API endpoint /render', function() {
-    // Jenkins can be a slow machine, and each of these tests has to
-    // start up a subprocess to actually do the rendering, which can
-    // be a slow operation.  So double the timeout from the 2s default.
-    this.timeout(4000);
-
     const agent = supertest.agent(server);
 
     let mockScope;
@@ -94,7 +88,7 @@ describe('API endpoint /render', function() {
         nock.enableNetConnect('127.0.0.1');
     });
 
-    beforeEach((done) => {
+    beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', (secret, callback) => {
@@ -103,7 +97,6 @@ describe('API endpoint /render', function() {
         debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
         graphiteLogStub = sinon.stub(graphiteUtil, "log");
-        renderWorkers.reset(10000, {lazyStart: true}).then(done);
     });
 
     afterEach(() => {
@@ -114,10 +107,6 @@ describe('API endpoint /render', function() {
         logging.debug.restore();
         logging.error.restore();
         graphiteLogStub.restore();
-    });
-
-    after((done) => {
-        renderWorkers.terminate().then(done);
     });
 
     it('should render a simple react component', (done) => {
@@ -373,55 +362,6 @@ describe('API endpoint /render', function() {
                 mockScope.done();
             })
             .end(done);
-    });
-
-    it('should log an error on render timeout', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
-
-        testJson.urls.forEach((url) => {
-            const path = url.substr('https://www.khanacademy.org'.length);
-            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
-                                             "utf-8");
-            mockScope.get(path).reply(200, contents);
-        });
-
-        const expected = ("Timeout rendering " +
-                          "./javascript/server-package/test-component.jsx");
-
-        renderWorkers.reset(10, {taskTimeout: 1, lazyStart: true}).then(() => {
-            agent
-                .post('/render')
-                .send(testJson)
-                .expect((res) => {
-                    let foundLogMessage = false;
-                    errorLoggingSpy.args.forEach((arglist) => {
-                        arglist.forEach((arg) => {
-                            if (arg === expected) {
-                                foundLogMessage = true;
-                            }
-                        });
-                    });
-
-                    assert.equal(foundLogMessage, true,
-                                 JSON.stringify(errorLoggingSpy.args));
-                    mockScope.done();
-                })
-                .end(done);
-        });
     });
 });
 

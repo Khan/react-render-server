@@ -22,13 +22,6 @@ const cache = require("./cache.js");
 const profile = require("./profile.js");
 
 
-// When run in a subprocess (via worker-nodes.js) we need to
-// initialize our own cache.  worker-nodes.js sets an envvar
-// letting us know that.
-if (process.env._RENDER_CACHE_SIZE) {
-    cache.init(parseInt(process.env._RENDER_CACHE_SIZE));
-}
-
 // render takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
 //    'no': do not try to retrieve the object from the cache (but
