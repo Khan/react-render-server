@@ -5,6 +5,7 @@
 'use strict';
 
 const argparse = require("argparse");
+const os = require("os");
 
 const packageInfo = require("../package.json");
 
@@ -32,6 +33,15 @@ parser.addArgument(
         type: 'int',
         defaultValue: 100,
         help: "Internal cache size, in MB.",
+    });
+parser.addArgument(
+    ['--num-workers'],
+    {
+        type: 'int',
+        // We have two render-workers per CPU, since rendering is
+        // *sometimes* I/O bound (when doing apollo calls).
+        defaultValue: os.cpus().length * 2,
+        help: "Number of render-workers.",
     });
 parser.addArgument(
     ['--render-timeout'],
@@ -68,6 +78,7 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const render = require("./render.js");
 const renderSecret = require("./secret.js");
+const renderWorkers = require("./render_workers.js");
 
 const logging = winston;     // just an alias, for clarity
 
@@ -119,7 +130,18 @@ appWithLogging.use(expressWinston.errorLogger({      // error logging
 }));
 appWithLogging.use(app);
 
-cache.init(args.cache_size * 1024 * 1024);
+// We give 5% of the cache to the main process, to cache random stuff,
+// but most to the workers, who are caching the page contents and vm.
+// contents, and split the rest up among the workers.
+const cacheBytes = args.cache_size * 1024 * 1024;
+const mainCacheSize = cacheBytes * 0.05;
+const workerCacheSize = (cacheBytes * 0.95) / args.num_workers;
+cache.init(mainCacheSize);
+renderWorkers.init(workerCacheSize, {
+    autoStart: true,
+    maxWorkers: args.num_workers,
+    taskTimeout: args.render_timeout,
+});
 
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;

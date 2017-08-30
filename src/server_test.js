@@ -13,6 +13,7 @@ const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const graphiteUtil = require("./graphite_util.js");
 const renderSecret = require("./secret.js");
+const renderWorkers = require("./render_workers.js");
 const server = require("./server.js");
 
 describe('API endpoint /_api/ping', () => {
@@ -83,12 +84,30 @@ describe('API endpoint /render', function() {
     let errorLoggingSpy;
     let graphiteLogStub;
 
+    // Lots of tests will use these same props + json, though some won't.
+    const testProps = {
+        val: 6,
+        list: ['I', 'am', 'not', 'a', 'number!'],
+    };
+
+    const testJson = {
+        urls: [
+            'https://www.khanacademy.org/corelibs-package.js',
+            'https://www.khanacademy.org/corelibs-legacy-package.js',
+            'https://www.khanacademy.org/shared-package.js',
+            'https://www.khanacademy.org/server-package.js',
+        ],
+        path: "./javascript/server-package/test-component.jsx",
+        props: testProps,
+        secret: 'sekret',
+    };
+
     before(() => {
         nock.disableNetConnect();
         nock.enableNetConnect('127.0.0.1');
     });
 
-    beforeEach(() => {
+    beforeEach((done) => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
         sinon.stub(renderSecret, 'matches', (secret, callback) => {
@@ -97,41 +116,27 @@ describe('API endpoint /render', function() {
         debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
         graphiteLogStub = sinon.stub(graphiteUtil, "log");
+        renderWorkers.reset(10000, {lazyStart: true}).then(done);
     });
 
     afterEach(() => {
         nock.cleanAll();
         cache.destroy();
         fetchPackage.resetGlobals();
-        renderSecret.matches.restore();
         logging.debug.restore();
         logging.error.restore();
         graphiteLogStub.restore();
+        renderSecret.matches.restore();
+        cache.destroy();
+    });
+
+    after((done) => {
+        renderWorkers.terminate().then(done);
     });
 
     it('should render a simple react component', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number!'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
-
-        testJson.urls.forEach((url) => {
-            const path = url.substr('https://www.khanacademy.org'.length);
-            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
-                                             "utf-8");
-            mockScope.get(path).reply(200, contents);
-        });
+        // Tell the render subprocesses to mock these urls.
+        process.env._MOCK_FETCHES_FOR_TESTS = testJson.urls.join(",");
 
         // We test the actual rendered contents in render_test.js.  Here
         // we just test that we get *some* output.
@@ -142,7 +147,6 @@ describe('API endpoint /render', function() {
                 assert.ok(res.body.html);    // should have *some* html
                 assert.include(res.body.html, 'number!');  // with our input
                 assert.ok(res.body.css);     // should have a css object
-                mockScope.done();
             })
             .end(done);
     });
@@ -177,29 +181,55 @@ describe('API endpoint /render', function() {
         });
     });
 
-    it('should log render-stats', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
+    it('should fail on fetching timeout', (done) => {
+        // url;200;500 means: delay for 500ms, then give a 200 response.
+        process.env._MOCK_FETCHES_FOR_TESTS = (
+            testJson.urls.map(url => `${url};200;500`).join(","));
 
-        testJson.urls.forEach((url) => {
-            const path = url.substr('https://www.khanacademy.org'.length);
-            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
-                                             "utf-8");
-            mockScope.get(path).reply(200, contents);
+        // Make sure we time out well before those delays finish.
+        // Again we have to use the env so the subprocess get this value.
+        process.env._FETCH_TIMEOUT_FOR_TESTS = 20;
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                assert.equal(500, res.status);
+            })
+            .end(done);
+    });
+
+    it('should fail on fetching failure', (done) => {
+        // url;404 means: give a 404 response.
+        process.env._MOCK_FETCHES_FOR_TESTS = (
+            testJson.urls.map(url => `${url};404`).join(","));
+
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+                assert.equal(500, res.status);
+            })
+            .end(done);
+    });
+
+    it('should fail on render timeout', (done) => {
+        process.env._MOCK_FETCHES_FOR_TESTS = testJson.urls.join(",");
+
+        renderWorkers.reset(10, {taskTimeout: 1, lazyStart: true}).then(() => {
+            agent
+                .post('/render')
+                .send(testJson)
+                .expect((res) => {
+                    assert.equal(500, res.status);
+                })
+                .end(done);
         });
+    });
+
+    it('should log render-stats', (done) => {
+        // Tell the render subprocesses to mock these urls.
+        process.env._MOCK_FETCHES_FOR_TESTS = testJson.urls.join(",");
 
         const expected = (
             'render-stats for ' +
@@ -226,28 +256,11 @@ describe('API endpoint /render', function() {
                 });
                 assert.equal(foundRenderStats, true,
                              JSON.stringify(debugLoggingSpy.args));
-                mockScope.done();
             })
             .end(done);
     });
 
     it('should send to graphite on timeout', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
-
         testJson.urls.forEach((url) => {
             const path = url.substr('https://www.khanacademy.org'.length);
             const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
@@ -258,9 +271,15 @@ describe('API endpoint /render', function() {
         // Make sure we time out well before those delays finish.
         fetchPackage.setTimeout(20);
 
+        // We have to run the rendering in the main process, not a
+        // subprocess, in order to be able to mock out the logs.  This
+        // makes for a worse test, but it's better than nothing!
+        const myTestJson = JSON.parse(JSON.stringify(testJson));  // copy
+        myTestJson.renderInMainProcess = true;
+
         agent
             .post('/render')
-            .send(testJson)
+            .send(myTestJson)
             .expect((res) => {
                 assert.deepEqual([['react_render_server.stats.timeout', 1]],
                                  graphiteLogStub.args);
@@ -270,22 +289,6 @@ describe('API endpoint /render', function() {
     });
 
     it('should log an error on fetching timeout', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
-
         testJson.urls.forEach((url) => {
             const path = url.substr('https://www.khanacademy.org'.length);
             const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
@@ -299,9 +302,15 @@ describe('API endpoint /render', function() {
         const expected = ("timed out while fetching " +
                           "https://www.khanacademy.org/corelibs-package.js");
 
+        // We have to run the rendering in the main process, not a
+        // subprocess, in order to be able to mock out the logs.  This
+        // makes for a worse test, but it's better than nothing!
+        const myTestJson = JSON.parse(JSON.stringify(testJson));  // copy
+        myTestJson.renderInMainProcess = true;
+
         agent
             .post('/render')
-            .send(testJson)
+            .send(myTestJson)
             .expect((res) => {
                 let foundLogMessage = false;
                 errorLoggingSpy.args.forEach((arglist) => {
@@ -320,22 +329,6 @@ describe('API endpoint /render', function() {
     });
 
     it('should log an error on fetching failure', (done) => {
-        const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
-        };
-        const testJson = {
-            urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
-            ],
-            path: "./javascript/server-package/test-component.jsx",
-            props: testProps,
-            secret: 'sekret',
-        };
-
         testJson.urls.forEach((url) => {
             const path = url.substr('https://www.khanacademy.org'.length);
             mockScope.get(path).reply(404);
@@ -344,9 +337,15 @@ describe('API endpoint /render', function() {
         const expected = ("Fetching failure: Error: " +
                           "cannot undefined /corelibs-package.js (404): ");
 
+        // We have to run the rendering in the main process, not a
+        // subprocess, in order to be able to mock out the logs.  This
+        // makes for a worse test, but it's better than nothing!
+        const myTestJson = JSON.parse(JSON.stringify(testJson));  // copy
+        myTestJson.renderInMainProcess = true;
+
         agent
             .post('/render')
-            .send(testJson)
+            .send(myTestJson)
             .expect((res) => {
                 let foundLogMessage = false;
                 errorLoggingSpy.args.forEach((arglist) => {
@@ -362,6 +361,11 @@ describe('API endpoint /render', function() {
                 mockScope.done();
             })
             .end(done);
+    });
+
+    it('should log an error on render timeout', (done) => {
+        // TODO(csilvers): figure out how to test this.
+        done();
     });
 });
 
