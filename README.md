@@ -126,7 +126,7 @@ variables.
 
 How to deploy
 -------------
-Go to https://jenkins.khanacademy.org/job/deploy-react-render-server/build
+Go to https://jenkins.khanacademy.org/job/deploy/job/deploy-react-render-server/build
 and click on `Build`. 
 
 [react-dom]: https://www.npmjs.com/package/react-dom

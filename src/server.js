@@ -187,7 +187,8 @@ app.post('/render', checkSecret, (req, res) => {
 
         })
         .catch((err) => {
-            logging.error('Rendering failure:', err.stack);
+            logging.error('Rendering failure: ' + req.body.path + ' :',
+                          err.stack);
             res.status(500).json({error: err.toString()});
         });
 });
