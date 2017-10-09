@@ -231,4 +231,13 @@ app.get('/_ah/start', (req, res) => res.send('ok!\n'));
 app.get('/_ah/stop', (req, res) => res.send('ok!\n'));
 
 
+// Simplistic priming endpoint. Calling this endpoint uses CPU and thus
+// hopefully causes the autoscaler to spin up more instances. This endpoint
+// takes about 2 seconds when called locally on my laptop.
+app.get('/prime', (req, res) => {
+    for (var i = 0; i < 3000000000; i++) { // eslint-disable-line
+    }
+    res.send('ok\n');
+});
+
 module.exports = app;

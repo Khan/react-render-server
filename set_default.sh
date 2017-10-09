@@ -29,6 +29,15 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # want them to load their caches with the most frequently used JS packages from
 # khanacademy.org.
 
+# Do a simplist priming by calling the priming URL 100 times in parallel. We
+# wait for the requests to finish in hopes that that autoscaler has done its
+# work by then.
+PRIME_URL="{NON_DEFAULT_HOSTNAME}/prime"
+for i in `seq 100`; do
+    curl -s ${PRIME_URL} &
+done
+wait
+
 gcloud -q --verbosity info app services set-traffic \
     --project "$PROJECT" --splits "$VERSION"=1 "$MODULE"
 
@@ -66,7 +75,9 @@ if [ -n "$VERSIONS_TO_DELETE" ]; then
 fi
 
 # And we'll stop the recent versions that are not getting any traffic,
-# so we're not charged for them.
+# so we're not charged for them, except the most recent, which we leave
+# running in order to allow rollback in case there's a problem with the
+# newly deployed version.
 VERSIONS_TO_STOP=`echo "$VERSIONS" | sort -r | tail -n+2 | head -n4`
 if [ -n "$VERSIONS_TO_STOP" ]; then
     echo "Stopping old versions: $VERSIONS_TO_STOP"
