@@ -6,14 +6,11 @@
 
 const bodyParser = require("body-parser");
 const express = require("express");
-const logging = require("winston");
 
 const cache = require("./cache.js");
-const fetchPackage = require("./fetch_package.js");
-const graphiteUtil = require("./graphite_util.js");
 const profile = require("./profile.js");
 const renderSecret = require("./secret.js");
-const render = require("./render.js");
+const renderWorkers = require("./render_workers.js");
 
 
 // We keep track of how many render requests are currently "in
@@ -145,52 +142,27 @@ app.post('/render', checkSecret, (req, res) => {
         return;
     }
 
-    const fetchPromises = req.body.urls.map(
-        url => fetchPackage(url, undefined, req.requestStats).then(
-            contents => [url, contents])
-    );
-
-    Promise.all(fetchPromises).then(
-        (fetchBodies) => {
-            return render(fetchBodies,
-                req.body.path,
-                req.body.props,
-                req.body.globals,
-                undefined,
-                req.requestStats
-            ).then(renderedState => {
-                // We store the updated request-stats in renderedState
-                // (the only way to get the updated data back from our
-                // subprocess); pop that out into update req.requestStats.
-                req.requestStats = renderedState.requestStats;
-                delete renderedState.requestStats;
-                res.json(renderedState);
-            });
-        },
-        (err) => {
-            // Error handler for fetching failures.
-            if (err.response && err.response.error) {
-                logging.error('Fetching failure: ' + err.response.error + ': ',
-                              err.stack);
-                res.status(500).json({error: err});
-            } else if (err.error) {        // set for timeouts, in particular
-                logging.error(err.error);
-                res.status(500).json(err);
-            } else {
-                logging.error('Fetching failure: ', err.stack);
-                res.status(500).json({error: err.toString()});
-            }
-            // If the error was a timeout, log that fact to graphite.
-            if (err.timeout) {
-                graphiteUtil.log("react_render_server.stats.timeout", 1);
-            }
-
-        })
-        .catch((err) => {
-            logging.error('Rendering failure: ' + req.body.path + ' :',
-                          err.stack);
-            res.status(500).json({error: err.toString()});
-        });
+    let fetchFn;
+    if (req.body.renderInMainProcess) {     // used for tests
+        // This does the work that's normally done in the subprocess,
+        // but we'll just do it directly in the main process.
+        fetchFn = renderWorkers.fetchAndRenderInWorker;
+    } else {
+        fetchFn = renderWorkers.fetchAndRender;
+    }
+    fetchFn(
+        req.body.path, req.body.urls, req.body.props, req.body.globals,
+        req.requestStats
+    ).then(renderedState => {
+        // We store the updated request-stats in renderedState
+        // (the only way to get the updated data back from our
+        // subprocess); pop that out into update req.requestStats.
+        req.requestStats = renderedState.requestStats;
+        delete renderedState.requestStats;
+        res.json(renderedState);
+    }).catch((err) => {
+        res.status(500).json(err);
+    });
 });
 
 

@@ -44,7 +44,7 @@ let inFlightRequests;
 
 const resetGlobals = function() {
     defaultCacheBehavior = 'yes';
-    defaultTimeoutInMs = 1000;
+    defaultTimeoutInMs = process.env._FETCH_TIMEOUT_FOR_TESTS || 1000;
     numRetries = 2;     // so 3 tries total
     inFlightRequests = {};
 };
@@ -155,15 +155,20 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
 
     fetchPromise.then(function() {
         fetchProfile.end();
+    }).catch(function() {
+        fetchProfile.end();
     });
 
     if (defaultTimeoutInMs == null) {
         defaultTimeoutInMs = 60000;        // maximum timeout we allow
     }
     const timerPromise = new Promise((resolve, reject) => {
-        setTimeout(reject, defaultTimeoutInMs,
-                   {'error': 'timed out while fetching ' + url,
-                    'timeout': defaultTimeoutInMs});
+        setTimeout(
+            reject, defaultTimeoutInMs,
+            {
+                'error': 'timed out while fetching ' + url,
+                'timeout': defaultTimeoutInMs,
+            });
     });
 
     // This resolves to whichever promise finishes first.
