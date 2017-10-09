@@ -32,7 +32,7 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # Do a simplist priming by calling the priming URL 100 times in parallel. We
 # wait for the requests to finish in hopes that that autoscaler has done its
 # work by then.
-PRIME_URL="{NON_DEFAULT_HOSTNAME}/prime"
+PRIME_URL="${NON_DEFAULT_HOSTNAME}/prime"
 for i in `seq 100`; do
     curl -s ${PRIME_URL} &
 done
