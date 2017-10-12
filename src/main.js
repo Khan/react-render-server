@@ -38,9 +38,9 @@ parser.addArgument(
     ['--num-workers'],
     {
         type: 'int',
-        // We have two render-workers per CPU, since rendering is
-        // *sometimes* I/O bound (when doing apollo calls).
-        defaultValue: os.cpus().length * 2,
+        // We have more render-workers than cpus because workers are I/O bound
+        // when doing doing apollo calls, and when fetching URLs.
+        defaultValue: os.cpus().length * 10,
         help: "Number of render-workers.",
     });
 parser.addArgument(
