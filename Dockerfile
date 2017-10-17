@@ -1,3 +1,14 @@
+# Create conf files for nginx and pm2. This is done using a multi-stage build so
+# that we don't need to have any dependencies used to generate the conf files
+# (in this case python) in the container.
+FROM python:3 as config
+WORKDIR /usr/src/app
+COPY . .
+
+# Generate config files passing the number of node servers we want to run on
+# each instance.
+RUN python generate_config_files.py 15
+
 # Dockerfile extending the generic Node image with application files for a
 # single application.
 FROM gcr.io/google_appengine/nodejs
@@ -29,7 +40,10 @@ RUN apt-get update && \
     apt-get install -y -q --no-install-recommends nginx && \
     apt-get clean && \
     rm -r /var/lib/apt/lists/*
-COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy conf files from build stage
+COPY --from=config /usr/src/app/nginx.conf /etc/nginx/nginx.conf
+COPY --from=config /usr/src/app/processes.json /app/
 
 # Start ngnix, node
 CMD ["pm2-docker", "processes.json"]

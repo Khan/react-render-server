@@ -30,7 +30,7 @@ parser.addArgument(
     ['--cache-size'],
     {
         type: 'int',
-        defaultValue: 100,
+        defaultValue: 200,
         help: "Internal cache size, in MB.",
     });
 parser.addArgument(

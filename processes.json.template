@@ -1,0 +1,6 @@
+{
+    "apps": [{
+        "interpreter": "none",
+        "script": "/usr/sbin/nginx"
+    }]
+}

@@ -1,4 +1,4 @@
-module: react-render
+service: react-render
 runtime: custom
 env: flex
 
@@ -8,7 +8,7 @@ automatic_scaling:
   max_num_instances: 200
   cool_down_period_sec: 60
   cpu_utilization:
-    target_utilization: 0.4
+    target_utilization: 0.8
 
 resources:
   cpu: 1
