@@ -124,11 +124,5 @@ cache.init(args.cache_size * 1024 * 1024);
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;
-
-    // Limit concurrent connections. We are seeing slow requests that make all
-    // concurrent requests slow. Perhaps limiting concurrency will avoid this
-    // behavior.
-    server.maxConnections = 4;
-
     logging.info('react-render-server running at http://%s:%s', host, port);
 });

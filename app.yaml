@@ -1,5 +1,5 @@
 module: react-render
-runtime: nodejs
+runtime: custom
 env: flex
 
 # TODO(jlfwong): Figure out what the right scaling policy is
