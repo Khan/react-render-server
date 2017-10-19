@@ -8,35 +8,10 @@ automatic_scaling:
   max_num_instances: 200
   cool_down_period_sec: 60
   cpu_utilization:
-    target_utilization: 0.8
+    target_utilization: 0.4
 
 resources:
   cpu: 1
   # TODO(benkraft): This feels like more memory than we should need!
   memory_gb: 3
   disk_size_gb: 10
-
-skip_files:
-####
-# Backup files/etc -- created by editors, but not part of the source tree.
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.orig$
-- ^(.*/)?.*\.rej$
-####
-# Ignore all .-prefixed files (.git, .gitignore, .arcconfig, etc.)
-- ^(.*/)?\..*$
-####
-# Dev-only scripts
-- ^deploy.sh$
-- ^set_default.sh$
-- ^tools$
-####
-# Other dev-specific files
-- ^README.md$
-- ^lint_blacklist.txt$
-####
-# Tests
-- ^src/.*_test.js$
-- ^src/testdata/.*$
-- ^node_modules/.*/test$

@@ -7,7 +7,7 @@ COPY . .
 
 # Generate config files passing the number of node servers we want to run on
 # each instance.
-RUN python generate_config_files.py 15
+RUN python generate_config_files.py 4
 
 # Dockerfile extending the generic Node image with application files for a
 # single application.

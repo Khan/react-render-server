@@ -29,7 +29,7 @@ def gen_pm2_conf(ports):
         d = json.load(f)
     for port in ports:
         d['apps'].append({'script': 'src/main.js',
-                          'args': '-p {:d} --log-level=debug'.format(port)})
+                          'args': '-p {:d}'.format(port)})
     with open(PM2_FILE, 'w') as f:
         json.dump(d, f, indent=4)
 

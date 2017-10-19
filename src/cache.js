@@ -9,6 +9,7 @@
 'use strict';
 
 const lruCache = require("lru-cache");
+const logging = require("winston");
 
 let gCache;
 
@@ -23,7 +24,13 @@ const init = function(cacheSize) {
     gCache = lruCache({
         max: cacheSize,
         length: obj => obj[1],
+        dispose: (key, n) => {
+            logging.debug("CACHE dispose %s", key);
+            logging.debug("CACHE full %d length %d items %d",
+                         gCache.length / gCache.max, gCache.length, gCache.itemCount);
+        }
     });
+    logging.debug("CACHE init %d", cacheSize);
 };
 
 const set = function(key, object, size) {
@@ -31,6 +38,9 @@ const set = function(key, object, size) {
         throw new Error("Size must be a specified and a number.");
     }
     gCache.set(key, [object, size]);
+    logging.debug("CACHE set %s %s", key, size);
+    logging.debug("CACHE full %d length %d items %d",
+                 gCache.length / gCache.max, gCache.length, gCache.itemCount);
 };
 
 const get = function(key) {
@@ -38,12 +48,16 @@ const get = function(key) {
     if (val) {
         return val[0];
     }
+    logging.debug("CACHE miss %s", key);
+    logging.debug("CACHE full %d length %d items %d",
+                 gCache.length / gCache.max, gCache.length, gCache.itemCount);
     return undefined;
 };
 
 const reset = function() {
     if (gCache) {
         gCache.reset();
+        logging.debug("CACHE reset");
     }
 };
 
