@@ -16,7 +16,7 @@ const ReactDOMServer = require('react-dom/server');
 const ApolloClient = require("apollo-client");
 const ReactApollo = require("react-apollo");
 const gqlPrinter = require("graphql-tag/printer").print;
-const request = require("request");
+const fetch = require('node-fetch');
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
@@ -191,9 +191,8 @@ const handleApolloNetwork = function(context) {
             return reject(new Error("ApolloNetwork must have a valid url."));
         }
 
-        const req = request({
+        fetch(url, {
             method: "POST",
-            url,
             headers: Object.assign({
                 "Content-Type": "application/json",
             }, context.ApolloNetwork.headers),
@@ -204,7 +203,9 @@ const handleApolloNetwork = function(context) {
                 variables: params.variables,
                 operationName: params.operationName,
             }),
-        }, (err, res, body) => {
+        })
+        .then(result => result.json())
+        .then(result => {
             // Ignore requests that've already been aborted
             // (this should never happen)
             if (complete) {
@@ -213,23 +214,10 @@ const handleApolloNetwork = function(context) {
 
             complete = true;
 
-            // Handle request errors
-            if (err) {
-                return reject(err);
-            }
-
-            // Handle server errors
-            if (res.statusCode !== 200) {
-                return reject(
-                    new Error("Server returned an error."));
-            }
-
-            // Attempt to parse the response as JSON
-            try {
-                resolve(JSON.parse(body));
-            } catch (e) {
-                reject(e);
-            }
+            resolve(result);
+        })
+        .catch(err => {
+            reject(new Error("Server returned an error."));
         });
 
         // After a specified timeout we abort the request if
@@ -237,7 +225,6 @@ const handleApolloNetwork = function(context) {
         setTimeout(() => {
             if (!complete) {
                 complete = true;
-                req.abort();
                 reject(new Error(
                     "Server response exceeded timeout."));
             }
