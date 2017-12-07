@@ -15,12 +15,15 @@ const jsdom = require("jsdom");
 const ReactDOMServer = require('react-dom/server');
 const ApolloClient = require("apollo-client");
 const ReactApollo = require("react-apollo");
-const {InMemoryCache} = require("apollo-cache-inmemory");
-const {createHttpLink} = require("apollo-link-http");
+const apolloCacheInmemory = require("apollo-cache-inmemory");
+const apolloLinkHttp = require("apollo-link-http");
 const fetch = require('node-fetch');
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
+
+const createHttpLink = apolloLinkHttp.createHttpLink;
+const InMemoryCache = apolloCacheInmemory.InMemoryCache;
 
 const BAD_URL = "BAD_URL";
 
