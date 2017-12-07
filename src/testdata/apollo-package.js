@@ -19,10 +19,10 @@ require("../../../javascript/node_modules/react/index.js");
 require("../../../javascript/node_modules/redux/index.js");
 require("../../../javascript/node_modules/whatwg-fetch/index.js");
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Apollo = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-const ReactApollo = require("react-apollo");
-const ApolloClient = require("apollo-client");
-const gql = require("graphql-tag");
-const gqlPrint = require("graphql-tag/printer");
+var ReactApollo = require("react-apollo");
+var ApolloClient = require("apollo-client");
+var gql = require("graphql-tag");
+var gqlPrint = require("graphql-tag/printer");
 
 module.exports = {
     ReactApollo: ReactApollo,
@@ -8455,17 +8455,18 @@ KAdefine("javascript/apollo-package/apollo-wrapper.jsx", function(require, modul
  *
  * Data will be fetched from the /api/internal/graphql endpoint.
  *
+ * NOTE: There's a very good chance that you shouldn't be using this file
+ *       directly. Instead just server-side render your component using
+ *       the render_react() template tag.
+ *
  * Usage:
  *     const {graphql} = require("react-apollo");
  *     const gql = require("graphql-tag");
  *     const ApolloWrapper = require("../apollo-package/apollo-wrapper.jsx");
  *     // Define MyComponent...
- *     const MyWrappedComponent = graphql(gql`query { ... }`)(MyComponent);
+ *     const MyWrappedComponent = graphql(gql\`query { ... }`)(MyComponent);
  *     // later...
  *     <ApolloWrapper><MyWrappedComponent /></ApolloWrapper>
- *
- * NOTE(jeresig): This should, eventually, just be used via our render_react
- * template tag.
  */
 
 var React = require("react");var _require =
@@ -8474,51 +8475,97 @@ require("apollo-client"),ApolloClient = _require2.ApolloClient;var
 print = require("../../third_party/javascript-khansrc/apollo-khansrc/apollo.js").gqlPrint.print;var _require3 =
 require("react-apollo"),ApolloProvider = _require3.ApolloProvider;
 
-var client = new ApolloClient({
-    networkInterface: {
-        query: function query(params) {
-            return khanFetch("/api/internal/graphql", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json" },
+function createClient(initialState) {
+    return new ApolloClient({
+        initialState: initialState,
+        networkInterface: {
+            query: function query(params) {
+                return khanFetch("/api/internal/graphql", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json" },
 
-                body: JSON.stringify({
-                    query: print(params.query) }) }).
-
-            then(function (response) {return response.json();});
-        } } });
-
-
-
-var ApolloProviderWrapper = function ApolloProviderWrapper(_ref) {var children = _ref.children;return (
-        React.createElement(ApolloProvider, { client: client },
-            children));};
+                    body: JSON.stringify({
+                        query: print(params.query),
+                        variables: params.variables,
+                        operationName: params.operationName }) }).
 
 
+                then(function (response) {return response.json();}).
+                then(function (response) {
+                    if (response.errors && response.errors.length) {
+                        response.errors.map(function (error) {return (
+                                // eslint-disable-next-line no-console
+                                console.error("GraphQL Error: ", error));});
+                    }
+                    return response;
+                });
+            } } });
+
+
+}
+
+var ApolloProviderWrapper = function ApolloProviderWrapper(_ref)
+
+
+
+
+
+{var initialState = _ref.initialState,children = _ref.children;
+    ApolloProviderWrapper.apolloClient = ApolloProviderWrapper.apolloClient ||
+    createClient(initialState);
+
+    return React.createElement(ApolloProvider, { client: ApolloProviderWrapper.apolloClient },
+        children);
+
+};ApolloProviderWrapper.propTypes = { initialState: require("react").PropTypes.object, children: require("react").PropTypes.any };
 
 module.exports = ApolloProviderWrapper;
 /* REACT HOT LOADING SUPPORT - ONLY PRESENT IN DEV */
 (function() {
-    var makeMakeHot = KAdefine.require(
-        "./third_party/javascript-khansrc/react-hot-api/dist/ReactHotAPI.js")
-    var React = require("react");
+    var React = KAdefine.require("react");
+    var ReactProxy = KAdefine.require(
+        "./third_party/javascript-khansrc/react-proxy/dist/ReactProxy.js");
     var HotLoading = KAdefine.require(
-        "./javascript/shared-package/hotload-client.js")
+        "./javascript/shared-package/hotload-client.js");
 
-    var persistent = __KA_persistentData; /* from kake compilation */
-    if (!persistent.makeHot) {
-        persistent.makeHot = makeMakeHot(function() {
-            var ReactMount = require("react").__internalReactMount;
-            return (ReactMount._instancesByReactRootID ||
-                    ReactMount._instancesByContainerID || []);
-        }, React);
+    var createProxy = ReactProxy.createProxy;
+
+    // Find the maybe-component we want to wrap
+    // TODO(emily): Check more properties to see if we should wrap more than
+    // one component.
+    var MaybeComponent = module.exports;
+    if (MaybeComponent.default) {
+        MaybeComponent = MaybeComponent.default;
     }
 
     // Only try to enable hot reloading for exports that look like React
-    // classes. ReactHotAPI does this internally, but it gives a noisy error
-    // message when module.exports is not a React class.
-    if (module.exports.displayName || module.exports.name) {
-        module.exports = persistent.makeHot(module.exports);
+    // classes.
+    if (
+        // A React.createClass() component
+        MaybeComponent.displayName ||
+        // An ES6 class that extends React.Component or React.PureComponent.
+        // TODO(mdr): Should we walk the proto chain somehow?
+        MaybeComponent.__proto__ === React.Component ||
+        MaybeComponent.__proto__ === React.PureComponent
+    ) {
+        var persistent = __KA_persistentData; /* from kake compilation */
+        if (!persistent.proxy) {
+            persistent.proxy = createProxy(MaybeComponent);
+        } else {
+            var mountedInstances = persistent.proxy.update(MaybeComponent);
+            setTimeout(function() {
+                mountedInstances.forEach(function(instance) {
+                    instance.forceUpdate();
+                });
+            }, 0);
+        }
+        var Proxy = persistent.proxy.get();
+        if (module.exports.default) {
+            module.exports.default = Proxy;
+        } else {
+            module.exports = Proxy;
+        }
     } else {
         HotLoading.debug(
             "javascript/apollo-package/apollo-wrapper.jsx does not export a React class so will not be hotloaded.");
@@ -8532,4 +8579,17 @@ KAdefine("javascript/apollo-package/apollo-wrapper.jsx.fixture.js", function(req
 module.exports = {
     instances: [{
         children: React.createElement("div", null) }] };
+/* FIXTURES HOT LOADING SUPPORT - ONLY PRESENT IN DEV */
+(function() {
+    var fixtureData = module.exports;
+    if (fixtureData.default) {
+        fixtureData = fixtureData.default;
+    }
+
+    if (typeof window.hotReloadSandboxFixtures === 'function') {
+        window.hotReloadSandboxFixtures("./javascript/apollo-package/apollo-wrapper.jsx.fixture.js", fixtureData);
+    }
+})();
+
+
 });
