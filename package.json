@@ -1,6 +1,6 @@
 {
   "name": "react-render-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A node.js server for server-side rendering Khan Academy react components.",
   "main": "src/main.js",
   "scripts": {
@@ -26,21 +26,22 @@
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
     "@google-cloud/trace-agent": "^1.1.0",
-    "apollo-client": "0.8.5",
+    "apollo-cache-inmemory": "1.1.2",
+    "apollo-client": "2.1.0",
+    "apollo-link-http": "1.3.0",
     "argparse": "^1.0.3",
     "body-parser": "^1.14.2",
     "express": "^4.13.3",
     "express-winston": "^1.2.0",
     "graphite-udp": "^1.0.0",
-    "graphql-tag": "1.2.4",
+    "graphql-tag": "2.5.0",
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",
     "node-fetch": "^1.7.3",
     "nodemon": "^1.8.1",
     "react": "15.3.2",
-    "react-apollo": "0.10.1",
+    "react-apollo": "2.0.1",
     "react-dom": "15.3.2",
-    "redux": "^3.7.2",
     "request": "^2.79.0",
     "superagent": "^1.6.1",
     "tmp": "^0.0.33",
@@ -49,7 +50,7 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "mocha": "^2.3.4",
-    "nock": "^4.0.0",
+    "nock": "^9.0.0",
     "sinon": "^1.17.2",
     "supertest": "^1.1.0"
   },

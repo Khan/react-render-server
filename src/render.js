@@ -15,12 +15,14 @@ const jsdom = require("jsdom");
 const ReactDOMServer = require('react-dom/server');
 const ApolloClient = require("apollo-client");
 const ReactApollo = require("react-apollo");
-const gqlPrinter = require("graphql-tag/printer").print;
+const {InMemoryCache} = require("apollo-cache-inmemory");
+const {createHttpLink} = require("apollo-link-http");
 const fetch = require('node-fetch');
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
 
+const BAD_URL = "BAD_URL";
 
 // render takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -183,52 +185,46 @@ const getVMContext = function(jsPackages, pathToReactComponent,
 // Requests will automatically timeout after 1000ms, unless another
 // timeout is provided via a 'timeout' property.
 const handleApolloNetwork = function(context) {
-    const handleNetwork = (params) => (resolve, reject) => {
-        let complete = false;
-        const url = context.ApolloNetwork.url;
-
-        if (!url) {
-            return reject(new Error("ApolloNetwork must have a valid url."));
+    const handleNetworkFetch = (url, params) => {
+        if (!url || url === BAD_URL) {
+            return Promise.reject(
+                new Error("ApolloNetwork must have a valid url."));
         }
+        return new Promise((resolve, reject) => {
+            let complete = false;
 
-        fetch(url, {
-            method: "POST",
-            headers: Object.assign({
-                "Content-Type": "application/json",
-            }, context.ApolloNetwork.headers),
-            body: JSON.stringify({
-                // We need to use the graphql-tag printer to
-                // serialize the output for the server.
-                query: gqlPrinter(params.query),
-                variables: params.variables,
-                operationName: params.operationName,
-            }),
-        })
-        .then(result => result.json())
-        .then(result => {
-            // Ignore requests that've already been aborted
-            // (this should never happen)
-            if (complete) {
-                return;
-            }
+            fetch(url, params)
+            .then(result => {
+                // Ignore requests that've already been aborted
+                // (this should never happen)
+                if (complete) {
+                    return;
+                }
 
-            complete = true;
+                // Handle server errors
+                if (result.status !== 200) {
+                    return reject(
+                        new Error("Server returned an error."));
+                }
 
-            resolve(result);
-        })
-        .catch(err => {
-            reject(new Error("Server returned an error."));
-        });
-
-        // After a specified timeout we abort the request if
-        // it's still on-going.
-        setTimeout(() => {
-            if (!complete) {
                 complete = true;
-                reject(new Error(
-                    "Server response exceeded timeout."));
-            }
-        }, context.ApolloNetwork.timeout || 1000);
+
+                resolve(result);
+            })
+            .catch(err => {
+                reject(err);
+            });
+
+            // After a specified timeout we abort the request if
+            // it's still on-going.
+            setTimeout(() => {
+                if (!complete) {
+                    complete = true;
+                    reject(new Error(
+                        "Server response exceeded timeout."));
+                }
+            }, context.ApolloNetwork.timeout || 1000);
+        });
     };
 
     Object.assign(context, {
@@ -240,13 +236,19 @@ const handleApolloNetwork = function(context) {
 
         // Additionally, we need to build a request mechanism for actually
         // making a network request to our GraphQL endpoint. We use the
-        // Node.js 'request' module for making this request. This logic
+        // node-fetch module for making this request. This logic
         // should be very similar to the logic held in apollo-wrapper.jsx.
-        ApolloNetworkInterface: {
-            query(params) {
-                return new Promise(handleNetwork(params));
-            },
-        },
+
+        ApolloNetworkLink: createHttpLink({
+            // HACK(briang): If you give the uri undefined, it will call
+            // fetch("/graphql") but we want to ensure that an undefined URL
+            // will fail the request.
+            uri: context.ApolloNetwork.url || BAD_URL,
+            fetch: handleNetworkFetch,
+            headers: context.ApolloNetwork.headers,
+        }),
+
+        ApolloCache: new InMemoryCache(),
     });
 };
 
@@ -348,7 +350,7 @@ const render = function(jsPackages, pathToReactComponent, props,
 
             // For React elements that have no Apollo-centric logic, we just
             // render them as normal.
-            if (!global.ApolloNetworkInterface) {
+            if (!global.ApolloNetworkLink) {
                 return renderElement(reactElement);
             }
 
@@ -362,7 +364,8 @@ const render = function(jsPackages, pathToReactComponent, props,
             // the data.
             const client = new global.ApolloClient.ApolloClient({
                 ssrMode: true,
-                networkInterface: global.ApolloNetworkInterface,
+                link: global.ApolloNetworkLink,
+                cache: global.ApolloCache,
             });
 
             // We wrap the React element with an Apollo Provider (which
@@ -385,9 +388,7 @@ const render = function(jsPackages, pathToReactComponent, props,
                     // All of the data comes back as a single object which
                     // we can then pass back to the client to be rendered
                     // directly into the page (for the re-hydration).
-                    const initialState = {};
-                    initialState[client.reduxRootKey] =
-                        client.getInitialState();
+                    const initialState = client.extract();
 
                     renderElement(wrappedElement, initialState);
                 }).catch((err) => reject(err));

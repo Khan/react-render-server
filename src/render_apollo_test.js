@@ -84,28 +84,24 @@ describe('render apollo', () => {
             "renderedClassNames": [],
         },
         "data": {
-            "apollo": {
-                "data": {
-                    "$ROOT_QUERY.coachData.studentListByName({\"name\":\"Test Class 1\"})": { // eslint-disable max-len
-                        "name": "Test Class 1",
-                        "__typename": "StudentList",
-                    },
-                    "$ROOT_QUERY.coachData": {
-                        "studentListByName({\"name\":\"Test Class 1\"})": {
-                            "type": "id",
-                            "id": "$ROOT_QUERY.coachData.studentListByName(" +
-                                "{\"name\":\"Test Class 1\"})",
-                            "generated": true,
-                        },
-                        "__typename": "StudentsListsQuery",
-                    },
-                    "ROOT_QUERY": {
-                        "coachData": {
-                            "type": "id",
-                            "id": "$ROOT_QUERY.coachData",
-                            "generated": true,
-                        },
-                    },
+            "$ROOT_QUERY.coachData.studentListByName({\"name\":\"Test Class 1\"})": { // eslint-disable max-len
+                "name": "Test Class 1",
+                "__typename": "StudentList",
+            },
+            "$ROOT_QUERY.coachData": {
+                "studentListByName({\"name\":\"Test Class 1\"})": {
+                    "type": "id",
+                    "id": "$ROOT_QUERY.coachData.studentListByName(" +
+                        "{\"name\":\"Test Class 1\"})",
+                    "generated": true,
+                },
+                "__typename": "StudentsListsQuery",
+            },
+            "ROOT_QUERY": {
+                "coachData": {
+                    "type": "id",
+                    "id": "$ROOT_QUERY.coachData",
+                    "generated": true,
                 },
             },
         },
