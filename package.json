@@ -34,6 +34,7 @@
     "express": "^4.13.3",
     "express-winston": "^1.2.0",
     "graphite-udp": "^1.0.0",
+    "graphql": "^0.11.7",
     "graphql-tag": "2.5.0",
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",
