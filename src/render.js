@@ -143,6 +143,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
             global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
 
             // Make sure we're using a new enough version of Aphrodite
+            // eslint-disable-next-line no-unused-expressions
             global.StyleSheetServer.renderStatic;
         } catch (e) {
             // If we're here, it should mean that the component being rendered

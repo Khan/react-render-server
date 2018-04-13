@@ -4,15 +4,10 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
-const logging = require("winston");
-const nock = require("nock");
 const sinon = require("sinon");
-const supertest = require("supertest");
 const renderSecret = require("./secret.js");
-const server = require("./server.js");
 
 describe('secret', () => {
-    const agent = supertest.agent(server);
     beforeEach(() => {
       sinon.stub(fs, 'readFile', (filePath, encoding, callback) => {
         return callback(null, "sekret");
