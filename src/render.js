@@ -143,8 +143,7 @@ const getVMContext = function(jsPackages, pathToReactComponent,
             global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
 
             // Make sure we're using a new enough version of Aphrodite
-            // eslint-disable-next-line no-unused-expressions
-            global.StyleSheetServer.renderStatic;
+            global.StyleSheetServer.renderStatic; // eslint-disable-line no-unused-expressions
         } catch (e) {
             // If we're here, it should mean that the component being rendered
             // does not depend on Aphrodite. We'll make a stub instead to make
@@ -341,6 +340,10 @@ const render = function(jsPackages, pathToReactComponent, props,
             // Node.js process. The object will have an 'html' property (from
             // the React element), a 'css' property (from Aphrodite), and
             // possibly a 'data' property (from Apollo, if it exists).
+
+            // The props used to render the item will also be returned in
+            // 'ssrProps', so that the client can perform an initial render
+            // with these props before using user- and request- specific props.
             const renderElement = (element, data) => {
                 const result = global.StyleSheetServer.renderStatic(() =>
                     ReactDOMServer.renderToString(element));
@@ -348,6 +351,8 @@ const render = function(jsPackages, pathToReactComponent, props,
                 if (data) {
                     result.data = data;
                 }
+
+                result.ssrProps = clonedProps;
 
                 resolve(result);
             };

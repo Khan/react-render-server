@@ -147,6 +147,50 @@ describe('API endpoint /render', function() {
             .end(done);
     });
 
+    it('should render a simple react component with propsURL', (done) => {
+        const testProps = {
+            val: 6,
+            list: ['I', 'am', 'not', 'a', 'number!'],
+        };
+
+        const propsURL = 'https://www.khanacademy.org/getProps';
+
+        const testJson = {
+            urls: [
+                'https://www.khanacademy.org/corelibs-package.js',
+                'https://www.khanacademy.org/corelibs-legacy-package.js',
+                'https://www.khanacademy.org/shared-package.js',
+                'https://www.khanacademy.org/server-package.js',
+            ],
+            path: "./javascript/server-package/test-component.jsx",
+            propsURL,
+            secret: 'sekret',
+        };
+
+        testJson.urls.forEach((url) => {
+            const path = url.substr('https://www.khanacademy.org'.length);
+            const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
+                                             "utf-8");
+            mockScope.get(path).reply(200, contents);
+        });
+
+        mockScope.get('/getProps').reply(200, testProps);
+
+        // We test the actual rendered contents in render_test.js.  Here
+        // we just test that we get *some* output.
+        agent
+            .post('/render')
+            .send(testJson)
+            .expect((res) => {
+
+                assert.ok(res.body.html);    // should have *some* html
+                assert.include(res.body.html, 'number!');  // with our input
+                assert.ok(res.body.css);     // should have a css object
+                mockScope.done();
+            })
+            .end(done);
+    });
+
     it('should fail on invalid inputs', (done) => {
         const url = 'https://www.khanacademy.org/foo';
         const invalidInputs = [
