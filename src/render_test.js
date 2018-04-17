@@ -54,7 +54,7 @@ describe('render', () => {
         createContextSpy.restore();
     });
 
-    const expected = {
+    const baseExpected = {
         html: '<div data-reactroot="" data-reactid="..." data-react-checksum=' +
             '"..."><!-- react-text: 2 -->6<!-- /react-text --><ol class=' +
             '"red_im3wl1" data-reactid="..."><li data-reactid="...">I</li>' +
@@ -78,7 +78,12 @@ describe('render', () => {
                props
         ).then(actual => {
             actual.html = normalizeReactOutput(actual.html);
-            assert.deepEqual(expected, actual);
+            assert.deepEqual(
+                {
+                    ...baseExpected,
+                    ssrProps: props,
+                },
+                actual);
             done();
         }).catch(done);
     });
@@ -96,7 +101,12 @@ describe('render', () => {
 
                 // Ensure it gives back correct results from the cached version
                 actual.html = normalizeReactOutput(actual.html);
-                assert.deepEqual(expected, actual);
+                assert.deepEqual(
+                    {
+                        ...baseExpected,
+                        ssrProps: props,
+                    },
+                    actual);
                 done();
             }).catch(done);
         });

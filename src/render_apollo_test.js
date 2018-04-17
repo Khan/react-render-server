@@ -76,7 +76,7 @@ describe('render apollo', () => {
         },
     });
 
-    const validExpected = {
+    const expectedBase = {
         "html": "<div data-reactroot=\"\" data-reactid=\"...\" " +
             "data-react-checksum=\"...\">Test Class 1</div>",
         "css": {
@@ -119,7 +119,12 @@ describe('render apollo', () => {
             }
         ).then(actual => {
             actual.html = normalizeReactOutput(actual.html);
-            assert.deepEqual(validExpected, actual);
+            assert.deepEqual(
+                {
+                    ...expectedBase,
+                    ssrProps: {},
+                },
+                actual);
             done();
         }).catch(done);
     });
@@ -138,7 +143,14 @@ describe('render apollo', () => {
             }
         ).then(actual => {
             actual.html = normalizeReactOutput(actual.html);
-            assert.deepEqual(validExpected, actual);
+            assert.deepEqual(
+                {
+                    ...expectedBase,
+                    ssrProps: {
+                        name: "Test Class 1",
+                    },
+                },
+                actual);
             done();
         }).catch(done);
     });
@@ -170,7 +182,13 @@ describe('render apollo', () => {
             }
         ).then(actual => {
             actual.html = normalizeReactOutput(actual.html);
-            assert.deepEqual(validExpected, actual);
+            assert.deepEqual(
+                {
+                    ...expectedBase,
+                    ssrProps: {},
+                },
+                actual
+            );
             done();
         }).catch(done);
     });
@@ -289,7 +307,12 @@ describe('render apollo', () => {
             }
         ).then(actual => {
             actual.html = normalizeReactOutput(actual.html);
-            assert.deepEqual(validExpected, actual);
+            assert.deepEqual(
+                {
+                    ...expectedBase,
+                    ssrProps: {},
+                },
+                actual);
             done();
         }).catch(done);
     });
