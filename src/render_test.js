@@ -11,16 +11,6 @@ const cache = require("./cache.js");
 const render = require("./render.js");
 
 
-// Given some html, remove the reactid and react-checksum, which are
-// auto-generated and not necessarily consistent between runs.
-const normalizeReactOutput = function(html) {
-    html = html.replace(/data-reactid="[^"]*"/g,
-                        'data-reactid="..."');
-    html = html.replace(/data-react-checksum="[^"]*"/g,
-                        'data-react-checksum="..."');
-    return html;
-};
-
 
 describe('render', () => {
     let packages;
@@ -55,12 +45,8 @@ describe('render', () => {
     });
 
     const expected = {
-        html: '<div data-reactroot="" data-reactid="..." data-react-checksum=' +
-            '"..."><!-- react-text: 2 -->6<!-- /react-text --><ol class=' +
-            '"red_im3wl1" data-reactid="..."><li data-reactid="...">I</li>' +
-            '<li data-reactid="...">am</li><li data-reactid="...">not</li>' +
-            '<li data-reactid="...">a</li><li data-reactid="...">number</li>' +
-            '</ol></div>',
+        html: '<div data-reactroot="">6<ol class="red_im3wl1"><li>I</li>' +
+            '<li>am</li><li>not</li><li>a</li><li>number</li></ol></div>',
         css: {
             content: ".red_im3wl1{color:red !important;}",
             renderedClassNames: ["red_im3wl1"],
@@ -77,7 +63,6 @@ describe('render', () => {
                "./javascript/server-package/test-component.jsx",
                props
         ).then(actual => {
-            actual.html = normalizeReactOutput(actual.html);
             assert.deepEqual(expected, actual);
             done();
         }).catch(done);
@@ -95,7 +80,6 @@ describe('render', () => {
                 assert.equal(1, createContextSpy.callCount);
 
                 // Ensure it gives back correct results from the cached version
-                actual.html = normalizeReactOutput(actual.html);
                 assert.deepEqual(expected, actual);
                 done();
             }).catch(done);
@@ -168,10 +152,8 @@ describe('render', () => {
 
         const path = "./javascript/globals-package/test-component.jsx";
         render(packages, path, {}, globals).then(actual => {
-            const actualHtml = normalizeReactOutput(actual.html);
-
-            assert.include(actualHtml, 'es');
-            assert.include(actualHtml,
+            assert.include(actual.html, 'es');
+            assert.include(actual.html,
                            'http://www.khanacademy.org/science/physics');
             done();
         }).catch(done);
@@ -191,9 +173,7 @@ describe('render', () => {
         // defined.
         const path = "./javascript/polyfill-package/test-component.jsx";
         render(packages, path, props).then(actual => {
-            const actualHtml = normalizeReactOutput(actual.html);
-
-            assert.include(actualHtml, 'true');
+            assert.include(actual.html, 'true');
 
             Array.prototype.includes = oldIncludes;
             done();

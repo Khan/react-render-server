@@ -11,15 +11,6 @@ const nock = require("nock");
 const cache = require("./cache.js");
 const render = require("./render.js");
 
-// Given some html, remove the reactid and react-checksum, which are
-// auto-generated and not necessarily consistent between runs.
-const normalizeReactOutput = function(html) {
-    html = html.replace(/data-reactid="[^"]*"/g,
-                        'data-reactid="..."');
-    html = html.replace(/data-react-checksum="[^"]*"/g,
-                        'data-react-checksum="..."');
-    return html;
-};
 
 describe('render apollo', () => {
     let mockScope;
@@ -77,8 +68,7 @@ describe('render apollo', () => {
     });
 
     const validExpected = {
-        "html": "<div data-reactroot=\"\" data-reactid=\"...\" " +
-            "data-react-checksum=\"...\">Test Class 1</div>",
+        "html": "<div data-reactroot=\"\">Test Class 1</div>",
         "css": {
             "content": "",
             "renderedClassNames": [],
@@ -118,7 +108,6 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            actual.html = normalizeReactOutput(actual.html);
             assert.deepEqual(validExpected, actual);
             done();
         }).catch(done);
@@ -137,7 +126,6 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            actual.html = normalizeReactOutput(actual.html);
             assert.deepEqual(validExpected, actual);
             done();
         }).catch(done);
@@ -169,15 +157,12 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            actual.html = normalizeReactOutput(actual.html);
             assert.deepEqual(validExpected, actual);
             done();
         }).catch(done);
     });
 
-    const syntaxError = 'Syntax Error GraphQL (2:15) Expected Name, found )' +
-        '\n\n1: query {\n2:     coachData() {\n                 ^\n3:       ' +
-        'studentListByName(name: "Test Class 1") {\n';
+    const syntaxError = 'Syntax Error: Expected Name, found )';
 
     it('should handle a GraphQL syntax error', (done) => {
         // NOTE(jeresig): No network request is made as the syntax error is
@@ -288,7 +273,6 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            actual.html = normalizeReactOutput(actual.html);
             assert.deepEqual(validExpected, actual);
             done();
         }).catch(done);

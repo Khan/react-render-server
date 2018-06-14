@@ -18,6 +18,7 @@ const ReactApollo = require("react-apollo");
 const apolloCacheInmemory = require("apollo-cache-inmemory");
 const apolloLinkHttp = require("apollo-link-http");
 const fetch = require('node-fetch');
+const raf = require("raf");
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
@@ -93,6 +94,9 @@ const getVMContext = function(jsPackages, pathToReactComponent,
                 ProcessExternalResources: false,
             },
         });
+
+    // Polyfill `requestAnimationFrame` to appease React.
+    raf.polyfill(doc.defaultView);
 
     // Copy everything from the jsdom object onto the sandbox.
     // TODO(jlfwong): For some reason, copying doc.defaultView works, but
