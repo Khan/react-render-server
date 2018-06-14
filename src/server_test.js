@@ -251,7 +251,7 @@ describe('API endpoint /render', function() {
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
             '"createdVmContext":true,' +
-            '"vmContextSize":2105130' +
+            '"vmContextSize":2458672' +
             "}");
 
         agent
