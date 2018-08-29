@@ -82,6 +82,12 @@ const validate = function(jsPackages, pathToReactComponent, fixtureFile) {
         return Promise.resolve(0);
     }
 
+    if (!allProps) {
+        console.log(`Error: fixture has no instances: ${fixtureFile}` +
+            ` (you may need to use module.exports = {instances: ...};)`);
+        return Promise.resolve(1);
+    }
+
     return Promise.all(allProps.map((props, i) => {
         // For each fixture file, we'll try rendering the component three
         // times:
