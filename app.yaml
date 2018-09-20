@@ -8,7 +8,7 @@ automatic_scaling:
   max_num_instances: 200
   cool_down_period_sec: 60
   cpu_utilization:
-    target_utilization: 0.2
+    target_utilization: 0.4
 
 resources:
   cpu: 1
