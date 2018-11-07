@@ -1,17 +1,5 @@
 service: react-render
-runtime: custom
-env: flex
+runtime: nodejs8
+default_expiration: "30m"   # per ADR-52
 
-# TODO(jlfwong): Figure out what the right scaling policy is
-automatic_scaling:
-  min_num_instances: 1
-  max_num_instances: 200
-  cool_down_period_sec: 60
-  cpu_utilization:
-    target_utilization: 0.4
-
-resources:
-  cpu: 1
-  # TODO(benkraft): This feels like more memory than we should need!
-  memory_gb: 3
-  disk_size_gb: 10
+instance_class: F4
