@@ -108,12 +108,7 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            assert.deepEqual(
-                {
-                    ...expectedBase,
-                    ssrProps: {},
-                },
-                actual);
+            assert.deepEqual(expectedBase, actual);
             done();
         }).catch(done);
     });
@@ -131,14 +126,7 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            assert.deepEqual(
-                {
-                    ...expectedBase,
-                    ssrProps: {
-                        name: "Test Class 1",
-                    },
-                },
-                actual);
+            assert.deepEqual(expectedBase, actual);
             done();
         }).catch(done);
     });
@@ -169,13 +157,7 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            assert.deepEqual(
-                {
-                    ...expectedBase,
-                    ssrProps: {},
-                },
-                actual
-            );
+            assert.deepEqual(expectedBase, actual);
             done();
         }).catch(done);
     });
@@ -291,12 +273,7 @@ describe('render apollo', () => {
                 },
             }
         ).then(actual => {
-            assert.deepEqual(
-                {
-                    ...expectedBase,
-                    ssrProps: {},
-                },
-                actual);
+            assert.deepEqual(expectedBase, actual);
             done();
         }).catch(done);
     });

@@ -345,9 +345,6 @@ const render = function(jsPackages, pathToReactComponent, props,
             // the React element), a 'css' property (from Aphrodite), and
             // possibly a 'data' property (from Apollo, if it exists).
 
-            // The props used to render the item will also be returned in
-            // 'ssrProps', so that the client can perform an initial render
-            // with these props before using user- and request- specific props.
             const renderElement = (element, data) => {
                 const result = global.StyleSheetServer.renderStatic(() =>
                     ReactDOMServer.renderToString(element));
@@ -355,8 +352,6 @@ const render = function(jsPackages, pathToReactComponent, props,
                 if (data) {
                     result.data = data;
                 }
-
-                result.ssrProps = clonedProps;
 
                 resolve(result);
             };

@@ -63,12 +63,7 @@ describe('render', () => {
                "./javascript/server-package/test-component.jsx",
                props
         ).then(actual => {
-            assert.deepEqual(
-                {
-                    ...baseExpected,
-                    ssrProps: props,
-                },
-                actual);
+            assert.deepEqual(baseExpected, actual);
             done();
         }).catch(done);
     });
@@ -85,12 +80,7 @@ describe('render', () => {
                 assert.equal(1, createContextSpy.callCount);
 
                 // Ensure it gives back correct results from the cached version
-                assert.deepEqual(
-                    {
-                        ...baseExpected,
-                        ssrProps: props,
-                    },
-                    actual);
+                assert.deepEqual(baseExpected, actual);
                 done();
             }).catch(done);
         });
