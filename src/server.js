@@ -7,7 +7,6 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const logging = require("winston");
-const request = require('superagent');
 
 const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
@@ -47,7 +46,6 @@ app.use(bodyParser.json({limit: '5mb'}));
  *        "href": "http://www.google.com",
  *        "children": "Google"
  *    },
- *    "propsURL": "https://...",
  *    "secret": "...."
  * }
  *
@@ -63,10 +61,6 @@ app.use(bodyParser.json({limit: '5mb'}));
  * `path` is `require()`'d.
  *
  * 'props' are passed as the props to the react component being rendered.
- *
- * 'propsURL' is a URL where props can be fetched. If provided, a JSON GET
- * request will be made to that URL, and the result will be passed to the
- * component as props, instead of 'props'.
  *
  * 'secret' is a shared secret.  It must equal the value of the 'secret'
  * file in the server's base-directory, or the server will deny the request.
@@ -140,10 +134,9 @@ app.post('/render', checkSecret, (req, res) => {
         err = ('Missing "path" keyword in POST JSON input, ' +
                'or "path" does not start with "./"');
         value = req.body.path;
-    } else if ((typeof req.body.props !== 'object' ||
-               Array.isArray(req.body.props)) &&
-              typeof req.body.propsURL !== "string") {
-        err = ('Missing "props" and "propsURL" keyword in POST JSON input, ' +
+    } else if (typeof req.body.props !== 'object' ||
+               Array.isArray(req.body.props)) {
+        err = ('Missing "props" keyword in POST JSON input, ' +
                'or "props" is not an object, or it has non-string keys.');
         value = req.body.props;
     }
@@ -152,45 +145,17 @@ app.post('/render', checkSecret, (req, res) => {
         return;
     }
 
-    if (req.body.propsURL && req.body.props) {
-        // eslint-disable-next-line no-console
-        console.warn("WARNING: props and propsURL both specified in " +
-            "request. Ignoring props.");
-    }
-
-    let getPropsPromise;
-    if (typeof req.body.propsURL === 'string') {
-        getPropsPromise = new Promise((resolve, reject) => {
-            request
-                .get(req.body.propsURL)
-                .accept('json')
-                .end((err, res) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    resolve(res.body);
-                });
-        });
-    } else {
-        getPropsPromise = Promise.resolve(req.body.props);
-    }
-
     const fetchPromises = req.body.urls.map(
         url => fetchPackage(url, undefined, req.requestStats).then(
             contents => [url, contents])
     );
 
     // TODO(joshuan): Consider moving to async/await.
-    Promise.all([getPropsPromise, ...fetchPromises]).then(
-        (results) => {
-            const props = results[0];
-            const fetchBodies = results.slice(1);
-
+    Promise.all(fetchPromises).then(
+        (fetchBodies) => {
             return render(fetchBodies,
                 req.body.path,
-                props,
+                req.body.props,
                 req.body.globals,
                 undefined,
                 req.requestStats
@@ -207,7 +172,7 @@ app.post('/render', checkSecret, (req, res) => {
             // Error handler for fetching failures.
             if (err.response && err.response.error) {
                 logging.error('Fetching failure: ' + err.response.error + ': ',
-                            err.stack);
+                              err.stack);
                 res.status(500).json({error: err});
             } else if (err.error) {        // set for timeouts, in particular
                 logging.error(err.error);
