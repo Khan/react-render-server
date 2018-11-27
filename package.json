@@ -9,7 +9,7 @@
     "debug": "nodemon -i src/render_cache src/main.js -- --dev --log-level=debug",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
     "serve_local": "nodemon -i src/render_cache src/main.js -- --dev",
-    "test": "mocha --reporter spec 'src/*_test.js'",
+    "test": "mocha --exit --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh"
@@ -25,36 +25,36 @@
   },
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
-    "@google-cloud/trace-agent": "^1.1.0",
+    "@google-cloud/trace-agent": "^3.3.1",
     "apollo-cache-inmemory": "1.1.2",
     "apollo-client": "2.1.0",
     "apollo-link-http": "1.3.0",
     "argparse": "^1.0.3",
-    "body-parser": "^1.14.2",
-    "express": "^4.13.3",
-    "express-winston": "^1.2.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "express-winston": "^3.0.1",
     "graphite-udp": "^1.0.0",
     "graphql": "0.11.7",
     "graphql-tag": "2.5.0",
     "jsdom": "^7.2.2",
     "lru-cache": "^4.0.0",
     "node-fetch": "1.7.3",
-    "nodemon": "^1.8.1",
+    "nodemon": "^1.18.7",
     "raf": "^3.4.0",
     "react": "16.3.0",
     "react-apollo": "2.0.1",
     "react-dom": "16.3.0",
-    "request": "^2.79.0",
-    "superagent": "^1.6.1",
+    "request": "^2.88.0",
+    "superagent": "^4.0.0",
     "tmp": "^0.0.33",
-    "winston": "^2.1.1"
+    "winston": "^3.0.0"
   },
   "devDependencies": {
     "chai": "^3.4.1",
-    "mocha": "^2.3.4",
+    "mocha": "^5.1.3",
     "nock": "^9.0.0",
     "sinon": "^1.17.2",
-    "supertest": "^1.1.0"
+    "supertest": "^3.3.0"
   },
   "engines": {
     "node": "^8.3.0"
