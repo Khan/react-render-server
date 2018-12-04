@@ -54,7 +54,10 @@ if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
     // We need to do this as soon as possible so it can patch future requires.
     const traceAgent = require('@google-cloud/trace-agent');
-    traceAgent.start({logLevel: 3});  // log at INFO
+    traceAgent.start({logLevel: 2});  // log at WARN and ERROR
+
+    const debugAgent = require('@google-cloud/debug-agent');
+    debugAgent.start({logLevel: 2});
 }
 
 
@@ -62,6 +65,8 @@ if (!args.dev) {
 const express = require("express");
 const expressWinston = require('express-winston');
 const winston = require('winston');
+const StackdriverTransport = (
+    require('@google-cloud/logging-winston').LoggingWinston);
 
 const app = require("./server.js");
 const cache = require("./cache.js");
@@ -101,6 +106,7 @@ winston.level = args.log_level;
 const appWithLogging = express();
 appWithLogging.use(expressWinston.logger({      // request logging
     transports: [
+        new StackdriverTransport(),
         new winston.transports.Console({
             json: false,
             colorize: args.dev,    // colorize for dev, but not prod
@@ -111,6 +117,7 @@ appWithLogging.use(expressWinston.logger({      // request logging
 }));
 appWithLogging.use(expressWinston.errorLogger({      // error logging
     transports: [
+        new StackdriverTransport(),
         new winston.transports.Console({
             json: true,
             colorize: args.dev,
