@@ -15,7 +15,7 @@ die() {
 # Keep this in sync with VERSION in deploy.sh
 VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific"; ($rev, $t) = split; @lt = localtime($t); printf "%02d%02d%02d-%02d%02d-%.12s\n", $lt[5] % 100, $lt[4] + 1, $lt[3], $lt[2], $lt[1], $rev'`
 
-MODULE=`sed -ne 's/module: //p' app.yaml`
+MODULE=`sed -ne 's/\(module\|service\): //p' app.yaml`
 
 echo "Setting ${VERSION} as default on module ${MODULE}..."
 
