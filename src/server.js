@@ -173,13 +173,14 @@ app.post('/render', checkSecret, (req, res) => {
             if (err.response && err.response.error) {
                 logging.error('Fetching failure: ' + err.response.error + ': ',
                               err.stack);
-                res.status(500).json({error: err});
+                res.status(500).json({error: err, stack: err.stack});
             } else if (err.error) {        // set for timeouts, in particular
                 logging.error(err.error);
                 res.status(500).json(err);
             } else {
                 logging.error('Fetching failure: ', err.stack);
-                res.status(500).json({error: err.toString()});
+                res.status(500).json({error: err.toString(),
+                                      stack: err.stack});
             }
             // If the error was a timeout, log that fact to graphite.
             if (err.timeout) {
@@ -189,8 +190,8 @@ app.post('/render', checkSecret, (req, res) => {
         })
         .catch((err) => {
             logging.error('Rendering failure: ' + req.body.path + ' :',
-                        err.stack);
-            res.status(500).json({error: err.toString()});
+                          err.stack);
+            res.status(500).json({error: err.toString(), stack: err.stack});
         });
 });
 
