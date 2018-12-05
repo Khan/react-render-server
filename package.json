@@ -12,8 +12,7 @@
     "test": "mocha --exit --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
-    "set_default": "./set_default.sh",
-    "version": "git log -n1 --format='format:%H %ct' | perl -ne '$ENV{TZ} = q{US/Pacific}; ($rev, $t) = split; @lt = localtime($t); printf q{%02d%02d%02d-%02d%02d-%.12s\n}, $lt[5] % 100, $lt[4] + 1, $lt[3], $lt[2], $lt[1], $rev'"
+    "set_default": "./set_default.sh"
   },
   "repository": {
     "type": "git",
