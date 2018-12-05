@@ -129,16 +129,19 @@ How to deploy
 Go to https://jenkins.khanacademy.org/job/deploy/job/deploy-react-render-server/build
 and click on `Build`. 
 
-Using `set_default.sh` is not currently recommended since the version tends to
-get overwhelmed with traffic and return a bunch of 502 errors rather than
-scaling smoothly. The current recommended deployment process is to deploy a new
-version and then manually switch traffic to it slowly using the "split traffic"
-feature and slowly ramping traffic up. Keep an eye on 502s. Once they die down,
-you can increase the amount of traffic to the version. I start with sending 1%
-of traffic to the new version, wait a few minutes then up it to 2%, then
-continue to double the percentage every 5 minutes or so. The important part is
-to make sure the the rate of 502s stays relatively low. 502s can be seen in the
-version logs as well as the "summary" view of the app engine "instances" screen.
+Using `set_default.sh` is not currently recommended if deploying to
+Appengine Flex -- it's fine on Appengine Standard -- since the version
+tends to get overwhelmed with traffic and return a bunch of 502 errors
+rather than scaling smoothly. The current recommended deployment
+process for Flex is to deploy a new version and then manually switch
+traffic to it slowly using the "split traffic" feature and slowly
+ramping traffic up. Keep an eye on 502s. Once they die down, you can
+increase the amount of traffic to the version. I start with sending 1%
+of traffic to the new version, wait a few minutes then up it to 2%,
+then continue to double the percentage every 5 minutes or so. The
+important part is to make sure the the rate of 502s stays relatively
+low. 502s can be seen in the version logs as well as the "summary"
+view of the app engine "instances" screen.
 
 Versions screen where you can split traffic:
 https://console.cloud.google.com/appengine/versions?project=khan-academy&serviceId=react-render

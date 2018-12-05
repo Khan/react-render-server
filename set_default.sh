@@ -29,9 +29,9 @@ curl -s -I "${HEALTHCHECK_URL}" | head -n1 | grep -q -w '200' \
 # want them to load their caches with the most frequently used JS packages from
 # khanacademy.org.
 
-# Do a simplist priming by calling the priming URL 100 times in parallel. We
-# wait for the requests to finish in hopes that that autoscaler has done its
-# work by then.
+# Do a simplistic priming by calling the priming URL 100 times in
+# parallel. We wait for the requests to finish in hopes that that
+# autoscaler has done its work by then.
 PRIME_URL="${NON_DEFAULT_HOSTNAME}/prime"
 for i in `seq 100`; do
     curl -s ${PRIME_URL} &
@@ -78,11 +78,15 @@ fi
 # so we're not charged for them, except the most recent, which we leave
 # running in order to allow rollback in case there's a problem with the
 # newly deployed version.
+# NOTE: this will fail if the version was deployed using appengine
+# standard instead of appengine flex.
+# TODO(csilvers): Notice what kind the version is, and don't bother
+# trying to stop standard-versions, insteaad of trying and failing.
 VERSIONS_TO_STOP=`echo "$VERSIONS" | sort -r | tail -n+2 | head -n4`
 if [ -n "$VERSIONS_TO_STOP" ]; then
     echo "Stopping old versions: $VERSIONS_TO_STOP"
     gcloud -q --verbosity info app versions stop \
-        --project "$PROJECT" --service react-render $VERSIONS_TO_STOP
+        --project "$PROJECT" --service react-render $VERSIONS_TO_STOP || true
 fi
 
 echo "DONE"

@@ -1,3 +1,6 @@
+# This file is used when deploying to appengine standard.
+# It's ignored when deploying to appengine flex.
+
 service: react-render
 runtime: nodejs8
 default_expiration: "30m"   # per ADR-52
