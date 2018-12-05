@@ -1,0 +1,5 @@
+service: react-render
+runtime: nodejs8
+default_expiration: "30m"   # per ADR-52
+
+instance_class: F4

@@ -42,17 +42,22 @@ npm test
 gcloud config set "app/use_appengine_api" "True"
 
 # Yay we're good to go!
-echo "Building docker image..."
-docker build -f Dockerfile -t react-render-server .
-docker tag react-render-server "us.gcr.io/khan-academy/react-render-server-$VERSION"
+if [ -n "$DOCKER" ]; then
+    echo "Building docker image..."
+    docker build -f Dockerfile -t react-render-server .
+    docker tag react-render-server "us.gcr.io/khan-academy/react-render-server-$VERSION"
 
-echo "Pushing docker image..."
-gcloud docker -- push "us.gcr.io/khan-academy/react-render-server-$VERSION"
+    echo "Pushing docker image..."
+    gcloud docker -- push "us.gcr.io/khan-academy/react-render-server-$VERSION"
 
-echo "Deploying ${VERSION} via docker..."
+    echo "Deploying ${VERSION} via docker..."
 
-gcloud -q --verbosity "${VERBOSITY}" app deploy app.yaml \
-    --project "$PROJECT" --version "$VERSION" --no-promote \
-    --image-url=us.gcr.io/khan-academy/react-render-server-$VERSION
+    gcloud -q --verbosity "${VERBOSITY}" app deploy app-flex.yaml \
+        --project "$PROJECT" --version "$VERSION" --no-promote \
+        --image-url=us.gcr.io/khan-academy/react-render-server-$VERSION
+else
+    gcloud -q --verbosity "${VERBOSITY}" app deploy app-standard.yaml \
+        --project "$PROJECT" --version "$VERSION" --no-promote
+fi
 
 echo "DONE"
