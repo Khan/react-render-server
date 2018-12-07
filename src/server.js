@@ -191,7 +191,9 @@ app.post('/render', checkSecret, (req, res) => {
         .catch((err) => {
             logging.error('Rendering failure: ' + req.body.path + ' :',
                           err.stack);
-            res.status(500).json({error: err.toString(), stack: err.stack});
+            // A rendering error is probably a bad component, so we
+            // give a 400.
+            res.status(400).json({error: err.toString(), stack: err.stack});
         });
 });
 
