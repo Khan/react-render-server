@@ -46,7 +46,7 @@ done
 wait
 
 gcloud -q --verbosity info app services set-traffic \
-    --project "$PROJECT" --splits "$VERSION"=1 --migrate "$MODULE"
+    --project "$PROJECT" --splits "$VERSION"=1 "$MODULE"
 
 # Ensure that the version flipped
 DEFAULT_HOSTNAME="https://${MODULE}-dot-${PROJECT}.appspot.com/_api/version"
