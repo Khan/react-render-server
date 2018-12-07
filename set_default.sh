@@ -3,11 +3,18 @@
 # Set the deploy corresponding to the latest commit as default
 
 : ${PROJECT:=khan-academy}
+: ${DOCKER:=}
 
 die() {
     echo "FATAL ERROR: $@"
     exit 1
 }
+
+if [ -n "$DOCKER" ]; then
+    APP_YAML=app-flex.yaml
+else
+    APP_YAML=app-standard.yaml
+fi
 
 # Calculate the version name for the latest commit
 # Format is: YYMMDD-HHMM-RRRRRRRRRRRR
@@ -15,7 +22,7 @@ die() {
 # Keep this in sync with VERSION in deploy.sh
 VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific"; ($rev, $t) = split; @lt = localtime($t); printf "%02d%02d%02d-%02d%02d-%.12s\n", $lt[5] % 100, $lt[4] + 1, $lt[3], $lt[2], $lt[1], $rev'`
 
-MODULE=`sed -ne 's/\(module\|service\): //p' app.yaml`
+MODULE=`sed -ne 's/\(module\|service\): //p' "$APP_YAML"`
 
 echo "Setting ${VERSION} as default on module ${MODULE}..."
 
