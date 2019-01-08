@@ -65,6 +65,7 @@ if (!args.dev) {
 const express = require("express");
 const expressWinston = require('express-winston');
 const winston = require('winston');
+
 const StackdriverTransport = (
     require('@google-cloud/logging-winston').LoggingWinston);
 
@@ -100,29 +101,31 @@ if (args.dev) {
     process.env.NODE_ENV = 'production';
 }
 
+
 // Add logging support, based on
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
 winston.level = args.log_level;
 const appWithLogging = express();
+
+function getTransports(json, colorize) {
+    const transports = [];
+    if (!args.dev) {
+        transports.push(new StackdriverTransport());
+    }
+    transports.push(new winston.transports.Console({
+        json,
+        colorize,
+    }));
+    return transports;
+}
+
 appWithLogging.use(expressWinston.logger({      // request logging
-    transports: [
-        new StackdriverTransport(),
-        new winston.transports.Console({
-            json: false,
-            colorize: args.dev,    // colorize for dev, but not prod
-        }),
-    ],
+    transports: getTransports(false, args.dev), // colorize for dev, not prod
     expressFormat: true,
     meta: false,
 }));
 appWithLogging.use(expressWinston.errorLogger({      // error logging
-    transports: [
-        new StackdriverTransport(),
-        new winston.transports.Console({
-            json: true,
-            colorize: args.dev,
-        }),
-    ],
+    transports: getTransports(true, args.dev), // colorize for dev, not prod
 }));
 appWithLogging.use(app);
 
