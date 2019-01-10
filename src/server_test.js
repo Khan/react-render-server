@@ -91,9 +91,8 @@ describe('API endpoint /render', function() {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
-        sinon.stub(renderSecret, 'matches', (secret, callback) => {
-            return callback(null, secret === "sekret");
-        });
+        sinon.stub(renderSecret, 'matches').callsFake((secret, callback) =>
+            callback(null, secret === "sekret"));
         debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
         graphiteLogStub = sinon.stub(graphiteUtil, "log");
@@ -109,23 +108,21 @@ describe('API endpoint /render', function() {
         graphiteLogStub.restore();
     });
 
-    it('should render a simple react component', (done) => {
+    it('should render a simple react component', async () => {
+        // Arrange
         const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number!'],
+            name: "number!",
         };
         const testJson = {
             urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
+                'https://www.khanacademy.org/webpacked/common/1.js',
+                'https://www.khanacademy.org/webpacked/common/2.js',
+                'https://www.khanacademy.org/webpacked/common/3.js',
+                'https://www.khanacademy.org/webpacked/simple/entry.js',
             ],
-            path: "./javascript/server-package/test-component.jsx",
             props: testProps,
             secret: 'sekret',
         };
-
         testJson.urls.forEach((url) => {
             const path = url.substr('https://www.khanacademy.org'.length);
             const contents = fs.readFileSync(`${__dirname}/testdata${path}`,
@@ -133,36 +130,34 @@ describe('API endpoint /render', function() {
             mockScope.get(path).reply(200, contents);
         });
 
+        // Act
         // We test the actual rendered contents in render_test.js.  Here
         // we just test that we get *some* output.
-        agent
+        const result = await agent
             .post('/render')
-            .send(testJson)
-            .expect((res) => {
-                assert.ok(res.body.html);    // should have *some* html
-                assert.include(res.body.html, 'number!');  // with our input
-                assert.ok(res.body.css);     // should have a css object
-                mockScope.done();
-            })
-            .end(done);
+            .send(testJson);
+
+        // Assert
+        assert.ok(result.body.html);
+        assert.include(result.body.html, "number!");
+        assert.ok(result.body.css);
+        mockScope.done();
     });
 
     it('should fail on invalid inputs', (done) => {
         const url = 'https://www.khanacademy.org/foo';
         const invalidInputs = [
             {},
-            {path: "./foo", props: {bar: 4}, secret: 'sekret'},
-            {urls: [], path: "./foo", props: {bar: 4}, secret: 'sekret'},
-            {urls: [1, 2], path: "./foo", props: {bar: 4}, secret: 'sekret'},
-            {urls: ["foo"], path: "./foo", props: {bar: 4}, secret: 'sekret'},
-            {urls: ["/foo"], path: "./foo", props: {bar: 4}, secret: 'sekret'},
+            {props: {bar: 4}, secret: 'sekret'},
+            {urls: [], props: {bar: 4}, secret: 'sekret'},
+            {urls: [1, 2], props: {bar: 4}, secret: 'sekret'},
+            {urls: ["foo"], props: {bar: 4}, secret: 'sekret'},
+            {urls: ["/foo"], props: {bar: 4}, secret: 'sekret'},
             {urls: [url], props: {bar: 4}, secret: 'sekret'},
-            {urls: [url], path: 4, props: {bar: 4}, secret: 'sekret'},
-            {urls: [url], path: 'foo', props: {bar: 4}, secret: 'sekret'},
-            {urls: [url], path: "./foo", props: "foo", secret: 'sekret'},
-            {urls: [url], path: "./foo", props: [{}, {}], secret: 'sekret'},
-            {urls: [url], path: "./foo", props: {bar: 4}},
-            {urls: [url], path: "./foo", props: {bar: 4}, secret: 'bad'},
+            {urls: [url], props: "foo", secret: 'sekret'},
+            {urls: [url], props: [{}, {}], secret: 'sekret'},
+            {urls: [url], props: {bar: 4}},
+            {urls: [url], props: {bar: 4}, secret: 'bad'},
         ];
         let remainingTests = invalidInputs.length;
 
@@ -177,19 +172,18 @@ describe('API endpoint /render', function() {
         });
     });
 
-    it('should log render-stats', (done) => {
+    it('should log render-stats', async () => {
+        // Arrange
         const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
+            name: "number!",
         };
         const testJson = {
             urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
+                'https://www.khanacademy.org/webpacked/common/1.js',
+                'https://www.khanacademy.org/webpacked/common/2.js',
+                'https://www.khanacademy.org/webpacked/common/3.js',
+                'https://www.khanacademy.org/webpacked/simple/entry.js',
             ],
-            path: "./javascript/server-package/test-component.jsx",
             props: testProps,
             secret: 'sekret',
         };
@@ -203,47 +197,49 @@ describe('API endpoint /render', function() {
 
         const expected = (
             'render-stats for ' +
-            './javascript/server-package/test-component.jsx: {' +
+            'https://www.khanacademy.org/webpacked/simple/entry.js: {' +
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
             '"createdVmContext":true,' +
-            '"vmContextSize":2458672' +
+            '"vmContextSize":421739' +
             "}");
 
-        agent
+        // Act
+        await agent
             .post('/render')
-            .send(testJson)
-            .expect((res) => {
-                // We just make sure one of the logging.debug args has
-                // the information we expect to be logged.
-                let foundRenderStats = false;
-                debugLoggingSpy.args.forEach((arglist) => {
-                    arglist.forEach((arg) => {
-                        if (arg === expected) {
-                            foundRenderStats = true;
-                        }
-                    });
-                });
-                assert.equal(foundRenderStats, true,
-                             JSON.stringify(debugLoggingSpy.args));
-                mockScope.done();
-            })
-            .end(done);
+            .send(testJson);
+
+        // Assert
+        // We just make sure one of the logging.debug args has
+        // the information we expect to be logged.
+        let foundRenderStats = false;
+        debugLoggingSpy.args.forEach((arglist) => {
+            arglist.forEach((arg) => {
+                if (arg === expected) {
+                    foundRenderStats = true;
+                }
+            });
+        });
+        assert.equal(
+            foundRenderStats,
+            true,
+            JSON.stringify(debugLoggingSpy.args),
+        );
+        mockScope.done();
     });
 
-    it('should send to graphite on timeout', (done) => {
+    it('should send to graphite on timeout', async () => {
+        // Arrange
         const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
+            name: "number!",
         };
         const testJson = {
             urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
+                'https://www.khanacademy.org/webpacked/common/1.js',
+                'https://www.khanacademy.org/webpacked/common/2.js',
+                'https://www.khanacademy.org/webpacked/common/3.js',
+                'https://www.khanacademy.org/webpacked/simple/entry.js',
             ],
-            path: "./javascript/server-package/test-component.jsx",
             props: testProps,
             secret: 'sekret',
         };
@@ -258,30 +254,31 @@ describe('API endpoint /render', function() {
         // Make sure we time out well before those delays finish.
         fetchPackage.setTimeout(20);
 
-        agent
+        // Act
+        await agent
             .post('/render')
-            .send(testJson)
-            .expect((res) => {
-                assert.deepEqual([['react_render_server.stats.timeout', 1]],
-                                 graphiteLogStub.args);
-                mockScope.done();
-            })
-            .end(done);
+            .send(testJson);
+
+        // Assert
+        assert.deepEqual(
+            [['react_render_server.stats.timeout', 1]],
+            graphiteLogStub.args,
+        );
+        mockScope.done();
     });
 
-    it('should log an error on fetching timeout', (done) => {
+    it('should log an error on fetching timeout', async () => {
+        // Arrange
         const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
+            name: "number!",
         };
         const testJson = {
             urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
+                'https://www.khanacademy.org/webpacked/common/1.js',
+                'https://www.khanacademy.org/webpacked/common/2.js',
+                'https://www.khanacademy.org/webpacked/common/3.js',
+                'https://www.khanacademy.org/webpacked/simple/entry.js',
             ],
-            path: "./javascript/server-package/test-component.jsx",
             props: testProps,
             secret: 'sekret',
         };
@@ -297,39 +294,42 @@ describe('API endpoint /render', function() {
         fetchPackage.setTimeout(20);
 
         const expected = ("timed out while fetching " +
-                          "https://www.khanacademy.org/corelibs-package.js");
+                          "https://www.khanacademy.org/webpacked/common/1.js");
 
-        agent
+        // Act
+        await agent
             .post('/render')
-            .send(testJson)
-            .expect((res) => {
-                let foundLogMessage = false;
-                errorLoggingSpy.args.forEach((arglist) => {
-                    arglist.forEach((arg) => {
-                        if (arg === expected) {
-                            foundLogMessage = true;
-                        }
-                    });
-                });
+            .send(testJson);
 
-                assert.equal(foundLogMessage, true,
-                             JSON.stringify(errorLoggingSpy.args));
-                mockScope.done();
-            })
-            .end(done);
+        // Assert
+        let foundLogMessage = false;
+        errorLoggingSpy.args.forEach((arglist) => {
+            arglist.forEach((arg) => {
+                if (arg === expected) {
+                    foundLogMessage = true;
+                }
+            });
+        });
+
+        assert.equal(
+            foundLogMessage,
+            true,
+            JSON.stringify(errorLoggingSpy.args),
+        );
+        mockScope.done();
     });
 
-    it('should log an error on fetching failure', (done) => {
+    it('should log an error on fetching failure', async () => {
+        // Arrange
         const testProps = {
-            val: 6,
-            list: ['I', 'am', 'not', 'a', 'number'],
+            name: "number!",
         };
         const testJson = {
             urls: [
-                'https://www.khanacademy.org/corelibs-package.js',
-                'https://www.khanacademy.org/corelibs-legacy-package.js',
-                'https://www.khanacademy.org/shared-package.js',
-                'https://www.khanacademy.org/server-package.js',
+                'https://www.khanacademy.org/webpacked/common/1.js',
+                'https://www.khanacademy.org/webpacked/common/2.js',
+                'https://www.khanacademy.org/webpacked/common/3.js',
+                'https://www.khanacademy.org/webpacked/simple/entry.js',
             ],
             path: "./javascript/server-package/test-component.jsx",
             props: testProps,
@@ -342,26 +342,29 @@ describe('API endpoint /render', function() {
         });
 
         const expected = ("Fetching failure: Error: " +
-                          "cannot undefined /corelibs-package.js (404): ");
+                          "cannot undefined /webpacked/common/1.js (404): ");
 
-        agent
+        // Act
+        await agent
             .post('/render')
-            .send(testJson)
-            .expect((res) => {
-                let foundLogMessage = false;
-                errorLoggingSpy.args.forEach((arglist) => {
-                    arglist.forEach((arg) => {
-                        if (arg === expected) {
-                            foundLogMessage = true;
-                        }
-                    });
-                });
+            .send(testJson);
 
-                assert.equal(foundLogMessage, true,
-                             JSON.stringify(errorLoggingSpy.args));
-                mockScope.done();
-            })
-            .end(done);
+        // Assert
+        let foundLogMessage = false;
+        errorLoggingSpy.args.forEach((arglist) => {
+            arglist.forEach((arg) => {
+                if (arg === expected) {
+                    foundLogMessage = true;
+                }
+            });
+        });
+
+        assert.equal(
+            foundLogMessage,
+            true,
+            JSON.stringify(errorLoggingSpy.args),
+        );
+        mockScope.done();
     });
 });
 
@@ -378,9 +381,8 @@ describe('API endpoint /flush', () => {
     beforeEach(() => {
         mockScope = nock('https://www.khanacademy.org');
         cache.init(10000);
-        sinon.stub(renderSecret, 'matches', (secret, callback) => {
-            return callback(null, secret === "sekret");
-        });
+        sinon.stub(renderSecret, 'matches').callsFake((secret, callback) =>
+            callback(null, secret === "sekret"));
     });
 
     afterEach(() => {

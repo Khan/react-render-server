@@ -1,12 +1,10 @@
 /**
- * Retrieve a vm context object that's been preloaded by having all of
- * the jsPackages executed and the react environment initialized.
+ * Retrieve a vm context object or create it if it isn't cached.
  * If requestStats is non-empty, set requestStats.createdVmContext to
  * whether we got the context from the cache or not.
  */
 
 const vm = require("vm");
-const ReactDOMServer = require('react-dom/server');
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
 const raf = require("raf");
@@ -17,7 +15,7 @@ const runInContext = function(context, fn) {
     return vm.runInContext("(" + fn.toString() + ")()", context);
 };
 
-const createRenderContext = function(jsPackages, pathToReactComponent) {
+const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
     const sandbox = {};
 
     // A minimal document, for parts of our code that assume there's a DOM.
@@ -46,7 +44,6 @@ const createRenderContext = function(jsPackages, pathToReactComponent) {
     sandbox.window = sandbox;
     sandbox.global = sandbox;
     sandbox.self = sandbox;
-    sandbox.ReactDOMServer = ReactDOMServer;
 
     // Used by javascript/reports-package/reports-shared.jsx on boot in
     // isExerciseMapFresh().
@@ -55,62 +52,49 @@ const createRenderContext = function(jsPackages, pathToReactComponent) {
     // This makes sure that qTip2 doesn't try to use the canvas.
     sandbox.HTMLCanvasElement.prototype.getContext = undefined;
 
-    let cumulativePackageSize = 0;
+    // We need to load the client file from inside our context, so let's
+    // give access to the node require.
+    // TODO(WEB-543, jeff): What require do the packages we load need and how
+    // do we
+    sandbox.requireComponent = require;
 
     const context = vm.createContext(sandbox);
 
-    jsPackages.forEach((pkg) => {
-        vm.runInContext(pkg[1], context);   // pkg is [url path, contents]
-        cumulativePackageSize += pkg[1].length;
-    });
-
-    context.pathToReactComponent = pathToReactComponent;
+    // Setup callback.
+    // This indicates to the rendering code that it is involved in SSR
+    // and provides it the means to register for SSR to occur.
+    // This has to happen before we import the entry point, so it can
+    // invoke this method.
+    //
+    // The callback provided by the rendering code must return a promise that
+    // will perform the render, including data fetch calls using
+    // getDataFromTree.
+    //    getRenderPromiseCallback:
+    //          (props, maybeApolloClient) => Promise.resolve({html, css})
     runInContext(context, () => {
-        // Get stuff out of the context and into local vars.
-        const ReactDOMServer = global.ReactDOMServer;
-
-        const React = KAdefine.require("react");
-
-        // Verify we have the right version of react.  ReactDOMServer
-        // holds the react version that we've installed here, for this
-        // server, while React holds the react version that is
-        // provided via the input js packages -- that is, the version
-        // on webapp.  If they don't match, throw an exception.
-        if (React.version !== ReactDOMServer.version) {
-            throw new Error(`Server should be using React version ` +
-                            `${React.version}, but is using React ` +
-                            `version ${ReactDOMServer.version}`);
-        }
-
-        try {
-            global.StyleSheetServer = KAdefine.require("aphrodite").StyleSheetServer;
-
-            // Make sure we're using a new enough version of Aphrodite
-            global.StyleSheetServer.renderStatic; // eslint-disable-line no-unused-expressions
-        } catch (e) {
-            // If we're here, it should mean that the component being rendered
-            // does not depend on Aphrodite. We'll make a stub instead to make
-            // the code below simpler.
-            global.StyleSheetServer = {
-                renderStatic: (cb) => {
-                    return {
-                        html: cb(),
-                        css: {
-                            content: "",
-                            renderedClassNames: [],
-                        },
-                    };
-                },
+        window.__registerForSSR__ = getRenderPromiseCallback => {
+            window.__rrs = {
+                getRenderPromiseCallback,
             };
-        }
+        };
     });
 
-    return {context, cumulativePackageSize};
+    let cumulativePackageSize = 0;
+    jsPackages.forEach(({content}) => {
+        vm.runInContext(content, context);   // pkg is [url path, contents]
+        cumulativePackageSize += content.length;
+    });
+    context.pathToClientEntryPoint = pathToClientEntryPoint;
+
+    return {
+        context,
+        cumulativePackageSize,
+    };
 };
 
 const getOrCreateRenderContext = function(
     jsPackages,
-    pathToReactComponent,
+    pathToClientEntryPoint,
     cacheBehavior,
     requestStats,
 ) {
@@ -120,8 +104,7 @@ const getOrCreateRenderContext = function(
 
     // (We expect props to vary between requests for the same
     // component, so we don't make the props part of the cache key.)
-    const cacheKey = (jsPackages.map(pkg => pkg[0]).join(",") +
-                      ":" + pathToReactComponent);
+    const cacheKey = jsPackages.map(({url}) => url).join(",");
 
     if (cacheBehavior === 'yes') {
         const cachedValue = cache.get(cacheKey);
@@ -134,16 +117,15 @@ const getOrCreateRenderContext = function(
     }
 
     const vmConstructionProfile = profile.start("building VM for " +
-                                                pathToReactComponent);
+        pathToClientEntryPoint);
 
     const {context, cumulativePackageSize} =
-        createRenderContext(jsPackages, pathToReactComponent);
+        createRenderContext(jsPackages, pathToClientEntryPoint);
 
     if (cacheBehavior !== 'ignore') {
         // As a rough heuristic, we say that the size of the context is double
         // the size of the JS source files.
-        const cachedSize = jsPackages.reduce((sum, pkg) => sum + pkg[0].length,
-                                             0) * 2;
+        const cachedSize = cumulativePackageSize * 2;
         cache.set(cacheKey, context, cachedSize);
     }
 
