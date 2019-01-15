@@ -52,12 +52,6 @@ const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
     // This makes sure that qTip2 doesn't try to use the canvas.
     sandbox.HTMLCanvasElement.prototype.getContext = undefined;
 
-    // We need to load the client file from inside our context, so let's
-    // give access to the node require.
-    // TODO(WEB-543, jeff): What require do the packages we load need and how
-    // do we
-    sandbox.requireComponent = require;
-
     const context = vm.createContext(sandbox);
 
     // Setup callback.
