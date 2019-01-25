@@ -64,8 +64,9 @@ const configureApolloNetwork = (context) => {
     };
 
     Object.assign(context, {
-        // Specifically we need to use the server-side Node.js version of
-        // apollo-client).
+        // We need to use the server-side Node.js version of
+        // apollo-client (the ones we use on the main site
+        // don't include the server-side rendering logic).
         ApolloClient: ApolloClient,
 
         // Additionally, we need to build a request mechanism for actually

@@ -1,8 +1,8 @@
 /**
- * The core functionality of actually rendering a react component.
+ * The core functionality of actually rendering.
  *
- * This uses 'vm' to execute the javascript holding the react
- * component, and jsdom (plus a few other things) to provide the
+ * This uses 'vm' to execute the javascript holding that will perform the
+ * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
 
@@ -55,7 +55,7 @@ const performRender = async () => {
             link: global.ApolloNetworkLink,
             cache: global.ApolloCache,
         })
-        // For React elements that have no Apollo-centric logic, we
+        // For rendering things that have no Apollo-centric logic, we
         // don't have a client.
         : null;
 
@@ -64,14 +64,15 @@ const performRender = async () => {
     // (like Array.prototype.includes) are applied to the elements
     // of the props.
     const clonedProps = JSON.parse(
-        JSON.stringify(global.reactProps),
+        JSON.stringify(global.ssrProps),
     );
 
     const {getRenderPromiseCallback} = window.__rrs;
 
     // Now ask the client to render.
     // The client should also get the data here with
-    // ReactApollo.getDataFromTree.
+    // ReactApollo.getDataFromTree (or other mechanism specific to the
+    // framework, if not React).
     const result = await getRenderPromiseCallback(
         clonedProps,
         maybeApolloClient,
@@ -86,16 +87,20 @@ const performRender = async () => {
 };
 
 /**
- * Actually render a React component.
+ * Perform a render.
+ *
+ * This renders by importing all the code that an entrypoint requires.
+ * That entrypoint should call __registerForSSR__ which gives us a callback
+ * to actually get the rendered content.
  *
  * @param {string} pathToClientEntryPoint - Absolute URL to the client entry
  *     point that is to be loaded and will instigate the render.
  * @param {string} entryPointContent - This is the fetched entry point code
  *     for us to execute.
- * @param {object} props - the props object to pass in to the react
- *     renderer; the props used to render the React component.
+ * @param {object} props - the props object to pass in to the
+ *     renderer; the props used to render.
  * @param {object} globals - the map of global variable name to their values to
- *     be set before the React component is require()'d.
+ *     be set before the entrypoint is require()'d.
  * @param {string} cacheBehaviour - One of 'yes', 'no', or 'ignore'. Used to
  *     determine caching behaviour. See comment on defaultCacheBehaviour.
  * @param {object} requestStats -- If defined, should be a dict. Used to
@@ -112,8 +117,8 @@ const performRender = async () => {
  *       }
  *   }
  *
- * html is the rendered html of the React component.
- * css will only be returned if the component makes use of Aphrodite
+ * html is the rendered html of the entry point.
+ * css will only be returned if the entrypoint makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
 const render = async function(
@@ -133,7 +138,7 @@ const render = async function(
         cacheBehavior || defaultCacheBehavior,
         requestStats);
 
-    context.reactProps = props;
+    context.ssrProps = props;
 
     const renderProfile = profile.start("rendering " + entryPointUrl);
 
@@ -155,8 +160,7 @@ const render = async function(
             configureApolloNetwork(context);
         }
 
-        // Now that everything is setup, we can invoke our rendering and react
-        // to any errors that might occur.
+        // Now that everything is setup, we can invoke our rendering.
         if (context.__rrs == null) {
             // This is a problem.
             throw new Error("No render callbacks registered");
