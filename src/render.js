@@ -1,8 +1,8 @@
 /**
- * The core functionality of actually rendering a react component.
+ * The core functionality of actually rendering.
  *
- * This uses 'vm' to execute the javascript holding the react
- * component, and jsdom (plus a few other things) to provide the
+ * This uses 'vm' to execute the javascript holding that will perform the
+ * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
 
@@ -10,7 +10,6 @@
 
 const vm = require("vm");
 
-const ReactDOMServer = require('react-dom/server');
 const getOrCreateRenderContext = require('./get-or-create-render-context.js');
 const configureApolloNetwork = require('./configure-apollo-network.js');
 
@@ -32,24 +31,76 @@ const resetGlobals = function() {
 
 resetGlobals();
 
-
 const runInContext = function(context, fn) {
     return vm.runInContext("(" + fn.toString() + ")()", context);
 };
 
+/**
+ * This method is executed whenever a render is needed. It is executed inside
+ * the vm context.
+ */
+const performRender = async () => {
+    // 1. Setup an Apollo client if one is expected.
+    const maybeApolloClient = global.ApolloNetworkLink
+        // If network details were provided for Apollo then we go about
+        // wrapping the element in an Apollo provider (which will
+        // collect the data requirements of the child components and
+        // send off a network request to a GraphQL endpoint).
+
+        // Build an Apollo client. This is responsible for making the
+        // network requests to the GraphQL endpoint and bringing back
+        // the data.
+        ? new global.ApolloClient.ApolloClient({
+            ssrMode: true,
+            link: global.ApolloNetworkLink,
+            cache: global.ApolloCache,
+        })
+        // For rendering things that have no Apollo-centric logic, we
+        // don't have a client.
+        : null;
+
+    // Make a deep clone of the props in the context before
+    // rendering them, so that any polyfills we have in the context
+    // (like Array.prototype.includes) are applied to the elements
+    // of the props.
+    const clonedProps = JSON.parse(
+        JSON.stringify(global.ssrProps),
+    );
+
+    const {getRenderPromiseCallback} = window.__rrs;
+
+    // Now ask the client to render.
+    // The client should also get the data here with
+    // ReactApollo.getDataFromTree (or other mechanism specific to the
+    // framework, if not React).
+    const result = await getRenderPromiseCallback(
+        clonedProps,
+        maybeApolloClient,
+    );
+
+    // We need to pass back any data so that it can be rendered directly
+    // into the page (for the re-hydration).
+    if (global.ApolloNetworkLink) {
+        result.data = maybeApolloClient.extract();
+    }
+    return result;
+};
 
 /**
- * Actually render a React component.
+ * Perform a render.
  *
- * @param {string[][]} jsPackages - A list of [filename, source code]
- *     pairs for js packages that we need to include in order to render the
- *     given component.  These files are executed in the order specified.
- * @param {string} pathToReactComponent - What to require() in order
- *     to render the react component.
- * @param {object} props - the props object to pass in to the react
- *     renderer; the props used to render the React component.
+ * This renders by importing all the code that an entrypoint requires.
+ * That entrypoint should call __registerForSSR__ which gives us a callback
+ * to actually get the rendered content.
+ *
+ * @param {string} pathToClientEntryPoint - Absolute URL to the client entry
+ *     point that is to be loaded and will instigate the render.
+ * @param {string} entryPointContent - This is the fetched entry point code
+ *     for us to execute.
+ * @param {object} props - the props object to pass in to the
+ *     renderer; the props used to render.
  * @param {object} globals - the map of global variable name to their values to
- *     be set before the React component is require()'d.
+ *     be set before the entrypoint is require()'d.
  * @param {string} cacheBehaviour - One of 'yes', 'no', or 'ignore'. Used to
  *     determine caching behaviour. See comment on defaultCacheBehaviour.
  * @param {object} requestStats -- If defined, should be a dict. Used to
@@ -66,136 +117,66 @@ const runInContext = function(context, fn) {
  *       }
  *   }
  *
- * html is the rendered html of the React component.
- * css will only be returned if the component makes use of Aphrodite
+ * html is the rendered html of the entry point.
+ * css will only be returned if the entrypoint makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
-const render = function(jsPackages, pathToReactComponent, props,
-                        globals, cacheBehavior, requestStats) {
+const render = async function(
+    jsPackages,
+    props,
+    globals,
+    cacheBehavior,
+    requestStats,
+) {
+    const {url: entryPointUrl} = jsPackages[jsPackages.length - 1];
+
+    // Here we get the existing VM context for this request or create a new one
+    // and configure it accordingly.
     const context = getOrCreateRenderContext(
         jsPackages,
-        pathToReactComponent,
+        entryPointUrl,
         cacheBehavior || defaultCacheBehavior,
         requestStats);
 
-    context.reactProps = props;
+    context.ssrProps = props;
 
-    const renderProfile = profile.start("rendering " +
-        pathToReactComponent);
+    const renderProfile = profile.start("rendering " + entryPointUrl);
 
-    if (globals) {
-        Object.keys(globals).forEach(key => {
-            // Location is a special case.
-            if (key === 'location') {
-                context.location.replace(globals[key]);
-            } else {
-                context[key] = globals[key];
-            }
-        });
-    }
-
-    if (context.ApolloNetwork) {
-        configureApolloNetwork(context);
-    }
-
-    // getVMContext sets up the sandbox to have React installed, as
-    // well as everything else needed to load the React component, so
-    // our work here is easy.
-    return runInContext(context, () => {
-        return new Promise((resolve, reject) => {
-            // NOTE(jeresig): We should be using `let` here but the current
-            // version of the Node.js runtime we use in production doesn't
-            // understand `let` inside runInContext (known bug).
-            var Component = KAdefine.require(global.pathToReactComponent); // eslint-disable-line no-var
-
-            // The Component could have been exported using `export default`
-            // We check for that case and use that component here.
-            if (Component.default) {
-                Component = Component.default;
-            }
-
-            // Make a deep clone of the props in the context before rendering
-            // them, so that any polyfills we have in the context (like
-            // Array.prototype.includes) are applied to the elements of
-            // the props.
-            const clonedProps = JSON.parse(JSON.stringify(global.reactProps));
-
-            const reactElement = React.createElement(Component, clonedProps);
-
-            // Render a React element and sent the string back to the main
-            // Node.js process. The object will have an 'html' property (from
-            // the React element), a 'css' property (from Aphrodite), and
-            // possibly a 'data' property (from Apollo, if it exists).
-
-            const renderElement = (element, data) => {
-                const result = global.StyleSheetServer.renderStatic(() =>
-                    ReactDOMServer.renderToString(element));
-
-                if (data) {
-                    result.data = data;
+    try {
+        // Make sure the require globals are made available to the VM context.
+        if (globals) {
+            Object.keys(globals).forEach(key => {
+                // Location is a special case.
+                if (key === 'location') {
+                    context.location.replace(globals[key]);
+                } else {
+                    context[key] = globals[key];
                 }
-
-                resolve(result);
-            };
-
-            // For React elements that have no Apollo-centric logic, we just
-            // render them as normal.
-            if (!global.ApolloNetworkLink) {
-                return renderElement(reactElement);
-            }
-
-            // If network details were provided for Apollo then we go about
-            // wrapping the element in an Apollo provider (which will collect
-            // the data requirements of the child components and send off a
-            // network request to a GraphQL endpoint).
-
-            // Build an Apollo client. This is responsible for making the
-            // network requests to the GraphQL endpoint and bringing back
-            // the data.
-            const client = new global.ApolloClient.ApolloClient({
-                ssrMode: true,
-                link: global.ApolloNetworkLink,
-                cache: global.ApolloCache,
             });
+        }
 
-            // We wrap the React element with an Apollo Provider (which
-            // takes a React element and a client)
-            const wrappedElement = React.createElement(
-                global.ReactApollo.ApolloProvider,
-                {
-                    children: reactElement,
-                    client: client,
-                }
-            );
+        // If Apollo is required, get it configured on the context.
+        if (context.ApolloNetwork) {
+            configureApolloNetwork(context);
+        }
 
-            // From the Apollo Provider and the wrapped React element we
-            // use React Apollo to traverse through the full React element
-            // tree to find all the GraphQL data requirements that've been
-            // specified by the components. These requirements are pulled
-            // together and sent to the serve as a single request.
-            global.ReactApollo.getDataFromTree(wrappedElement)
-                .then(() => {
-                    // All of the data comes back as a single object which
-                    // we can then pass back to the client to be rendered
-                    // directly into the page (for the re-hydration).
-                    const initialState = client.extract();
+        // Now that everything is setup, we can invoke our rendering.
+        if (context.__rrs == null) {
+            // This is a problem.
+            throw new Error("No render callbacks registered");
+        }
 
-                    renderElement(wrappedElement, initialState);
-                }).catch((err) => reject(err));
-        });
-    }).then((data) => {
-        renderProfile.end();
+        const result = await runInContext(context, performRender);
         // If we passed in request-stats, we've modified them in this
         // function (to update the stats).  Pass back the updated
         // stats as part of our response object.
         if (requestStats) {
-            data.requestStats = requestStats;
+            result.requestStats = requestStats;
         }
-        return data;
-    }).catch((err) => {
+        return result;
+    } finally {
         renderProfile.end();
-        return Promise.reject(err);
-    });
+    }
 };
 
 render.setDefaultCacheBehavior = function(cacheBehavior) {

@@ -35,7 +35,6 @@ app.use(bodyParser.json({limit: '5mb'}));
  *        "http://kastatic.org/genfiles/javascript/en/shared-package-xx.js",
  *        "http://kastatic.org/genfiles/javascript/en/content-library-xx.js"
  *    ],
- *    "path": "./javascript/content-library-package/components/link.jsx",
  *    "globals": {
  *        "location": "http://khanacademy.org/science/physics",
  *        "KA": {
@@ -50,15 +49,12 @@ app.use(bodyParser.json({limit: '5mb'}));
  * }
  *
  * 'urls' should be specified in topological-sort order; they are
- * executed in the order listed here.
- *
- * 'path' is a path in nodejs require() format, which exports the react
- * component we wish to render.  It must be included in one of the files
- * specified in 'urls'.
+ * executed in the order listed here. The last one should always be the
+ * instigator of the render.
  *
  * `globals` is a map of global variables to their values. These values will be
- * set in the JavaScript VM context before the React component specified by
- * `path` is `require()`'d.
+ * set in the JavaScript VM context before the entry point specified by
+ * `entry` is `require()`'d.
  *
  * 'props' are passed as the props to the react component being rendered.
  *
@@ -101,7 +97,7 @@ app.use('/render', (req, res, next) => {
     res.end = (chunk, encoding) => {
         pendingRenderRequests--;
         if (res.statusCode < 300) {   // only log on successful fetches
-            renderProfile.end(`render-stats for ${req.body.path}: ` +
+            renderProfile.end(`render-stats for ${req.body.urls[req.body.urls.length - 1]}: ` +
                               JSON.stringify(req.requestStats));
         }
         res.end = end;
@@ -119,23 +115,44 @@ const checkSecret = function(req, res, next) {
     });
 };
 
+const handleFetchError = function(err, res) {
+    // Error handler for fetching failures.
+    if (err.response && err.response.error) {
+        logging.error('Fetching failure: ' + err.response.error + ': ',
+                        err.stack);
+        res.status(500).json({error: err, stack: err.stack});
+    } else if (err.error) {        // set for timeouts, in particular
+        logging.error(err.error);
+        res.status(500).json(err);
+    } else {
+        logging.error('Fetching failure: ', err.stack);
+        res.status(500).json({error: err.toString(),
+                                stack: err.stack});
+    }
+    // If the error was a timeout, log that fact to graphite.
+    if (err.timeout) {
+        graphiteUtil.log("react_render_server.stats.timeout", 1);
+    }
+}
+
 app.post('/render', checkSecret, (req, res) => {
     // Validate the input.
     let err;
     let value;
-    if (!Array.isArray(req.body.urls) || req.body.urls.length === 0 ||
-               !req.body.urls.every(e => typeof e === 'string') ||
-               !req.body.urls.every(e => e.indexOf('http') === 0)) {
-        err = ('Missing "urls" keyword in POST JSON input, ' +
-               'or "urls" is not a list of full urls');
-        value = req.body.urls;
-    } else if (typeof req.body.path !== 'string' ||
-               req.body.path.indexOf("./") !== 0) {
-        err = ('Missing "path" keyword in POST JSON input, ' +
-               'or "path" does not start with "./"');
-        value = req.body.path;
-    } else if (typeof req.body.props !== 'object' ||
-               Array.isArray(req.body.props)) {
+
+    if (
+        !Array.isArray(req.body.urls) ||
+        req.body.urls.length === 0 ||
+        !req.body.urls.every(e => typeof e === 'string') ||
+        !req.body.urls.every(e => e.indexOf('http') === 0)
+    ) {
+            err = ('Missing "urls" keyword in POST JSON input, ' +
+                   'or "urls" is not a list of full urls');
+            value = req.body.urls;
+    } else if (
+        typeof req.body.props !== 'object' ||
+        Array.isArray(req.body.props)
+    ) {
         err = ('Missing "props" keyword in POST JSON input, ' +
                'or "props" is not an object, or it has non-string keys.');
         value = req.body.props;
@@ -145,56 +162,39 @@ app.post('/render', checkSecret, (req, res) => {
         return;
     }
 
+    // Fetch the entry point and its dependencies.
     const fetchPromises = req.body.urls.map(
         url => fetchPackage(url, undefined, req.requestStats).then(
-            contents => [url, contents])
+            content => ({url, content}),
+        ),
     );
 
     // TODO(joshuan): Consider moving to async/await.
     Promise.all(fetchPromises).then(
-        (fetchBodies) => {
-            return render(fetchBodies,
-                req.body.path,
-                req.body.props,
-                req.body.globals,
-                undefined,
-                req.requestStats
-            ).then(renderedState => {
-                // We store the updated request-stats in renderedState
-                // (the only way to get the updated data back from our
-                // subprocess); pop that out into update req.requestStats.
-                req.requestStats = renderedState.requestStats;
-                delete renderedState.requestStats;
-                res.json(renderedState);
-            });
-        },
-        (err) => {
-            // Error handler for fetching failures.
-            if (err.response && err.response.error) {
-                logging.error('Fetching failure: ' + err.response.error + ': ',
-                              err.stack);
-                res.status(500).json({error: err, stack: err.stack});
-            } else if (err.error) {        // set for timeouts, in particular
-                logging.error(err.error);
-                res.status(500).json(err);
-            } else {
-                logging.error('Fetching failure: ', err.stack);
-                res.status(500).json({error: err.toString(),
-                                      stack: err.stack});
-            }
-            // If the error was a timeout, log that fact to graphite.
-            if (err.timeout) {
-                graphiteUtil.log("react_render_server.stats.timeout", 1);
-            }
-
-        })
-        .catch((err) => {
-            logging.error('Rendering failure: ' + req.body.path + ' :',
-                          err.stack);
-            // A rendering error is probably a bad component, so we
-            // give a 400.
-            res.status(400).json({error: err.toString(), stack: err.stack});
-        });
+        (packages) => render(
+            packages,
+            req.body.props,
+            req.body.globals,
+            undefined,
+            req.requestStats
+        ).then(renderedState => {
+            // We store the updated request-stats in renderedState
+            // (the only way to get the updated data back from our
+            // subprocess); pop that out into update req.requestStats.
+            req.requestStats = renderedState.requestStats;
+            delete renderedState.requestStats;
+            res.json(renderedState);
+        }),
+        err => handleFetchError(err, res),
+    ).catch(err => {
+        logging.error(
+            'Rendering failure: ' + req.body.urls[req.body.urls.length - 1] + ' :',
+            err.stack,
+        );
+        // A rendering error is probably a bad component, so we
+        // give a 400.
+        res.status(400).json({error: err.toString(), stack: err.stack});
+    });
 });
 
 

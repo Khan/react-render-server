@@ -11,7 +11,6 @@
  * timeout is provided via a 'timeout' property.
  */
 const ApolloClient = require("apollo-client");
-const ReactApollo = require("react-apollo");
 const apolloCacheInmemory = require("apollo-cache-inmemory");
 const apolloLinkHttp = require("apollo-link-http");
 const fetch = require('node-fetch');
@@ -65,11 +64,10 @@ const configureApolloNetwork = (context) => {
     };
 
     Object.assign(context, {
-        // Specifically we need to use the server-side Node.js versions of
-        // apollo-client and react-apollo (the ones we use on the main site
+        // We need to use the server-side Node.js version of
+        // apollo-client (the ones we use on the main site
         // don't include the server-side rendering logic).
         ApolloClient: ApolloClient,
-        ReactApollo: ReactApollo,
 
         // Additionally, we need to build a request mechanism for actually
         // making a network request to our GraphQL endpoint. We use the
