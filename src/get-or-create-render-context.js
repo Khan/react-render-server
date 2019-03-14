@@ -7,52 +7,52 @@
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
-const raf = require("raf");
 const cache = require("./cache.js");
 const profile = require("./profile.js");
 
-const runInContext = function(context, fn) {
-    return vm.runInContext("(" + fn.toString() + ")()", context);
+class CustomResourceLoader extends jsdom.ResourceLoader {
+    fetch(url, options) {
+        // eslint-disable-next-line no-console
+        console.log("FETCHING: " + url);
+        return super.fetch(url, options);
+    }
+}
+
+const runInContext = function(jsdomContext, fnOrText) {
+    const script = typeof fnOrText === "function"
+        ? "(" + fnOrText.toString() + ")()"
+        : fnOrText;
+
+    if (typeof script !== "string") {
+        throw new Error("Must be a function or text");
+    }
+    return jsdomContext.runVMScript(new vm.Script(script));
 };
 
-const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
-    const sandbox = {};
-
+const createRenderContext = function(locationUrl, jsPackages, pathToClientEntryPoint) {
     // A minimal document, for parts of our code that assume there's a DOM.
-    const doc = jsdom.jsdom(
+    const context = new jsdom.JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>", {
-            // Forward console logs from inside the VM to the real console
-            virtualConsole: jsdom.createVirtualConsole().sendTo(console),
-            // CKEditor, and maybe other things, check for
-            // location.href, and expect it to be non-empty.
-            url:  "http://www.khanacademy.org",
+            url:  locationUrl,
+            runScripts: "dangerously",
+            resources: new CustomResourceLoader(),
+            pretendToBeVisual: true,
             features: {
                 FetchExternalResources: false,
                 ProcessExternalResources: false,
             },
         });
 
-    // Polyfill `requestAnimationFrame` to appease React.
-    raf.polyfill(doc.defaultView);
+    // This means we can run scripts inside the jsdom context.
+    context.run = fnOrText => runInContext(context, fnOrText);
 
-    // Copy everything from the jsdom object onto the sandbox.
-    // TODO(jlfwong): For some reason, copying doc.defaultView works, but
-    // using it directly as an arg to vm.createContext doesn't.
-    Object.keys(doc.defaultView).forEach(function(key) {
-        sandbox[key] = doc.defaultView[key];
-    });
-    sandbox.window = sandbox;
+    // Let's make sure our sandbox window is how we want.
+    const sandbox = context.window;
     sandbox.global = sandbox;
     sandbox.self = sandbox;
 
-    // Used by javascript/reports-package/reports-shared.jsx on boot in
-    // isExerciseMapFresh().
-    sandbox.localStorage = {};
-
     // This makes sure that qTip2 doesn't try to use the canvas.
     sandbox.HTMLCanvasElement.prototype.getContext = undefined;
-
-    const context = vm.createContext(sandbox);
 
     // Setup callback.
     // This indicates to the rendering code that it is involved in SSR
@@ -74,7 +74,7 @@ const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
     //         Promise.resolve({html, css});
     //     window.__registerForSSR__(renderElement);
     //
-    runInContext(context, () => {
+    context.run(() => {
         window.__registerForSSR__ = getRenderPromiseCallback => {
             window.__rrs = {
                 getRenderPromiseCallback,
@@ -82,12 +82,13 @@ const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
         };
     });
 
+    // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
     jsPackages.forEach(({content}) => {
-        vm.runInContext(content, context);   // pkg is [url path, contents]
+        // pkg is [url path, contents]
+        context.run(content);
         cumulativePackageSize += content.length;
     });
-    context.pathToClientEntryPoint = pathToClientEntryPoint;
 
     return {
         context,
@@ -96,6 +97,7 @@ const createRenderContext = function(jsPackages, pathToClientEntryPoint) {
 };
 
 const getOrCreateRenderContext = function(
+    locationUrl,
     jsPackages,
     pathToClientEntryPoint,
     cacheBehavior,
@@ -123,7 +125,7 @@ const getOrCreateRenderContext = function(
         pathToClientEntryPoint);
 
     const {context, cumulativePackageSize} =
-        createRenderContext(jsPackages, pathToClientEntryPoint);
+        createRenderContext(locationUrl, jsPackages, pathToClientEntryPoint);
 
     if (cacheBehavior !== 'ignore') {
         // As a rough heuristic, we say that the size of the context is double

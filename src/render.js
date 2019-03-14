@@ -8,8 +8,6 @@
 
 'use strict';
 
-const vm = require("vm");
-
 const getOrCreateRenderContext = require('./get-or-create-render-context.js');
 const configureApolloNetwork = require('./configure-apollo-network.js');
 
@@ -31,15 +29,19 @@ const resetGlobals = function() {
 
 resetGlobals();
 
-const runInContext = function(context, fn) {
-    return vm.runInContext("(" + fn.toString() + ")()", context);
-};
-
 /**
  * This method is executed whenever a render is needed. It is executed inside
  * the vm context.
  */
 const performRender = async () => {
+    if (window["__DEBUG_RENDER__"]) {
+        // To activate, set __DEBUG_RENDER__ to truthy on the vm context.
+        // Special debug entrypoint because this is run inside the vm context
+        // by turning it into a string, which means regular breakpoints don't
+        // work.
+        // eslint-disable-next-line no-debugger
+        debugger;
+    }
     // 1. Setup an Apollo client if one is expected.
     const maybeApolloClient = global.ApolloNetworkLink
         // If network details were provided for Apollo then we go about
@@ -93,10 +95,8 @@ const performRender = async () => {
  * That entrypoint should call __registerForSSR__ which gives us a callback
  * to actually get the rendered content.
  *
- * @param {string} pathToClientEntryPoint - Absolute URL to the client entry
- *     point that is to be loaded and will instigate the render.
- * @param {string} entryPointContent - This is the fetched entry point code
- *     for us to execute.
+ * @param {[{url: string, content: string}]} jsPackages - Absolute URL to the
+ *     client entry point that is to be loaded and will instigate the render.
  * @param {object} props - the props object to pass in to the
  *     renderer; the props used to render.
  * @param {object} globals - the map of global variable name to their values to
@@ -108,7 +108,8 @@ const performRender = async () => {
  *     requestStats.createdVmContext based on whether we had to create a
  *     new vm context or could get an existing one from the cache.
 
- * @returns an object like follows:
+ * @returns the results of the entrypoint render; this can be whatever you so
+ * choose, but might look something like:
  *   {
  *       "html": "<a href='http://www.google.com' class='link141'>Google</a>",
  *       "css": {
@@ -133,12 +134,13 @@ const render = async function(
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = getOrCreateRenderContext(
+        globals ? globals["location"] : "http://www.khanacademy.org",
         jsPackages,
         entryPointUrl,
         cacheBehavior || defaultCacheBehavior,
         requestStats);
 
-    context.ssrProps = props;
+    context.window.ssrProps = props;
 
     const renderProfile = profile.start("rendering " + entryPointUrl);
 
@@ -147,26 +149,27 @@ const render = async function(
         if (globals) {
             Object.keys(globals).forEach(key => {
                 // Location is a special case.
-                if (key === 'location') {
-                    context.location.replace(globals[key]);
-                } else {
-                    context[key] = globals[key];
+                if (key !== 'location') {
+                    context.window[key] = globals[key];
                 }
             });
         }
 
         // If Apollo is required, get it configured on the context.
-        if (context.ApolloNetwork) {
-            configureApolloNetwork(context);
+        if (context.window.ApolloNetwork) {
+            configureApolloNetwork(context.window);
         }
 
         // Now that everything is setup, we can invoke our rendering.
-        if (context.__rrs == null) {
+        if (context.window.__rrs == null) {
             // This is a problem.
             throw new Error("No render callbacks registered");
         }
 
-        const result = await runInContext(context, performRender);
+        // To debug the performRender function, set a breakpoint on the
+        // following line and then in the debug console, set
+        // context.__DEBUG_RENDER__ to true before continuing.
+        const result = await context.run(performRender);
         // If we passed in request-stats, we've modified them in this
         // function (to update the stats).  Pass back the updated
         // stats as part of our response object.

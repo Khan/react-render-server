@@ -2,7 +2,7 @@
 /* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
-const vm = require("vm");
+const jsdom = require("jsdom");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -27,7 +27,7 @@ describe("render", () => {
         render.resetGlobals();
         cache.init(1000000);
 
-        sinon.spy(vm, "createContext");
+        sinon.spy(jsdom, "JSDOM");
         sinon.spy(cache, "get");
         sinon.spy(cache, "set");
     });
@@ -36,7 +36,7 @@ describe("render", () => {
         render.resetGlobals();
         cache.destroy();
 
-        vm.createContext.restore();
+        jsdom.JSDOM.restore();
         cache.get.restore();
         cache.set.restore();
     });
@@ -114,7 +114,7 @@ describe("render", () => {
         assert.deepEqual(result, expectation);
     });
 
-    it('should pull vm context from cache, even with different props', async () => {
+    it('should pull context from cache, even with different props', async () => {
         // Arrange
         const packages = loadPackages(["basic/entry.js"]);
 
@@ -125,7 +125,7 @@ describe("render", () => {
 
         // Assert
         assert.equal(
-            vm.createContext.callCount,
+            jsdom.JSDOM.callCount,
             1,
             "This test can fail if the cache is not big enough",
         );
@@ -155,7 +155,7 @@ describe("render", () => {
          assert.notDeepEqual(result, expectation);
     });
 
-    it('should not pull vm context from cache when asked not to', async () => {
+    it('should not pull context from cache when asked not to', async () => {
         // Arrange
          const packages = loadPackages(["basic/entry.js"]);
 
@@ -164,7 +164,7 @@ describe("render", () => {
          await render(packages, {name: "A NAME"}, {}, "no");
 
          // Assert
-         assert.equal(vm.createContext.callCount, 2);
+         assert.equal(jsdom.JSDOM.callCount, 2);
     });
 
     it('should still fill the cache when cacheBehavior is "no"', async () => {
@@ -211,7 +211,7 @@ describe("render", () => {
          await render(package2, {name: "A NAME"});
 
          // Assert
-        assert.equal(vm.createContext.callCount, 2);
+        assert.equal(jsdom.JSDOM.callCount, 2);
     });
 
     it('should not require canvas to run', async () => {
