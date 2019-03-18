@@ -33,14 +33,22 @@ const createRenderContext = function(locationUrl, jsPackages, pathToClientEntryP
     // A minimal document, for parts of our code that assume there's a DOM.
     const context = new jsdom.JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>", {
+            // The base location. We can't modify window.location directly
+            // but this allows us to provide one.
             url:  locationUrl,
+            // We want to run scripts that would normally run in a web browser
+            // so we give them as much leeway as we can. Obviously, this is a
+            // security risk if access to this service is not properly secured.
+            // Make sure to use a secret!
             runScripts: "dangerously",
+            // We use a custom loader for our scripts and other resource
+            // requests so that we can output them to the log. Helps us debug
+            // that what we think is happening is happening.
             resources: new CustomResourceLoader(),
+            // There are certain things that a browser provides because it is
+            // actually rendering things. While JSDOM does not render, we can
+            // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
-            features: {
-                FetchExternalResources: false,
-                ProcessExternalResources: false,
-            },
         });
 
     // This means we can run scripts inside the jsdom context.
