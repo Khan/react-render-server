@@ -18,18 +18,29 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     }
 }
 
-const runInContext = function(jsdomContext, fnOrText) {
-    const script = typeof fnOrText === "function"
-        ? "(" + fnOrText.toString() + ")()"
-        : fnOrText;
+const getScript = function(fnOrText, options) {
+    switch (typeof fnOrText) {
+        case "function":
+            const script = "(\n" + fnOrText.toString() + "\n)()";
+            const _options = Object.assign({}, options);
+            _options.lineOffset = -1;
+            return new vm.Script(script, _options);
 
-    if (typeof script !== "string") {
-        throw new Error("Must be a function or text");
+        case "string":
+            return new vm.Script(fnOrText, options);
+
+        default:
+            throw new Error("Must be a function or text");
     }
-    return jsdomContext.runVMScript(new vm.Script(script));
 };
 
-const createRenderContext = function(locationUrl, jsPackages, pathToClientEntryPoint) {
+const runInContext = function(jsdomContext, fnOrText, options = {}) {
+    return jsdomContext.runVMScript(
+        getScript(fnOrText, options),
+    );
+};
+
+const createRenderContext = function(locationUrl, jsPackages) {
     // A minimal document, for parts of our code that assume there's a DOM.
     const context = new jsdom.JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>", {
@@ -52,7 +63,8 @@ const createRenderContext = function(locationUrl, jsPackages, pathToClientEntryP
         });
 
     // This means we can run scripts inside the jsdom context.
-    context.run = fnOrText => runInContext(context, fnOrText);
+    context.run =
+        (fnOrText, options) => runInContext(context, fnOrText, options);
 
     // Let's make sure our sandbox window is how we want.
     const sandbox = context.window;
@@ -92,9 +104,9 @@ const createRenderContext = function(locationUrl, jsPackages, pathToClientEntryP
 
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
-    jsPackages.forEach(({content}) => {
+    jsPackages.forEach(({content, url}) => {
         // pkg is [url path, contents]
-        context.run(content);
+        context.run(content, {filename: url});
         cumulativePackageSize += content.length;
     });
 
@@ -133,7 +145,7 @@ const getOrCreateRenderContext = function(
         pathToClientEntryPoint);
 
     const {context, cumulativePackageSize} =
-        createRenderContext(locationUrl, jsPackages, pathToClientEntryPoint);
+        createRenderContext(locationUrl, jsPackages);
 
     if (cacheBehavior !== 'ignore') {
         // As a rough heuristic, we say that the size of the context is double
