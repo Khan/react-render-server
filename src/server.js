@@ -139,45 +139,44 @@ const handleFetchError = function(err, res) {
     }
 };
 
+const respondError = (res, error, value) => {
+    return res.status(400).json({error, value});
+};
+
 app.post("/render", checkSecret, (req, res) => {
     // Validate the input.
-    let err;
-    let value;
     const {urls, props, globals} = req.body;
 
     if (!Array.isArray(urls) || !urls.every(url => typeof url === "string")) {
-        err =
+        return respondError(
+            res,
             'Missing "urls" keyword in POST JSON input, ' +
-            'or "urls" is not a list of strings';
-        value = urls;
+                'or "urls" is not a list of strings',
+            urls,
+        );
     } else if (typeof props !== "object" || Array.isArray(props)) {
-        err =
+        return respondError(
+            res,
             'Missing "props" keyword in POST JSON input, ' +
-            'or "props" is not an object, or it has non-string keys.';
-        value = props;
+                'or "props" is not an object, or it has non-string keys.',
+            props,
+        );
     }
-
-    let jsUrls = urls;
 
     // We filter out all non-JS URLs as we don't need to download them in
     // order to render the page (for example .css files may be specified and
     // we want to ignore them)
-    if (!err) {
-        jsUrls = jsUrls.filter(
-            url => url.startsWith("http") && url.endsWith(".js"),
+    const jsUrls = urls.filter(
+        url => url.startsWith("http") && url.endsWith(".js"),
+    );
+
+    if (jsUrls.length === 0) {
+        return respondError(
+            res,
+            'Error in "urls" keyword in POST JSON input, ' +
+                "no valid JS urls were specified.",
+            urls,
         );
-
-        if (jsUrls.length === 0) {
-            err =
-                'Error in "urls" keyword in POST JSON input, ' +
-                "no valid JS urls were specified.";
-            value = urls;
-        }
-    }
-
-    if (err) {
-        res.status(400).json({error: err, value: value});
-        return;
     }
 
     // Fetch the entry point and its dependencies.
