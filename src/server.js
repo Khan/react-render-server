@@ -139,7 +139,7 @@ const handleFetchError = function(err, res) {
     }
 };
 
-const respondError = (res, error, value) => {
+const respond400Error = (res, error, value) => {
     return res.status(400).json({error, value});
 };
 
@@ -148,14 +148,14 @@ app.post("/render", checkSecret, (req, res) => {
     const {urls, props, globals} = req.body;
 
     if (!Array.isArray(urls) || !urls.every(url => typeof url === "string")) {
-        return respondError(
+        return respond400Error(
             res,
             'Missing "urls" keyword in POST JSON input, ' +
                 'or "urls" is not a list of strings',
             urls,
         );
     } else if (typeof props !== "object" || Array.isArray(props)) {
-        return respondError(
+        return respond400Error(
             res,
             'Missing "props" keyword in POST JSON input, ' +
                 'or "props" is not an object, or it has non-string keys.',
@@ -171,7 +171,7 @@ app.post("/render", checkSecret, (req, res) => {
     );
 
     if (jsUrls.length === 0) {
-        return respondError(
+        return respond400Error(
             res,
             'Error in "urls" keyword in POST JSON input, ' +
                 "no valid JS urls were specified.",
