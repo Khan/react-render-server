@@ -207,13 +207,17 @@ describe("API endpoint /render", function() {
             mockScope.get(path).reply(200, contents);
         });
 
-        const expected =
+        const expectedEntry =
             "render-stats for " +
-            "https://www.khanacademy.org/webpacked/simple/entry.js: {" +
+            "https://www.khanacademy.org/webpacked/simple/entry.js";
+
+        const expectedEntryWithStats =
+            expectedEntry + ": {" +
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
-            '"createdVmContext":true,' +
-            '"vmContextSize":421739' +
+            '"fromCache":0,' +
+            '"vmContextSize":421739,' +
+            '"createdVmContext":true' +
             "}";
 
         // Act
@@ -222,18 +226,23 @@ describe("API endpoint /render", function() {
         // Assert
         // We just make sure one of the logging.debug args has
         // the information we expect to be logged.
-        let foundRenderStats = false;
+        let foundEntry = false;
+        let matchedStats = undefined;
         debugLoggingSpy.args.forEach(arglist => {
             arglist.forEach(arg => {
-                if (arg === expected) {
-                    foundRenderStats = true;
+                if (typeof arg === "string" && arg.startsWith(expectedEntry)) {
+                    foundEntry = true;
+                    matchedStats = arg;
                 }
             });
         });
+        assert.isTrue(
+            foundEntry,
+            `No stats entry like ${expectedEntry}. ${JSON.stringify(debugLoggingSpy.args)}`,
+        );
         assert.equal(
-            foundRenderStats,
-            true,
-            JSON.stringify(debugLoggingSpy.args),
+            matchedStats,
+            expectedEntryWithStats,
         );
         mockScope.done();
     });

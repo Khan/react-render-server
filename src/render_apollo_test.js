@@ -71,13 +71,11 @@ describe("render apollo", () => {
 
     beforeEach(() => {
         mockScope = nock('https://www.ka.org');
-        render.resetGlobals();
         cache.init(1000000);
     });
 
     afterEach(() => {
         nock.cleanAll();
-        render.resetGlobals();
         cache.destroy();
     });
 

@@ -83,8 +83,9 @@ app.use("/render", (req, res, next) => {
     req.requestStats = {
         pendingRenderRequests: pendingRenderRequests,
         packageFetches: 0,
-        createdVmContext: false,
+        fromCache: 0,
         vmContextSize: 0,
+        createdVmContext: false,
     };
 
     pendingRenderRequests++;
@@ -195,7 +196,6 @@ app.post("/render", checkSecret, (req, res) => {
                     packages,
                     props,
                     globals,
-                    undefined,
                     req.requestStats,
                 ).then(renderedState => {
                     // We store the updated request-stats in renderedState

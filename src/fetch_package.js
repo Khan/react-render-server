@@ -55,7 +55,8 @@ resetGlobals();
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
- * defined, we update it with how many fetches we had to do.
+ * defined, we update it with how many fetches we had to do and in the case of
+ * cacheBehavior==="yes", a `fromCache` count.
  */
 const fetchPackage = function(url, cacheBehavior, requestStats,
                               triesLeftAfterThisOne) {
@@ -81,6 +82,9 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
     } else if (cacheBehavior === 'yes') {
         cachedValue = cache.get(url);
         if (cachedValue != null) {
+            if (requestStats) {
+                requestStats.fromCache++;
+            }
             return Promise.resolve(cachedValue.text);
         }
     }
