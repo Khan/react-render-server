@@ -1,20 +1,52 @@
 /**
- * Retrieve a vm context object or create it if it isn't cached.
- * If requestStats is non-empty, set requestStats.createdVmContext to
- * whether we got the context from the cache or not.
+ * Create a render context object.
  */
 
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
-const cache = require("./cache.js");
 const profile = require("./profile.js");
+const fetchPackage = require("./fetch_package.js");
 
 class CustomResourceLoader extends jsdom.ResourceLoader {
+    constructor() {
+        super();
+        this._active = true;
+    }
+
+    close() {
+        this._active = false;
+    }
+
     fetch(url, options) {
-        // eslint-disable-next-line no-console
-        console.log("FETCHING: " + url);
-        return super.fetch(url, options);
+        // If this is not a JavaScript request or the JSDOM context has been
+        // closed by our rendering, then return an empty result as we don't
+        // need them for SSR-ing
+        const JSFileRegex = /^.*\.js(?:\?.*)?/g;
+        if (!JSFileRegex.test(url) || !this._active) {
+            // eslint-disable-next-line no-console
+            console.log("EMPTY: " + url);
+            return Promise.resolve(new Buffer(""));
+        }
+
+        // If this is a JavaScript request, then we want to direct it through
+        // our cache. We check for js file urls with and without query params.
+        const requestStats = {};
+        return fetchPackage(url, undefined, requestStats)
+            .then(content => {
+                const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
+                const message = `${source}: ${url}`;
+
+                if (this._active) {
+                    // eslint-disable-next-line no-console
+                    console.log(`${message}`);
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.warn(`File requested but never used\n${message}`);
+                }
+                // Still cache, even if it was late. Might be used at some point.
+                return new Buffer(content);
+            });
     }
 }
 
@@ -40,7 +72,37 @@ const runInContext = function(jsdomContext, fnOrText, options = {}) {
     );
 };
 
+const patchTimers = () => {
+    let warned = false;
+    const patchCallbackFnWithGate = (obj, fnName, gateName) => {
+        const old = obj[fnName];
+        delete obj[fnName];
+        obj[fnName] = (callback, ...args) => {
+            const gatedCallback = () => {
+                if (obj[gateName]) {
+                    callback();
+                    return;
+                }
+                if (!warned) {
+                    warned = true;
+                    // eslint-disable-next-line no-console
+                    console.warn("Dangling timer(s) encountered");
+                }
+            };
+            return old(gatedCallback, ...args);
+        };
+    };
+
+    // Patch the timer functions on window so that dangling timers don't kill
+    // us when we close the window.
+    patchCallbackFnWithGate(window, "setTimeout", "__SSR_ACTIVE__");
+    patchCallbackFnWithGate(window, "setInterval", "__SSR_ACTIVE__");
+    patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
+};
+
 const createRenderContext = function(locationUrl, jsPackages) {
+    const resourceLoader = new CustomResourceLoader();
+
     // A minimal document, for parts of our code that assume there's a DOM.
     const context = new jsdom.JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>", {
@@ -55,7 +117,7 @@ const createRenderContext = function(locationUrl, jsPackages) {
             // We use a custom loader for our scripts and other resource
             // requests so that we can output them to the log. Helps us debug
             // that what we think is happening is happening.
-            resources: new CustomResourceLoader(),
+            resources: resourceLoader,
             // There are certain things that a browser provides because it is
             // actually rendering things. While JSDOM does not render, we can
             // have it pretend that it is (it still isn't).
@@ -100,7 +162,16 @@ const createRenderContext = function(locationUrl, jsPackages) {
                 getRenderPromiseCallback,
             };
         };
+        window.__SSR_ACTIVE__ = true;
     });
+    context.run(patchTimers);
+
+    // Set up a close handler to be called after rendering is done.
+    context.close = () => {
+        context.run(() => { window.__SSR_ACTIVE__ = false; });
+        resourceLoader.close();
+        context.window.close();
+    };
 
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
@@ -116,52 +187,25 @@ const createRenderContext = function(locationUrl, jsPackages) {
     };
 };
 
-const getOrCreateRenderContext = function(
+const createRenderContextWithStats = function(
     locationUrl,
     jsPackages,
     pathToClientEntryPoint,
-    cacheBehavior,
     requestStats,
 ) {
-    if (cacheBehavior == null) {
-        throw new Error("Must provide a value for cacheBehavior");
-    }
-
-    // (We expect props to vary between requests for the same
-    // component, so we don't make the props part of the cache key.)
-    const cacheKey = jsPackages.map(({url}) => url).join(",");
-
-    if (cacheBehavior === 'yes') {
-        const cachedValue = cache.get(cacheKey);
-        if (cachedValue) {
-            if (requestStats) {
-                requestStats.createdVmContext = false;
-            }
-            return cachedValue;
-        }
-    }
-
     const vmConstructionProfile = profile.start("building VM for " +
         pathToClientEntryPoint);
 
     const {context, cumulativePackageSize} =
         createRenderContext(locationUrl, jsPackages);
 
-    if (cacheBehavior !== 'ignore') {
-        // As a rough heuristic, we say that the size of the context is double
-        // the size of the JS source files.
-        const cachedSize = cumulativePackageSize * 2;
-        cache.set(cacheKey, context, cachedSize);
-    }
-
     vmConstructionProfile.end();
 
     if (requestStats) {
-        requestStats.createdVmContext = true;
         requestStats.vmContextSize = cumulativePackageSize;
     }
 
     return context;
 };
 
-module.exports = getOrCreateRenderContext;
+module.exports = createRenderContextWithStats;

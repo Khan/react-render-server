@@ -8,26 +8,11 @@
 
 'use strict';
 
-const getOrCreateRenderContext = require('./get-or-create-render-context.js');
+const logging = require("winston");
+const createRenderContext = require('./create-render-context.js');
 const configureApolloNetwork = require('./configure-apollo-network.js');
 
 const profile = require("./profile.js");
-
-// render takes a cacheBehavior property, which is one of these:
-//    'yes': try to retrieve the object from the cache
-//    'no': do not try to retrieve the object from the cache (but
-//          still store it in the cache after retrieving it).
-//    'ignore': do not try to retrieve the object from the cache,
-//          nor try to store it in the cache.
-// This variable controls the cache behavior that is used if the
-// user does not pass in a value for cacheBehavior for render().
-let defaultCacheBehavior;
-
-const resetGlobals = function() {
-    defaultCacheBehavior = 'yes';
-};
-
-resetGlobals();
 
 /**
  * This method is executed whenever a render is needed. It is executed inside
@@ -101,13 +86,8 @@ const performRender = async () => {
  *     renderer; the props used to render.
  * @param {object} globals - the map of global variable name to their values to
  *     be set before the entrypoint is require()'d.
- * @param {string} cacheBehaviour - One of 'yes', 'no', or 'ignore'. Used to
- *     determine caching behaviour. See comment on defaultCacheBehaviour.
  * @param {object} requestStats -- If defined, should be a dict. Used to
- *     store stats about the current request.  In this case, we set
- *     requestStats.createdVmContext based on whether we had to create a
- *     new vm context or could get an existing one from the cache.
-
+ *     store stats about the current request.
  * @returns the results of the entrypoint render; this can be whatever you so
  * choose, but might look something like:
  *   {
@@ -126,18 +106,16 @@ const render = async function(
     jsPackages,
     props,
     globals,
-    cacheBehavior,
     requestStats,
 ) {
     const {url: entryPointUrl} = jsPackages[jsPackages.length - 1];
 
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
-    const context = getOrCreateRenderContext(
+    const context = createRenderContext(
         globals ? globals["location"] : "http://www.khanacademy.org",
         jsPackages,
         entryPointUrl,
-        cacheBehavior || defaultCacheBehavior,
         requestStats);
 
     context.window.ssrProps = props;
@@ -170,6 +148,7 @@ const render = async function(
         // following line and then in the debug console, set
         // context.__DEBUG_RENDER__ to true before continuing.
         const result = await context.run(performRender);
+
         // If we passed in request-stats, we've modified them in this
         // function (to update the stats).  Pass back the updated
         // stats as part of our response object.
@@ -178,15 +157,18 @@ const render = async function(
         }
         return result;
     } finally {
+        // We need to kill the JSDOM environment so code doesn't languish
+        // running timers and such.
+        try {
+            context.close();
+        } catch (e) {
+            logging.warn(
+                "Error while closing JSDOM context",
+                e.message,
+            );
+        }
         renderProfile.end();
     }
 };
-
-render.setDefaultCacheBehavior = function(cacheBehavior) {
-    defaultCacheBehavior = cacheBehavior;
-};
-
-// Used by tests.
-render.resetGlobals = resetGlobals;
 
 module.exports = render;

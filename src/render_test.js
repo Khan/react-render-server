@@ -11,6 +11,7 @@ const {assert} = chai;
 
 const sinon = require("sinon");
 
+const fetchPackage = require("./fetch_package.js");
 const cache = require("./cache.js");
 const render = require("./render.js");
 
@@ -24,8 +25,8 @@ describe("render", () => {
     });
 
     beforeEach(() => {
-        render.resetGlobals();
         cache.init(1000000);
+        fetchPackage.resetGlobals();
 
         sinon.spy(jsdom, "JSDOM");
         sinon.spy(cache, "get");
@@ -33,7 +34,6 @@ describe("render", () => {
     });
 
     afterEach(() => {
-        render.resetGlobals();
         cache.destroy();
 
         jsdom.JSDOM.restore();
@@ -114,23 +114,6 @@ describe("render", () => {
         assert.deepEqual(result, expectation);
     });
 
-    it('should pull context from cache, even with different props', async () => {
-        // Arrange
-        const packages = loadPackages(["basic/entry.js"]);
-
-        // Act
-        await render(packages, {name: "NAME"});
-        await render(packages, {name: "NAME"});
-        await render(packages, {name: "DIFFERENT NAME"});
-
-        // Assert
-        assert.equal(
-            jsdom.JSDOM.callCount,
-            1,
-            "This test can fail if the cache is not big enough",
-        );
-    });
-
     it('should render the same thing for the same parameters', async () => {
          // Arrange
          const packages = loadPackages(["basic/entry.js"]);
@@ -155,33 +138,9 @@ describe("render", () => {
          assert.notDeepEqual(result, expectation);
     });
 
-    it('should not pull context from cache when asked not to', async () => {
+    it('should not use cache at all', async () => {
         // Arrange
          const packages = loadPackages(["basic/entry.js"]);
-
-         // Act
-         await render(packages, {name: "A NAME"});
-         await render(packages, {name: "A NAME"}, {}, "no");
-
-         // Assert
-         assert.equal(jsdom.JSDOM.callCount, 2);
-    });
-
-    it('should still fill the cache when cacheBehavior is "no"', async () => {
-        // Arrange
-         const packages = loadPackages(["basic/entry.js"]);
-
-         // Act
-         await render(packages, {name: "A NAME"}, {}, "no");
-
-         // Assert
-         assert.equal(1, cache.set.callCount);
-    });
-
-    it('should not use cache at all when asked not to', async () => {
-        // Arrange
-         const packages = loadPackages(["basic/entry.js"]);
-         render.setDefaultCacheBehavior('ignore');
 
          // Act
          await render(packages, {name: "A NAME"});
@@ -189,29 +148,6 @@ describe("render", () => {
          // Assert
          assert.equal(0, cache.get.callCount);
          assert.equal(0, cache.set.callCount);
-    });
-
-    it('should use different cache keys for different package lists', async () => {
-        // Arrange
-         const package1 = loadPackages([
-             "webpacked/common/1.js",
-             "webpacked/common/2.js",
-             "webpacked/common/3.js",
-             "webpacked/simple/entry.js",
-         ]);
-         const package2 = loadPackages([
-             "webpacked/common/1.js",
-             "webpacked/common/2.js",
-             "webpacked/common/3.js",
-             "webpacked/with-aphrodite/entry.js",
-         ]);
-
-         // Act
-         await render(package1, {name: "A NAME"});
-         await render(package2, {name: "A NAME"});
-
-         // Assert
-        assert.equal(jsdom.JSDOM.callCount, 2);
     });
 
     it('should not require canvas to run', async () => {
