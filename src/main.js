@@ -65,6 +65,9 @@ if (!args.dev) {
 
     const debugAgent = require('@google-cloud/debug-agent');
     debugAgent.start({logLevel: 2});
+
+    const profiler = require('@google-cloud/profiler')
+    profiler.start();
 }
 
 
