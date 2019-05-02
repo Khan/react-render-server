@@ -117,6 +117,11 @@ if (args.dev) {
     // This is important for the default catch-all error handler:
     // http://expressjs.com/en/guide/error-handling.html
     process.env.NODE_ENV = 'production';
+
+    // TODO(jeff): Use our investigations to settle on a number that makes
+    // most sense.
+    // Let's up our default timeout to 2 seconds.
+    fetchPackage.setTimeout(2000)
 }
 
 

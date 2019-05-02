@@ -13,9 +13,11 @@
 'use strict';
 
 const request = require('superagent');
+const logging = require("winston");
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
+const graphiteUtil = require("./graphite_util.js");
 
 // fetchPackage takes a cacheBehavior property, which is one of these:
 //    'yes': try to retrieve the object from the cache
@@ -89,11 +91,17 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
         }
     }
 
+    // TODO(jeff): Do we still need this profiling now that we're using
+    // stackdriver profiler and our other logging?
     const fetchProfile = profile.start("fetching " + url);
 
-    const fetchPromise = new Promise((resolve, reject) => {
+    const fetchPromise = new Promise((realResolve, realReject) => {
+        // Log the time before we make the URL request.
+        const startStamp = Date.now();
 
+        // Now create the request.
         const fetcher = request.get(url);
+
         // We give the fetcher 60 seconds to get a response that we
         // can cache.  (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
@@ -102,6 +110,38 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
             fetcher.set('if-modified-since',
                         cachedValue.header['last-modified']);
         }
+
+        // This is a helper function for logging data about the fetch request.
+        const reportFetchTime = (success) => {
+            const duration = Date.now() - startStamp;
+
+            graphiteUtil.log(
+                success
+                    ? "react_render_server.stats.fetch_time_ms"
+                    : "react_render_server.stats.failed_fetch_time_ms",
+                duration,
+            );
+
+            logging.info(
+                `${success ? "FETCH_PASS" : "FETCH_FAIL"}: ${duration} ${url}`,
+            );
+        };
+
+        // We wrap the resolve and reject so that we can capture the timings,
+        // allowing us to use logs and graphite data to make decisions about
+        // timeout and caching strategies.
+        const resolve = (...args) => {
+            reportFetchTime(true);
+            return realResolve(...args);
+        };
+
+        const reject = (...args) => {
+            reportFetchTime(false);
+            return realReject(...args);
+        };
+
+        // Now we handle when the request ends, etiher successfully or
+        // otherwise.
         fetcher.buffer().end((err, res) => {
             // The request is done: don't say it's inflight anymore!
             // (Note: when running tests, our key may not be in
