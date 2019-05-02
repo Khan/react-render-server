@@ -13,6 +13,7 @@
 'use strict';
 
 const request = require('superagent');
+const logging = require("winston");
 
 const cache = require("./cache.js");
 const profile = require("./profile.js");
@@ -91,7 +92,7 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
 
     const fetchProfile = profile.start("fetching " + url);
 
-    const fetchPromise = new Promise((resolve, reject) => {
+    const fetchPromise = new Promise((realResolve, realReject) => {
 
         const fetcher = request.get(url);
         // We give the fetcher 60 seconds to get a response that we
@@ -102,6 +103,22 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
             fetcher.set('if-modified-since',
                         cachedValue.header['last-modified']);
         }
+        const startStamp = Date.now();
+
+        const resolve = (...args) => {
+            logging.info(
+                `Fetch for ${url} took ${(Date.now() - startStamp)}ms`,
+            );
+            return realResolve(...args);
+        };
+
+        const reject = (...args) => {
+            logging.info(
+                `Fetch for ${url} failed after ${(Date.now() - startStamp)}ms`,
+            );
+            return realReject(...args);
+        };
+
         fetcher.buffer().end((err, res) => {
             // The request is done: don't say it's inflight anymore!
             // (Note: when running tests, our key may not be in
