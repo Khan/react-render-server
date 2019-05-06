@@ -216,7 +216,7 @@ describe("API endpoint /render", function() {
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
             '"fromCache":0,' +
-            '"vmContextSize":421739,' +
+            '"vmContextSize":843478,' +
             '"createdVmContext":true' +
             "}";
 
@@ -331,25 +331,29 @@ describe("API endpoint /flush", () => {
 
     it("should empty the cache", done => {
         const url = "https://www.khanacademy.org/corelibs-package.js";
-        mockScope.get("/corelibs-package.js").reply(200, "test contents");
-        mockScope.get("/corelibs-package.js").reply(200, "must refetch");
+        mockScope.get("/corelibs-package.js").reply(200, "global._fetched = 'test contents';");
+        mockScope.get("/corelibs-package.js").reply(200, "global._fetched = 'must refetch';");
 
         fetchPackage(url)
             .then(res => {
-                assert.equal(res, "test contents");
+                res.runInThisContext();
+                assert.equal(global._fetched, "test contents");
+                global._fetched = undefined;
                 return fetchPackage(url);
             })
             .then(
                 res => {
                     // Should still be cached.
-                    assert.equal(res, "test contents");
+                    res.runInThisContext();
+                    assert.equal(global._fetched, "test contents");
                     agent
                         .post("/flush")
                         .send({secret: "sekret"})
                         .expect("dev\n", err => {
                             fetchPackage(url)
                                 .then(res => {
-                                    assert.equal(res, "must refetch");
+                                    res.runInThisContext();
+                                    assert.equal(global._fetched, "must refetch");
                                     mockScope.done();
                                     done(err);
                                 })

@@ -182,10 +182,7 @@ app.post("/render", checkSecret, (req, res) => {
 
     // Fetch the entry point and its dependencies.
     const fetchPromises = jsUrls.map(url =>
-        fetchPackage(url, undefined, req.requestStats).then(content => ({
-            url,
-            content,
-        })),
+        fetchPackage(url, undefined, req.requestStats)
     );
 
     // TODO(joshuan): Consider moving to async/await.

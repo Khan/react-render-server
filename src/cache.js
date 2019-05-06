@@ -25,12 +25,11 @@ const init = function(cacheSize) {
         max: cacheSize,
         length: obj => obj[1],
         dispose: (key, n) => {
-            logging.debug("CACHE dispose %s", key);
-            logging.debug("CACHE full %d length %d items %d",
-                         gCache.length / gCache.max, gCache.length, gCache.itemCount);
+            logging.debug(`CACHE dispose ${key}`);
+            logging.debug(`CACHE full ${gCache.length / gCache.max} length ${gCache.length} items ${gCache.itemCount}`);
         }
     });
-    logging.debug("CACHE init %d", cacheSize);
+    logging.debug(`CACHE init ${cacheSize}`);
 };
 
 const set = function(key, object, size) {
@@ -38,9 +37,8 @@ const set = function(key, object, size) {
         throw new Error("Size must be a specified and a number.");
     }
     gCache.set(key, [object, size]);
-    logging.debug("CACHE set %s %s", key, size);
-    logging.debug("CACHE full %d length %d items %d",
-                 gCache.length / gCache.max, gCache.length, gCache.itemCount);
+    logging.debug(`CACHE set ${key} ${size}`);
+    logging.debug(`CACHE full ${gCache.length / gCache.max} length ${gCache.length} items ${gCache.itemCount}`);
 };
 
 const get = function(key) {
@@ -48,9 +46,8 @@ const get = function(key) {
     if (val) {
         return val[0];
     }
-    logging.debug("CACHE miss %s", key);
-    logging.debug("CACHE full %d length %d items %d",
-                 gCache.length / gCache.max, gCache.length, gCache.itemCount);
+    logging.debug(`CACHE miss ${key}`);
+    logging.debug(`CACHE full ${gCache.length / gCache.max} length ${gCache.length} items ${gCache.itemCount}`);
     return undefined;
 };
 

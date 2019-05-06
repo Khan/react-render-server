@@ -12,10 +12,39 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     constructor() {
         super();
         this._active = true;
+        this.EMPTY = Buffer.from("");
+    }
+
+    setScriptRunner(callback) {
+        this._runScript = callback;
     }
 
     close() {
         this._active = false;
+        this._lastRequest = undefined;
+    }
+
+    _executeFromCache(url) {
+        const requestStats = {};
+
+        return fetchPackage(url, undefined, requestStats)
+            .then(script => {
+                const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
+                const message = `${source}: ${url}`;
+
+                if (this._active) {
+                    // eslint-disable-next-line no-console
+                    console.log(`${message}`);
+                    this._runScript(script);
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.warn(`File requested but never used\n${message}`);
+                }
+            }).then(() => {
+                // Our JS queue will handle executing the code, so we just resolve
+                // with an dummy script.
+                return this.EMPTY;
+            });
     }
 
     fetch(url, options) {
@@ -26,27 +55,13 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         if (!JSFileRegex.test(url) || !this._active) {
             // eslint-disable-next-line no-console
             console.log("EMPTY: " + url);
-            return Promise.resolve(new Buffer(""));
+            // We just resolve with an empty string.
+            return Promise.resolve(this.EMPTY);
         }
 
         // If this is a JavaScript request, then we want to direct it through
         // our cache. We check for js file urls with and without query params.
-        const requestStats = {};
-        return fetchPackage(url, undefined, requestStats)
-            .then(content => {
-                const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
-                const message = `${source}: ${url}`;
-
-                if (this._active) {
-                    // eslint-disable-next-line no-console
-                    console.log(`${message}`);
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.warn(`File requested but never used\n${message}`);
-                }
-                // Still cache, even if it was late. Might be used at some point.
-                return new Buffer(content);
-            });
+        return this._executeFromCache(url);
     }
 }
 
@@ -124,6 +139,8 @@ const createRenderContext = function(locationUrl, jsPackages) {
             pretendToBeVisual: true,
         });
 
+    resourceLoader.setScriptRunner(script => context.runVMScript(script));
+
     // This means we can run scripts inside the jsdom context.
     context.run =
         (fnOrText, options) => runInContext(context, fnOrText, options);
@@ -175,10 +192,9 @@ const createRenderContext = function(locationUrl, jsPackages) {
 
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
-    jsPackages.forEach(({content, url}) => {
-        // pkg is [url path, contents]
-        context.run(content, {filename: url});
-        cumulativePackageSize += content.length;
+    jsPackages.forEach(script => {
+        context.runVMScript(script);
+        cumulativePackageSize += script.size;
     });
 
     return {

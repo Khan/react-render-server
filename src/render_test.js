@@ -2,6 +2,7 @@
 /* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
+const vm = require("vm");
 const jsdom = require("jsdom");
 
 const chai = require("chai");
@@ -18,10 +19,10 @@ const render = require("./render.js");
 describe("render", () => {
     const loadPackages = packageNames => packageNames.map(filename => {
         const filepath = `${__dirname}/testdata/${filename}`;
-        return {
-            url: filename,
-            content: fs.readFileSync(filepath, "utf-8"),
-        };
+        return new vm.Script(
+            fs.readFileSync(filepath, "utf-8"),
+            {filename: filepath},
+        );
     });
 
     beforeEach(() => {
