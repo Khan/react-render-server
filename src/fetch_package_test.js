@@ -37,27 +37,33 @@ describe('fetchPackage', () => {
     });
 
     beforeEach(() => {
+        global._fetched = undefined;
         mockScope = nock('https://www.ka.org');
         cache.init(10000);
         fetchPackage.resetGlobals();
     });
 
     afterEach(() => {
+        global._fetched = undefined;
         nock.cleanAll();
         cache.destroy();
     });
 
     it("should fetch files", () => {
-        mockScope.get("/ok.js").reply(200, "'yay!'");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
         return fetchPackage("https://www.ka.org/ok.js").then(res => {
-            assert.equal(res, "'yay!'");
+            assert.isDefined(res);
+
+            // Let's run the loaded script to verify it worked.
+            res.runInThisContext();
+            assert.equal(global._fetched, "yay!");
             mockScope.done();
         });
     });
 
     it("should fail on 4xx", (done) => {
-        mockScope.get("/ok.js").reply(404, "boo");
+        mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
 
         fetchPackage("https://www.ka.org/ok.js").then(
             (res) => done(new Error("Should have failed on 4xx")),
@@ -69,13 +75,18 @@ describe('fetchPackage', () => {
 
     it("should use the cache", () => {
         // What we return for the first call and the second call.
-        mockScope.get("/ok.js").reply(200, "'yay!'");
-        mockScope.get("/ok.js").reply(200, "new");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'new';");
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
+            assert.isDefined(res);
+            // Let's run the loaded script to verify it worked.
+            res.runInThisContext();
+
             // Should still have the cached value.
-            assert.equal(res, "'yay!'");
+            assert.equal(global._fetched, "yay!");
+
             // We shouldn't have even fetched /ok.js the second time.
             assert.equal(1, mockScope.pendingMocks().length);
         });
@@ -83,13 +94,17 @@ describe('fetchPackage', () => {
 
     it("should be able to bust the cache", () => {
         // What we return for the first call and the second call.
-        mockScope.get("/ok.js").reply(200, "'yay!'");
-        mockScope.get("/ok.js").reply(200, "new");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'new';");
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
             return fetchPackage("https://www.ka.org/ok.js", 'no');
         }).then((res) => {
+            assert.isDefined(res);
+            // Let's run the loaded script to verify it worked.
+            res.runInThisContext();
+
             // Should have the new value due to the 'true' above.
-            assert.equal(res, "new");
+            assert.equal(global._fetched, "new");
             mockScope.done();
         });
     });
@@ -98,42 +113,55 @@ describe('fetchPackage', () => {
         cache.destroy();
         cache.init(3);     // only allow 3 bytes in the cache
         // What we return for the first call and the second call.
-        mockScope.get("/ok.js").reply(200, "'yay!'");
-        mockScope.get("/ok.js").reply(200, "new");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'new';");
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
-            // Should have the new value due to being too big for the cache.
-            assert.equal(res, "new");
+            assert.isDefined(res);
+            // Let's run the loaded script to verify it worked.
+            res.runInThisContext();
+
+            // Should have the most recent value due to all results being too
+            // big for the cache.
+            assert.equal(global._fetched, "new");
             mockScope.done();
         });
     });
 
     it("should remove old things but not new ones", () => {
         cache.destroy();
-        // Allow 30 bytes in the cache; enough for 'early to the
+        // Allow 150 bytes in the cache; enough for 'early to the
         // party' and 'late to the party' but not both.  (And room for
         // 'boo!' with either.)
-        cache.init(30);
+        // NOTE(jeff): Given we now cache Script objects, I found a value that
+        // worked for this test through trial and error.
+        // The text for the scripts only needs about 80 bytes, but there's
+        // overhead for being in a Script.
+        cache.init(150);
         // What we return for the first call and the second call.
-        mockScope.get("/ok.js").reply(200, "'early to the party'");
-        mockScope.get("/ok2.js").reply(200, "'late to the party'");
-        mockScope.get("/ok.js").reply(200, "'boo!'");
-        mockScope.get("/ok2.js").reply(200, "'ignored: cached'");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'early to the party';");
+        mockScope.get("/ok2.js").reply(200, "global._fetched = 'late to the party';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'boo!';");
+        mockScope.get("/ok2.js").reply(200, "global._fetched = 'ignored: cached';");
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            assert.equal(res, "'early to the party'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "early to the party");
             return fetchPackage("https://www.ka.org/ok2.js");
         }).then((res) => {
-            assert.equal(res, "'late to the party'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "late to the party");
             return fetchPackage("https://www.ka.org/ok.js");
         }).then((res) => {
             // This value should be fetched anew because ok.js should
             // have been evicted from the cache.
-            assert.equal(res, "'boo!'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "boo!");
             return fetchPackage("https://www.ka.org/ok2.js");
         }).then((res) => {
             // This should still be in the cache.
-            assert.equal(res, "'late to the party'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "late to the party");
             // We shouldn't have fetched /ok2.js the second time.
             assert.equal(1, mockScope.pendingMocks().length);
         });
@@ -145,26 +173,30 @@ describe('fetchPackage', () => {
         const lmBefore = 'Thu, 07 Jan 2016 23:47:50 GMT';
         const lmAfter = 'Thu, 07 Jan 2016 23:47:55 GMT';
 
-        mockScope.get("/ok.js").reply(200, "'hi'",
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'hi';",
                                       {'Last-modified': lmDate});
-        mockScope.get("/ok.js").reply(maybe304(lmDate, "'no-see-um'"));
-        mockScope.get("/ok.js").reply(maybe304(lmBefore, "'no-see-um 2'"));
-        mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
+        mockScope.get("/ok.js").reply(maybe304(lmDate, "global._fetched = 'no-see-um';"));
+        mockScope.get("/ok.js").reply(maybe304(lmBefore, "global._fetched = 'no-see-um 2';"));
+        mockScope.get("/ok.js").reply(maybe304(lmAfter, "global._fetched = 'new content';"));
         return fetchPackage("https://www.ka.org/ok.js", 'ims').then((res) => {
             // Original fetch
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
             // lmDate
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
             // lmAfter
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'ims');
         }).then((res) => {
             // lmBefore
-            assert.equal(res, "'new content'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "new content");
             mockScope.done();
         });
     });
@@ -174,22 +206,26 @@ describe('fetchPackage', () => {
         const lmBefore = 'Thu, 07 Jan 2016 23:47:50 GMT';
         const lmAfter = 'Thu, 07 Jan 2016 23:47:55 GMT';
 
-        mockScope.get("/ok.js").reply(200, "'hi'",
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'hi';",
                                       {'Last-modified': lmDate});
-        mockScope.get("/ok.js").reply(maybe304(lmDate, "'no-see-um'"));
-        mockScope.get("/ok.js").reply(maybe304(lmBefore, "'no-see-um 2'"));
-        mockScope.get("/ok.js").reply(maybe304(lmAfter, "'new content'"));
+        mockScope.get("/ok.js").reply(maybe304(lmDate, "global._fetched = 'no-see-um';"));
+        mockScope.get("/ok.js").reply(maybe304(lmBefore, "global._fetched = 'no-see-um 2';"));
+        mockScope.get("/ok.js").reply(maybe304(lmAfter, "global._fetched = 'new content';"));
         return fetchPackage("https://www.ka.org/ok.js", 'yes').then((res) => {
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             return fetchPackage("https://www.ka.org/ok.js", 'yes');
         }).then((res) => {
-            assert.equal(res, "'hi'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "hi");
             // We should still have pending mocks; in 'yes' mode we
             // don't even hit the server when there's a cache hit.
             assert.notEqual(0, mockScope.pendingMocks().length);
@@ -197,15 +233,14 @@ describe('fetchPackage', () => {
     });
 
     it("should only fetch once for concurrent requests", () => {
-        mockScope.get("/ok.js").reply(200, "'yay!'");
-        mockScope.get("/ok.js").reply(200, "'ignored'");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'ignored';");
 
         return Promise.all(
             [fetchPackage("https://www.ka.org/ok.js"),
              fetchPackage("https://www.ka.org/ok.js")]
         ).then(e => {
-            assert.equal(e[0], "'yay!'");
-            assert.equal(e[1], "'yay!'");
+            assert.equal(e[0], e[1]);
             // We should still have pending mocks; the second request
             // should never have gotten sent.
             assert.notEqual(0, mockScope.pendingMocks().length);
@@ -213,23 +248,22 @@ describe('fetchPackage', () => {
     });
 
     it("should fetch twice with different cache modes", () => {
-        mockScope.get("/ok.js").reply(200, "'yay!'");
-        mockScope.get("/ok.js").reply(200, "'not ignored'");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'not ignored';");
 
         return Promise.all(
             [fetchPackage("https://www.ka.org/ok.js", "yes"),
              fetchPackage("https://www.ka.org/ok.js", "no")]
         ).then(e => {
-            assert.equal(e[0], "'yay!'");
-            assert.equal(e[1], "'not ignored'");
+            assert.notEqual(e[0], e[1]);
             mockScope.done();
         });
     });
 
     it("should retry on 5xx", (done) => {
-        mockScope.get("/ok.js").reply(500, "boo");
-        mockScope.get("/ok.js").reply(500, "boo");
-        mockScope.get("/ok.js").reply(500, "boo");
+        mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
 
         fetchPackage("https://www.ka.org/ok.js").then(
             (res) => done(new Error("Should have failed on 4xx")),
@@ -241,11 +275,12 @@ describe('fetchPackage', () => {
     });
 
     it("should succeed on 5xx followed by 200", () => {
-        mockScope.get("/ok.js").reply(500, "boo");
-        mockScope.get("/ok.js").reply(200, "'yay!'");
+        mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            assert.equal(res, "'yay!'");
+            res.runInThisContext();
+            assert.equal(global._fetched, "yay!");
             mockScope.done();
         });
     });

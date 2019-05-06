@@ -115,15 +115,6 @@ if (args.dev) {
     process.env.NODE_ENV = 'production';
 }
 
-// NOTE(jeff, WEB-752): The cache timeouts aren't helping anything.
-// If the files legitimately timeout, we would be better knowing that than
-// getting these "fake" timeout errors. Since we don't need the render to
-// return in a specific time (the calling app will cope with a slow render
-// using its own timeouts), should have no timeout. This really means a 60s
-// timeout as it stands - I stopped short of removing the timeout race entirely
-// although I am tempted.
-fetchPackage.setTimeout(null);
-
 // Add logging support, based on
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
 winston.level = args.log_level;

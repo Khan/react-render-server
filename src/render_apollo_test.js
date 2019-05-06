@@ -2,6 +2,7 @@
 /* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
+const vm = require("vm");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -16,10 +17,10 @@ const render = require("./render.js");
 describe("render apollo", () => {
     const loadPackages = packageNames => packageNames.map(filename => {
         const filepath = `${__dirname}/testdata/${filename}`;
-        return {
-            url: filename,
-            content: fs.readFileSync(filepath, "utf-8"),
-        };
+        return new vm.Script(
+            fs.readFileSync(filepath, "utf-8"),
+            {filename: filepath},
+        );
     });
     const validGraphQLResponse = JSON.stringify({
         "errors": null,

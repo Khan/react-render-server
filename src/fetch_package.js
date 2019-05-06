@@ -12,6 +12,8 @@
 
 'use strict';
 
+const vm = require("vm");
+
 const request = require('superagent');
 const logging = require("winston");
 
@@ -81,7 +83,7 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
             if (requestStats) {
                 requestStats.fromCache++;
             }
-            return Promise.resolve(cachedValue.text);
+            return Promise.resolve(cachedValue.script);
         }
     }
 
@@ -100,9 +102,8 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
         // can cache.  (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
-        if (cachedValue && cachedValue.header['last-modified']) {
-            fetcher.set('if-modified-since',
-                        cachedValue.header['last-modified']);
+        if (cachedValue && cachedValue.lastModified) {
+            fetcher.set('if-modified-since', cachedValue.lastModified);
         }
 
         // This is a helper function for logging data about the fetch request.
@@ -153,8 +154,11 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
                 if (err.response && err.response.status === 304) {
                     if (requestStats) {
                         requestStats.packageFetches++;
+
+                        // We're using the cached value.
+                        requestStats.fromCache++;
                     }
-                    resolve(cachedValue.text);
+                    resolve(cachedValue.script);
                     return;
                 }
                 if (err.response && err.response.status >= 400 &&
@@ -178,15 +182,24 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
                 // OK, I give up.
                 reject(err);
             } else {
-                // Estimate the size of `res` to just be the size of the
-                // response body (we ignore headers and struct overhead).
+                const cacheableValue = {
+                    lastModified: res.header && res.header["last-modified"],
+                    script: new vm.Script(res.text, {filename: url}),
+                };
+                // Pass in a size estimate; it's really just an estimate
+                // though as we don't consider anything but the script text.
+                // Since we're running in node, we assume 2 bytes
+                // per character in the text. We aren't accounting for
+                // other info associated with that, though.
+                cacheableValue.script.size = res.text.length * 2;
+
                 if (cacheBehavior !== 'ignore') {
-                    cache.set(url, res, res.text.length);
+                    cache.set(url, cacheableValue, cacheableValue.script.size);
                 }
                 if (requestStats) {
                     requestStats.packageFetches++;
                 }
-                resolve(res.text);
+                resolve(cacheableValue.script);
             }
         });
     });
