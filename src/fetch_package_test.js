@@ -226,36 +226,6 @@ describe('fetchPackage', () => {
         });
     });
 
-    it("should fail on response timeout", (done) => {
-        // The important thing is that the timeout trigger in the
-        // fetch code; we shouldn't wait so long it hits the
-        // test-runner timeout.
-        fetchPackage.setTimeout(20);
-
-        mockScope.get("/ok.js").delay(500).reply(200, "'hi'");
-        fetchPackage("https://www.ka.org/ok.js").then(
-            (res) => done(new Error("Should have timed out")),
-            (err) => {
-                assert.equal(20, err.timeout);
-                mockScope.done();
-                done();
-            }).catch(done);
-    });
-
-    it("should fail on connection timeout", (done) => {
-        fetchPackage.setTimeout(20);
-
-        // Due to retries, we'll try to fetch this thing 3 times.
-        mockScope.get("/ok.js").delayConnection(500).reply(200, "'hi'");
-        fetchPackage("https://www.ka.org/ok.js").then(
-            (res) => done(new Error("Should have timed out")),
-            (err) => {
-                assert.equal(20, err.timeout);
-                mockScope.done();
-                done();
-            }).catch(done);
-    });
-
     it("should retry on 5xx", (done) => {
         mockScope.get("/ok.js").reply(500, "boo");
         mockScope.get("/ok.js").reply(500, "boo");
