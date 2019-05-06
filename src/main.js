@@ -90,7 +90,6 @@ const port = args.port;
 
 // Set up our globals and singletons
 if (args.dev) {
-
     // If we want to test things a bit more closely to how prod does, we can
     // skip caching behavior changes.
     if (!args.likeprod) {
@@ -104,9 +103,6 @@ if (args.dev) {
         console.log("DEV: Caching and timeouts like production");
     }
 
-    // We turn off the timeout in dev; it's not as important there.
-    fetchPackage.setTimeout(null);
-
     // Disable the need for secrets.
     renderSecret.matches = (actual, callback) => {
         return callback(null, true);
@@ -117,13 +113,16 @@ if (args.dev) {
     // This is important for the default catch-all error handler:
     // http://expressjs.com/en/guide/error-handling.html
     process.env.NODE_ENV = 'production';
-
-    // TODO(jeff): Use our investigations to settle on a number that makes
-    // most sense.
-    // Let's up our default timeout to 2 seconds.
-    fetchPackage.setTimeout(2000)
 }
 
+// NOTE(jeff, WEB-752): The cache timeouts aren't helping anything.
+// If the files legitimately timeout, we would be better knowing that than
+// getting these "fake" timeout errors. Since we don't need the render to
+// return in a specific time (the calling app will cope with a slow render
+// using its own timeouts), should have no timeout. This really means a 60s
+// timeout as it stands - I stopped short of removing the timeout race entirely
+// although I am tempted.
+fetchPackage.setTimeout(null);
 
 // Add logging support, based on
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
