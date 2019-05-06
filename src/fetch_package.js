@@ -32,11 +32,6 @@ const graphiteUtil = require("./graphite_util.js");
 // user does not pass in a value for cacheBehavior for fetchPackage().
 let defaultCacheBehavior;
 
-// How long we wait on a single http request before giving up.  Note
-// that due to retries, a single fetchPackage() call can take 3 times
-// as long as this.
-let defaultTimeoutInMs;
-
 // How many times we retry on 5xx error or similar, before giving up.
 let numRetries;
 
@@ -46,7 +41,6 @@ let inFlightRequests;
 
 const resetGlobals = function() {
     defaultCacheBehavior = 'yes';
-    defaultTimeoutInMs = 1000;
     numRetries = 2;     // so 3 tries total
     inFlightRequests = {};
 };
@@ -201,17 +195,8 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
         fetchProfile.end();
     });
 
-    if (defaultTimeoutInMs == null) {
-        defaultTimeoutInMs = 60000;        // maximum timeout we allow
-    }
-    const timerPromise = new Promise((resolve, reject) => {
-        setTimeout(reject, defaultTimeoutInMs,
-                   {'error': 'timed out while fetching ' + url,
-                    'timeout': defaultTimeoutInMs});
-    });
-
     // This resolves to whichever promise finishes first.
-    const retval = Promise.race([fetchPromise, timerPromise]);
+    const retval = fetchPromise;
 
     // Let other concurrent requests know that we're fetching this
     // url, so they don't try to do it too.
@@ -221,11 +206,6 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
 
 fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
     defaultCacheBehavior = cacheBehavior;
-};
-
-// Can set the timeout to null to turn off timeouts.
-fetchPackage.setTimeout = function(timeout) {
-    defaultTimeoutInMs = timeout;
 };
 
 // Used by tests.
