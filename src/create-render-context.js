@@ -124,7 +124,7 @@ const patchTimers = () => {
     patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
 };
 
-const createRenderContext = function(locationUrl, jsPackages) {
+const createRenderContext = function(locationUrl, globals, jsPackages) {
     const resourceLoader = new CustomResourceLoader();
 
     // A minimal document, for parts of our code that assume there's a DOM.
@@ -201,6 +201,17 @@ const createRenderContext = function(locationUrl, jsPackages) {
         context.window.close();
     };
 
+    // Now, before we load any code, we make sure any globals we've been asked
+    // to set are made available to the VM context.
+    if (globals) {
+        Object.keys(globals).forEach(key => {
+            // Location is a special case, so we want to block changing that.
+            if (key !== 'location') {
+                context.window[key] = globals[key];
+            }
+        });
+    }
+
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
     jsPackages.forEach(script => {
@@ -216,6 +227,7 @@ const createRenderContext = function(locationUrl, jsPackages) {
 
 const createRenderContextWithStats = function(
     locationUrl,
+    globals,
     jsPackages,
     pathToClientEntryPoint,
     requestStats,
@@ -224,7 +236,7 @@ const createRenderContextWithStats = function(
         pathToClientEntryPoint);
 
     const {context, cumulativePackageSize} =
-        createRenderContext(locationUrl, jsPackages);
+        createRenderContext(locationUrl, globals, jsPackages);
 
     vmConstructionProfile.end();
 

@@ -114,6 +114,7 @@ const render = async function(
     // and configure it accordingly.
     const context = createRenderContext(
         globals ? globals["location"] : "http://www.khanacademy.org",
+        globals,
         jsPackages,
         entryPointUrl,
         requestStats);
@@ -123,16 +124,6 @@ const render = async function(
     const renderProfile = profile.start("rendering " + entryPointUrl);
 
     try {
-        // Make sure the require globals are made available to the VM context.
-        if (globals) {
-            Object.keys(globals).forEach(key => {
-                // Location is a special case.
-                if (key !== 'location') {
-                    context.window[key] = globals[key];
-                }
-            });
-        }
-
         // If Apollo is required, get it configured on the context.
         if (context.window.ApolloNetwork) {
             configureApolloNetwork(context.window);
