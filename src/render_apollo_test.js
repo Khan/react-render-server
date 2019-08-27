@@ -51,6 +51,7 @@ describe("render apollo", () => {
                     "id": "$ROOT_QUERY.coachData.studentListByName(" +
                         "{\"name\":\"Test Class 1\"})",
                     "generated": true,
+                    "typename": "StudentList",
                 },
                 "__typename": "StudentsListsQuery",
             },
@@ -59,6 +60,7 @@ describe("render apollo", () => {
                     "type": "id",
                     "id": "$ROOT_QUERY.coachData",
                     "generated": true,
+                    "typename": "StudentsListsQuery",
                 },
             },
         },
