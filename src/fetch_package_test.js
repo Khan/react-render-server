@@ -18,7 +18,6 @@ describe('fetchPackage', () => {
     beforeEach(() => {
         global._fetched = undefined;
         mockScope = nock('https://www.ka.org');
-        fetchPackage.resetGlobals();
     });
 
     afterEach(() => {

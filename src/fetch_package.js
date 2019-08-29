@@ -21,19 +21,10 @@ const profile = require("./profile.js");
 const graphiteUtil = require("./graphite_util.js");
 
 // How many times we retry on 5xx error or similar, before giving up.
-let numRetries;
+const numRetries = 2;
 
 // What requests are currently in flight?
-let inFlightRequests;
-
-
-const resetGlobals = function() {
-    numRetries = 2;     // so 3 tries total
-    inFlightRequests = {};
-};
-
-resetGlobals();
-
+const inFlightRequests = {};
 
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
@@ -159,8 +150,5 @@ const fetchPackage = function(url, requestStats,
     inFlightRequests[url] = retval;
     return retval;
 };
-
-// Used by tests.
-fetchPackage.resetGlobals = resetGlobals;
 
 module.exports = fetchPackage;
