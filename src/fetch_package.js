@@ -129,6 +129,8 @@ const fetchPackage = function(url, requestStats,
                 // Since we're running in node, we assume 2 bytes
                 // per character in the text. We aren't accounting for
                 // other info associated with that, though.
+                // This is used in our request stats when determining how "big"
+                // the code was to perform the current render.
                 script.size = res.text.length * 2;
                 if (requestStats) {
                     requestStats.packageFetches++;
