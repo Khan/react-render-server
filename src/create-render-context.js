@@ -174,14 +174,12 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
     // will perform the render, including data fetch calls using
     // getDataFromTree or whatever call is appropriate.
     //
-    // The getRenderPromiseCallback takes the props and an ApolloClient
-    // instance (or null, if Apollo is not needed), and returns a promise of
+    // The getRenderPromiseCallback takes the props and returns a promise of
     // the rendered content.
     //
     // An entrypoint example for invoking __registerForSSR__:
     //
-    //     const renderElement = (props, maybeApolloClient) =>
-    //         Promise.resolve({html, css});
+    //     const renderElement = (props) => Promise.resolve({html, css});
     //     window.__registerForSSR__(renderElement);
     //
     context.run(() => {

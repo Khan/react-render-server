@@ -10,7 +10,6 @@
 
 const logging = require("winston");
 const createRenderContext = require('./create-render-context.js');
-const configureApolloNetwork = require('./configure-apollo-network.js');
 
 const profile = require("./profile.js");
 
@@ -27,24 +26,6 @@ const performRender = async () => {
         // eslint-disable-next-line no-debugger
         debugger;
     }
-    // 1. Setup an Apollo client if one is expected.
-    const maybeApolloClient = global.ApolloNetworkLink
-        // If network details were provided for Apollo then we go about
-        // wrapping the element in an Apollo provider (which will
-        // collect the data requirements of the child components and
-        // send off a network request to a GraphQL endpoint).
-
-        // Build an Apollo client. This is responsible for making the
-        // network requests to the GraphQL endpoint and bringing back
-        // the data.
-        ? new global.ApolloClient.ApolloClient({
-            ssrMode: true,
-            link: global.ApolloNetworkLink,
-            cache: global.ApolloCache,
-        })
-        // For rendering things that have no Apollo-centric logic, we
-        // don't have a client.
-        : null;
 
     // Make a deep clone of the props in the context before
     // rendering them, so that any polyfills we have in the context
@@ -57,19 +38,8 @@ const performRender = async () => {
     const {getRenderPromiseCallback} = window.__rrs;
 
     // Now ask the client to render.
-    // The client should also get the data here with
-    // ReactApollo.getDataFromTree (or other mechanism specific to the
-    // framework, if not React).
-    const result = await getRenderPromiseCallback(
-        clonedProps,
-        maybeApolloClient,
-    );
+    const result = await getRenderPromiseCallback(clonedProps);
 
-    // We need to pass back any data so that it can be rendered directly
-    // into the page (for the re-hydration).
-    if (global.ApolloNetworkLink) {
-        result.data = maybeApolloClient.extract();
-    }
     return result;
 };
 
@@ -124,11 +94,6 @@ const render = async function(
     const renderProfile = profile.start("rendering " + entryPointUrl);
 
     try {
-        // If Apollo is required, get it configured on the context.
-        if (context.window.ApolloNetwork) {
-            configureApolloNetwork(context.window);
-        }
-
         // Now that everything is setup, we can invoke our rendering.
         if (context.window.__rrs == null) {
             // This is a problem.

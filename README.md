@@ -32,17 +32,7 @@ that looks like so:
         "secret": "...."
     }
 
-The response will look however the client generates it, but usually it is
-something like this:
-
-    {
-        "html": "<a href='http://www.google.com' class='link141'>Google</a>",
-        "css": {
-            content: ".link141{backgroundColor:transparent;}",
-            renderedClassNames: ["link141"]
-        },
-        "data": {}
-    }
+The response will look however the client generates it.
 
 In the request:
 
@@ -55,17 +45,6 @@ In the request:
 - `props` will be passed verbatim as props to the component.
 - `secret` is a shared secret that will be pulled from disk on server bootup in
   order to discourage arbitrary code execution attempts against the server.
-
-In the response example:
-
-- `html` is an HTML string containing the rendered component, such as that
-  produced via [`ReactDOMServer.renderToString`][react-dom].
-- `css` is server-rendered CSS contents such as that generated via
-[Aphrodite][aphrodite]'s [`StyleSheetServer.renderStatic`][renderStatic];
-- `data` is the data that the react-render-server attaches to the response from
-  any Apollo queries that the code made during the render
-
-However, since the clientside code is responsible for both rendering and rehydrating from a server-side render, other than the `data` field, the remainder of the response can be whatever the given client usage requires as long as the rendering code and the rehydration code have the same expectations.
 
 ## Component Sandboxes
 
