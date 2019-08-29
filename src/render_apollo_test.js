@@ -11,7 +11,6 @@ const {assert} = chai;
 
 const nock = require("nock");
 
-const cache = require("./cache.js");
 const render = require("./render.js");
 
 describe("render apollo", () => {
@@ -74,12 +73,10 @@ describe("render apollo", () => {
 
     beforeEach(() => {
         mockScope = nock('https://www.ka.org');
-        cache.init(1000000);
     });
 
     afterEach(() => {
         nock.cleanAll();
-        cache.destroy();
     });
 
     it('should correctly render a simple apollo react component', async () => {

@@ -27,13 +27,6 @@ parser.addArgument(
         help: "Set if running on dev; controls caching/etc.",
     });
 parser.addArgument(
-    ['--cache-size'],
-    {
-        type: 'int',
-        defaultValue: 200,
-        help: "Internal cache size, in MB.",
-    });
-parser.addArgument(
     ['--render-timeout'],
     {
         type: 'int',
@@ -47,13 +40,6 @@ parser.addArgument(
         choices: ['silly', 'debug', 'verbose', 'info', 'warn', 'error'],
         help: "What level to log at.",
     });
-parser.addArgument(
-    ['--likeprod'],
-    {
-        action: 'storeTrue',
-        help: "Only useful with --dev. Tells the dev server to cache and timeout like production would",
-    }
-)
 
 const args = parser.parseArgs();
 
@@ -80,8 +66,6 @@ const StackdriverTransport = (
     require('@google-cloud/logging-winston').LoggingWinston);
 
 const app = require("./server.js");
-const cache = require("./cache.js");
-const fetchPackage = require("./fetch_package.js");
 const renderSecret = require("./secret.js");
 
 const logging = winston;     // just an alias, for clarity
@@ -90,19 +74,6 @@ const port = args.port;
 
 // Set up our globals and singletons
 if (args.dev) {
-    // If we want to test things a bit more closely to how prod does, we can
-    // skip caching behavior changes.
-    if (!args.likeprod) {
-        // In dev, we do an if-modified-since query rather than trusting
-        // the cache never gets out of date.  (In prod the default cache
-        // behavior is fine because package-names include their md5 in the
-        // filename.)
-        fetchPackage.setDefaultCacheBehavior('ims');
-    } else {
-        // eslint-disable-next-line no-console
-        console.log("DEV: Caching and timeouts like production");
-    }
-
     // Disable the need for secrets.
     renderSecret.matches = (actual, callback) => {
         return callback(null, true);
@@ -141,8 +112,6 @@ appWithLogging.use(expressWinston.errorLogger({      // error logging
     transports: getTransports(true, args.dev), // colorize for dev, not prod
 }));
 appWithLogging.use(app);
-
-cache.init(args.cache_size * 1024 * 1024);
 
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;

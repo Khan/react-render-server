@@ -9,8 +9,6 @@ const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
 
-const cache = require("./cache.js");
-const fetchPackage = require("./fetch_package.js");
 const graphiteUtil = require("./graphite_util.js");
 const renderSecret = require("./secret.js");
 const server = require("./server.js");
@@ -78,7 +76,6 @@ describe("API endpoint /render", function() {
 
     beforeEach(() => {
         mockScope = nock("https://www.khanacademy.org");
-        cache.init(10000);
         sinon
             .stub(renderSecret, "matches")
             .callsFake((secret, callback) =>
@@ -91,8 +88,6 @@ describe("API endpoint /render", function() {
 
     afterEach(() => {
         nock.cleanAll();
-        cache.destroy();
-        fetchPackage.resetGlobals();
         renderSecret.matches.restore();
         logging.debug.restore();
         logging.error.restore();
@@ -300,75 +295,5 @@ describe("API endpoint /render", function() {
             JSON.stringify(errorLoggingSpy.args),
         );
         mockScope.done();
-    });
-});
-
-describe("API endpoint /flush", () => {
-    const agent = supertest.agent(server);
-
-    let mockScope;
-
-    before(() => {
-        nock.disableNetConnect();
-        nock.enableNetConnect("127.0.0.1");
-    });
-
-    beforeEach(() => {
-        mockScope = nock("https://www.khanacademy.org");
-        cache.init(10000);
-        sinon
-            .stub(renderSecret, "matches")
-            .callsFake((secret, callback) =>
-                callback(null, secret === "sekret"),
-            );
-    });
-
-    afterEach(() => {
-        nock.cleanAll();
-        cache.destroy();
-        renderSecret.matches.restore();
-    });
-
-    it("should empty the cache", done => {
-        const url = "https://www.khanacademy.org/corelibs-package.js";
-        mockScope.get("/corelibs-package.js").reply(200, "global._fetched = 'test contents';");
-        mockScope.get("/corelibs-package.js").reply(200, "global._fetched = 'must refetch';");
-
-        fetchPackage(url)
-            .then(res => {
-                res.runInThisContext();
-                assert.equal(global._fetched, "test contents");
-                global._fetched = undefined;
-                return fetchPackage(url);
-            })
-            .then(
-                res => {
-                    // Should still be cached.
-                    res.runInThisContext();
-                    assert.equal(global._fetched, "test contents");
-                    agent
-                        .post("/flush")
-                        .send({secret: "sekret"})
-                        .expect("dev\n", err => {
-                            fetchPackage(url)
-                                .then(res => {
-                                    res.runInThisContext();
-                                    assert.equal(global._fetched, "must refetch");
-                                    mockScope.done();
-                                    done(err);
-                                })
-                                .catch(done);
-                        });
-                },
-                err => done(err),
-            );
-    });
-
-    it("should require a valid secret", done => {
-        agent
-            .post("/flush")
-            .send({secret: "bad sekret"})
-            .expect(res => assert.equal(400, res.status))
-            .end(done);
     });
 });

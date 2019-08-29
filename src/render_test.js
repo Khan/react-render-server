@@ -12,8 +12,6 @@ const {assert} = chai;
 
 const sinon = require("sinon");
 
-const fetchPackage = require("./fetch_package.js");
-const cache = require("./cache.js");
 const render = require("./render.js");
 
 describe("render", () => {
@@ -26,20 +24,11 @@ describe("render", () => {
     });
 
     beforeEach(() => {
-        cache.init(1000000);
-        fetchPackage.resetGlobals();
-
         sinon.spy(jsdom, "JSDOM");
-        sinon.spy(cache, "get");
-        sinon.spy(cache, "set");
     });
 
     afterEach(() => {
-        cache.destroy();
-
         jsdom.JSDOM.restore();
-        cache.get.restore();
-        cache.set.restore();
     });
 
     it("should perform basic render flow", async () => {
@@ -137,18 +126,6 @@ describe("render", () => {
 
          // Assert
          assert.notDeepEqual(result, expectation);
-    });
-
-    it('should not use cache at all', async () => {
-        // Arrange
-         const packages = loadPackages(["basic/entry.js"]);
-
-         // Act
-         await render(packages, {name: "A NAME"});
-
-         // Assert
-         assert.equal(0, cache.get.callCount);
-         assert.equal(0, cache.set.callCount);
     });
 
     it('should not require canvas to run', async () => {
