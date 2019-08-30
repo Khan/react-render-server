@@ -21,7 +21,7 @@ const profile = require("./profile.js");
 const graphiteUtil = require("./graphite_util.js");
 
 // How many times we retry on 5xx error or similar, before giving up.
-const numRetries = 2;
+const numRetries = 2; // so 3 tries total
 
 // What requests are currently in flight?
 const inFlightRequests = {};
@@ -31,8 +31,7 @@ const inFlightRequests = {};
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
  */
-const fetchPackage = function(url, requestStats,
-                              triesLeftAfterThisOne) {
+const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
     if (triesLeftAfterThisOne == null) {
         triesLeftAfterThisOne = numRetries;
     }
