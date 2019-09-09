@@ -8,7 +8,6 @@ const bodyParser = require("body-parser");
 const express = require("express");
 const logging = require("winston");
 
-const cache = require("./cache.js");
 const fetchPackage = require("./fetch_package.js");
 const graphiteUtil = require("./graphite_util.js");
 const profile = require("./profile.js");
@@ -182,7 +181,7 @@ app.post("/render", checkSecret, (req, res) => {
 
     // Fetch the entry point and its dependencies.
     const fetchPromises = jsUrls.map(url =>
-        fetchPackage(url, undefined, req.requestStats)
+        fetchPackage(url, req.requestStats)
     );
 
     // TODO(joshuan): Consider moving to async/await.
@@ -213,29 +212,6 @@ app.post("/render", checkSecret, (req, res) => {
             // give a 400.
             res.status(400).json({error: err.toString(), stack: err.stack});
         });
-});
-
-/**
- * Flush all the caches.
- *
- * This can be useful when there's weird errors that may be due to bad
- * caching, or for testing.
- *
- * The post data is sent in the request body as json, in the following format:
- * {
- *    "secret": "...."
- * }
- *
- * 'secret' is a shared secret.  It must equal the value of the 'secret'
- * file in the server's base-directory, or the server will deny the request.
- * NOTE: In dev mode, the secret field is ignored.
- *
- * We respond with the instance that was flushed.
- * TODO(csilvers): how do we flush *all* the instances??
- */
-app.post("/flush", checkSecret, (req, res) => {
-    cache.reset();
-    res.send((process.env["GAE_INSTANCE"] || "dev") + "\n");
 });
 
 app.get("/_api/ping", (req, res) => res.send("pong!\n"));

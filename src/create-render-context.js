@@ -26,7 +26,7 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     _executeFromCache(url) {
         const requestStats = {};
 
-        return fetchPackage(url, undefined, requestStats)
+        return fetchPackage(url, requestStats)
             .then(script => {
                 const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
                 const message = `${source}: ${url}`;

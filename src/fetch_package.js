@@ -17,74 +17,29 @@ const vm = require("vm");
 const request = require('superagent');
 const logging = require("winston");
 
-const cache = require("./cache.js");
 const profile = require("./profile.js");
 const graphiteUtil = require("./graphite_util.js");
 
-// fetchPackage takes a cacheBehavior property, which is one of these:
-//    'yes': try to retrieve the object from the cache
-//    'no': do not try to retrieve the object from the cache (but
-//          still store it in the cache after retrieving it).
-//    'ignore': do not try to retrieve the object from the cache,
-//          nor try to store it in the cache.
-//    'ims': retrieve the object from the cache, but use the
-//          last-modified date on the result in order to do an
-//          if-modified-since query.
-// This variable controls the cache behavior that is used if the
-// user does not pass in a value for cacheBehavior for fetchPackage().
-let defaultCacheBehavior;
-
 // How many times we retry on 5xx error or similar, before giving up.
-let numRetries;
+const numRetries = 2; // so 3 tries total
 
 // What requests are currently in flight?
-let inFlightRequests;
-
-
-const resetGlobals = function() {
-    defaultCacheBehavior = 'yes';
-    numRetries = 2;     // so 3 tries total
-    inFlightRequests = {};
-};
-
-resetGlobals();
-
+const inFlightRequests = {};
 
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
- * defined, we update it with how many fetches we had to do and in the case of
- * cacheBehavior==="yes", a `fromCache` count.
+ * defined, we update it with how many fetches we had to do.
  */
-const fetchPackage = function(url, cacheBehavior, requestStats,
-                              triesLeftAfterThisOne) {
-    if (cacheBehavior == null) {
-        cacheBehavior = defaultCacheBehavior;
-    }
+const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
     if (triesLeftAfterThisOne == null) {
         triesLeftAfterThisOne = numRetries;
     }
 
     // If a different request has already asked for this url, just
     // tag along with it rather than making our own request.
-    const inFlightCacheKey = cacheBehavior + "." + url;
-    if (inFlightRequests[inFlightCacheKey]) {
-        return inFlightRequests[inFlightCacheKey];
-    }
-
-    let cachedValue;
-
-    if (cacheBehavior === 'ims') {
-        cachedValue = cache.get(url);
-        // We'll save this for making the if-modified-since query later.
-    } else if (cacheBehavior === 'yes') {
-        cachedValue = cache.get(url);
-        if (cachedValue != null) {
-            if (requestStats) {
-                requestStats.fromCache++;
-            }
-            return Promise.resolve(cachedValue.script);
-        }
+    if (inFlightRequests[url]) {
+        return inFlightRequests[url];
     }
 
     // TODO(jeff): Do we still need this profiling now that we're using
@@ -98,13 +53,10 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
         // Now create the request.
         const fetcher = request.get(url);
 
-        // We give the fetcher 60 seconds to get a response that we
-        // can cache.  (Note the final promise returned by fetchPackage
+        // We give the fetcher 60 seconds to get a response.
+        // (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
-        if (cachedValue && cachedValue.lastModified) {
-            fetcher.set('if-modified-since', cachedValue.lastModified);
-        }
 
         // This is a helper function for logging data about the fetch request.
         const reportFetchTime = (success) => {
@@ -143,24 +95,13 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
             // inFlightRequests, if this promise resolves after the
             // termination of the test.  In that case, we can just bail,
             // since the test isn't running anymore anyway.)
-            if (!inFlightRequests[inFlightCacheKey]) {
+            if (!inFlightRequests[url]) {
                 reject("We've moved on to other tests, my friend");
                 return;
             }
-            delete inFlightRequests[inFlightCacheKey];
+            delete inFlightRequests[url];
 
             if (err) {
-                // Due to a superagent bug(?), 304 "Not modified" ends up here.
-                if (err.response && err.response.status === 304) {
-                    if (requestStats) {
-                        requestStats.packageFetches++;
-
-                        // We're using the cached value.
-                        requestStats.fromCache++;
-                    }
-                    resolve(cachedValue.script);
-                    return;
-                }
                 if (err.response && err.response.status >= 400 &&
                         err.response.status < 500) {
                     // One could imagine adding a 'negative' cache
@@ -173,8 +114,7 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
                 // If we get here, we have a 5xx error or similar
                 // (socket timeout, maybe).  Let's retry a few times.
                 if (triesLeftAfterThisOne > 0) {
-                    fetchPackage(url, cacheBehavior, requestStats,
-                                 triesLeftAfterThisOne - 1)
+                    fetchPackage(url, requestStats, triesLeftAfterThisOne - 1)
                         .then(resolve, reject);
                     return;
                 }
@@ -182,24 +122,19 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
                 // OK, I give up.
                 reject(err);
             } else {
-                const cacheableValue = {
-                    lastModified: res.header && res.header["last-modified"],
-                    script: new vm.Script(res.text, {filename: url}),
-                };
+                const script = new vm.Script(res.text, {filename: url})
                 // Pass in a size estimate; it's really just an estimate
                 // though as we don't consider anything but the script text.
                 // Since we're running in node, we assume 2 bytes
                 // per character in the text. We aren't accounting for
                 // other info associated with that, though.
-                cacheableValue.script.size = res.text.length * 2;
-
-                if (cacheBehavior !== 'ignore') {
-                    cache.set(url, cacheableValue, cacheableValue.script.size);
-                }
+                // This is used in our request stats when determining how "big"
+                // the code was to perform the current render.
+                script.size = res.text.length * 2;
                 if (requestStats) {
                     requestStats.packageFetches++;
                 }
-                resolve(cacheableValue.script);
+                resolve(script);
             }
         });
     });
@@ -213,15 +148,8 @@ const fetchPackage = function(url, cacheBehavior, requestStats,
 
     // Let other concurrent requests know that we're fetching this
     // url, so they don't try to do it too.
-    inFlightRequests[inFlightCacheKey] = retval;
+    inFlightRequests[url] = retval;
     return retval;
 };
-
-fetchPackage.setDefaultCacheBehavior = function(cacheBehavior) {
-    defaultCacheBehavior = cacheBehavior;
-};
-
-// Used by tests.
-fetchPackage.resetGlobals = resetGlobals;
 
 module.exports = fetchPackage;
