@@ -86,7 +86,7 @@ const getScript = function(fnOrText, options) {
             return new vm.Script(fnOrText, options);
 
         default:
-            throw new Error("Must be a function or text");
+            throw new Error("Must be a function or string");
     }
 };
 
