@@ -36,7 +36,6 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "express-winston": "^3.0.1",
-    "graphite-udp": "^1.0.0",
     "graphql": "14.1.1",
     "graphql-tag": "2.8.0",
     "jsdom": "^15.1.1",

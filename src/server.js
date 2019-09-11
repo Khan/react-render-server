@@ -9,7 +9,6 @@ const express = require("express");
 const logging = require("winston");
 
 const fetchPackage = require("./fetch_package.js");
-const graphiteUtil = require("./graphite_util.js");
 const profile = require("./profile.js");
 const renderSecret = require("./secret.js");
 const render = require("./render.js");
@@ -132,10 +131,6 @@ const handleFetchError = function(err, res) {
     } else {
         logging.error("Fetching failure: ", err.stack);
         res.status(500).json({error: err.toString(), stack: err.stack});
-    }
-    // If the error was a timeout, log that fact to graphite.
-    if (err.timeout) {
-        graphiteUtil.log("react_render_server.stats.timeout", 1);
     }
 };
 

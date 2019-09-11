@@ -18,7 +18,6 @@ const request = require('superagent');
 const logging = require("winston");
 
 const profile = require("./profile.js");
-const graphiteUtil = require("./graphite_util.js");
 
 // How many times we retry on 5xx error or similar, before giving up.
 const numRetries = 2; // so 3 tries total
@@ -61,22 +60,14 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         // This is a helper function for logging data about the fetch request.
         const reportFetchTime = (success) => {
             const duration = Date.now() - startStamp;
-
-            graphiteUtil.log(
-                success
-                    ? "react_render_server.stats.fetch_time_ms"
-                    : "react_render_server.stats.failed_fetch_time_ms",
-                duration,
-            );
-
             logging.info(
                 `${success ? "FETCH_PASS" : "FETCH_FAIL"}: ${duration} ${url}`,
             );
         };
 
         // We wrap the resolve and reject so that we can capture the timings,
-        // allowing us to use logs and graphite data to make decisions about
-        // timeout and caching strategies.
+        // allowing us to use logs to make decisions about timeout and caching
+        // strategies.
         const resolve = (...args) => {
             reportFetchTime(true);
             return realResolve(...args);

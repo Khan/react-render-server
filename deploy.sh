@@ -21,10 +21,6 @@ VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific
 [ -s "secret" ] \
     || die "You must create a file called 'secret' with the secret from\n   https://phabricator.khanacademy.org/K121"
 
-# Ensure the hostedgraphite key exists, so we can send events to graphite
-[ -s 'hostedgraphite.api_key' ] \
-    || die "You must create a file called 'hostedgraphite.api_key' with\n    hostedgraphite_api_key from webapp's secrets.py"
-
 # Ensure the repository isn't dirty
 [ `git status -u -s | wc -c` -eq 0 ] \
     || die "You must commit your changes before deploying."
