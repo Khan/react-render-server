@@ -8,7 +8,7 @@
 
 'use strict';
 
-const logging = require("winston");
+const logging = require("./logging.js");
 const createRenderContext = require('./create-render-context.js');
 const configureApolloNetwork = require('./configure-apollo-network.js');
 

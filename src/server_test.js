@@ -4,7 +4,7 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
-const logging = require("winston");
+const logging = require("./logging.js");
 const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");

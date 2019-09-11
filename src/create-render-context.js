@@ -232,8 +232,9 @@ const createRenderContextWithStats = function(
     pathToClientEntryPoint,
     requestStats,
 ) {
-    const vmConstructionProfile = profile.start("building VM for " +
-        pathToClientEntryPoint);
+    const vmConstructionProfile = profile.start(
+        `building VM for ${pathToClientEntryPoint}`,
+    );
 
     const {context, cumulativePackageSize} =
         createRenderContext(locationUrl, globals, jsPackages);

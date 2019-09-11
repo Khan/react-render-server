@@ -6,7 +6,7 @@
 
 const bodyParser = require("body-parser");
 const express = require("express");
-const logging = require("winston");
+const logging = require("./logging.js");
 
 const fetchPackage = require("./fetch_package.js");
 const profile = require("./profile.js");
@@ -87,7 +87,7 @@ app.use("/render", (req, res, next) => {
     };
 
     pendingRenderRequests++;
-    const renderProfile = profile.start();
+    const renderProfile = profile.start("/render");
 
     // Monkey-patch res.end so we can do our logging at request-end.
     const end = res.end;

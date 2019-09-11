@@ -15,7 +15,7 @@
 const vm = require("vm");
 
 const request = require('superagent');
-const logging = require("winston");
+const logging = require("./logging.js");
 
 const profile = require("./profile.js");
 
