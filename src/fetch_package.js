@@ -44,11 +44,19 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         return inFlightRequests[url];
     }
 
-    const fetchProfile = profile.start("fetching " + url);
-    const fetchPromise = new Promise((realResolve, realReject) => {
-        // Log the time before we make the URL request.
-        const startStamp = Date.now();
+    // Let's profile this activity.
+    const fetchProfile = profile.start(`FETCH: ${url}`);
 
+    // This is a helper function to terminate the profiling with a suitable
+    // message.
+    const reportFetchTime = (success) => {
+        fetchProfile.end(
+            `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}`,
+            success ? "debug" : "error",
+        );
+    };
+
+    const fetchPromise = new Promise((realResolve, realReject) => {
         // Now create the request.
         const fetcher = request.get(url);
 
@@ -56,14 +64,6 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         // (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
-
-        // This is a helper function for logging data about the fetch request.
-        const reportFetchTime = (success) => {
-            const duration = Date.now() - startStamp;
-            logging.info(
-                `${success ? "FETCH_PASS" : "FETCH_FAIL"}: ${duration} ${url}`,
-            );
-        };
 
         // We wrap the resolve and reject so that we can capture the timings,
         // allowing us to use logs to make decisions about timeout and caching
@@ -124,9 +124,11 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         });
     });
 
-    fetchPromise.then(function() {
-        fetchProfile.end();
-    });
+    // Terminate the profiling.
+    fetchPromise.then(
+        () => reportFetchTime(true),
+        () => reportFetchTime(false),
+    );
 
     // This resolves to whichever promise finishes first.
     const retval = fetchPromise;

@@ -97,8 +97,7 @@ const patchTimers = () => {
                 }
                 if (!warned) {
                     warned = true;
-                    // eslint-disable-next-line no-console
-                    console.warn("Dangling timer(s) encountered");
+                    logging.warn("Dangling timer(s) encountered");
                 }
             };
             return old(gatedCallback, ...args);
