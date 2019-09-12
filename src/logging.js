@@ -4,6 +4,7 @@
 const args = require("./arguments.js");
 const expressWinston = require('express-winston');
 const winston = require('winston');
+const stream = require("stream");
 
 const StackdriverTransport = (
     require('@google-cloud/logging-winston').LoggingWinston);
@@ -47,9 +48,19 @@ function getTransports(json, isDev) {
         transports.push(new StackdriverTransport());
     }
 
-    transports.push(new winston.transports.Console({
-        format: getFormatters(json, isDev),
-    }));
+    if (process.env.NODE_ENV === "test") {
+        // During testing, we just dump logging to a stream.
+        const sink = new stream.Writable({write: () => {}});
+        sink._write = sink.write;
+        transports.push(new winston.transports.Stream({
+            format: getFormatters(json, isDev),
+            stream: sink,
+        }));
+    } else {
+        transports.push(new winston.transports.Console({
+            format: getFormatters(json, isDev),
+        }));
+    }
     return transports;
 }
 
