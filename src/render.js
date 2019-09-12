@@ -80,8 +80,8 @@ const performRender = async () => {
  * That entrypoint should call __registerForSSR__ which gives us a callback
  * to actually get the rendered content.
  *
- * @param {[Script]} jsPackages - Absolute URL to the
- *     client entry point that is to be loaded and will instigate the render.
+ * @param {[{content: string, url: string}]} jsPackages - the JS packages to
+ * load that will begin the render.
  * @param {object} props - the props object to pass in to the
  *     renderer; the props used to render.
  * @param {object} globals - the map of global variable name to their values to

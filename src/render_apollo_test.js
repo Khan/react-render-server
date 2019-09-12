@@ -16,10 +16,10 @@ const render = require("./render.js");
 describe("render apollo", () => {
     const loadPackages = packageNames => packageNames.map(filename => {
         const filepath = `${__dirname}/testdata/${filename}`;
-        return new vm.Script(
-            fs.readFileSync(filepath, "utf-8"),
-            {filename: filepath},
-        );
+        return {
+            content: fs.readFileSync(filepath, "utf-8"),
+            url: filepath,
+        };
     });
     const validGraphQLResponse = JSON.stringify({
         "errors": null,

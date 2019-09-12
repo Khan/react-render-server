@@ -5,6 +5,7 @@
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
+const logging = require("./logging.js");
 const profile = require("./profile.js");
 const fetchPackage = require("./fetch_package.js");
 
@@ -23,38 +24,27 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         this._active = false;
     }
 
-    _executeFromCache(url) {
-        const requestStats = {};
-
-        return fetchPackage(url, requestStats)
-            .then(script => {
-                const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
-                const message = `${source}: ${url}`;
-
-                if (this._active) {
-                    // eslint-disable-next-line no-console
-                    console.log(`${message}`);
-                    this._runScript(script);
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.warn(`File requested but never used (${message})`);
-                }
-            }).then(() => {
-                // Our JS queue will handle executing the code, so we just
-                // resolve with a dummy script.
-                return this.EMPTY;
-            });
+    _fetchJavaScript(url) {
+        return fetchPackage(url).then(({content}) => {
+            const message = `FETCH: ${url}`;
+            if (this._active) {
+                logging.debug(`${message}`);
+                return Promise.resolve(new Buffer(content));
+            } else {
+                logging.warn(`File requested but never used (${message})`);
+                return Promise.resolve(this.EMPTY);
+            }
+        });
     }
 
     fetch(url, options) {
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
-            // eslint-disable-next-line no-console
-            console.warn(`File fetch tried by JSDOM after render (BLOCK: ${url})`);
+            logging.warn(`File fetch tried by JSDOM after render (BLOCK: ${url})`);
 
-            // We just resolve with an empty string.
-            return Promise.resolve(this.EMPTY);
+            // Null means we're intentionally not loading this.
+            return null;
         }
 
         // If this is not a JavaScript request or the JSDOM context has been
@@ -62,15 +52,15 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         // need them for SSR-ing
         const JSFileRegex = /^.*\.js(?:\?.*)?/g;
         if (!JSFileRegex.test(url) || !this._active) {
-            // eslint-disable-next-line no-console
-            console.log("EMPTY: " + url);
-            // We just resolve with an empty string.
-            return Promise.resolve(this.EMPTY);
+            logging.log("EMPTY: " + url);
+            // Null means we're intentionally not loading this.
+            return null;
         }
 
-        // If this is a JavaScript request, then we want to direct it through
-        // our cache. We check for js file urls with and without query params.
-        return this._executeFromCache(url);
+        // If this is a JavaScript request, then we want to do some things to
+        // request it outselves. We check for js file urls with and
+        // without query params.
+        return this._fetchJavaScript(url);
     }
 }
 
@@ -124,6 +114,14 @@ const patchTimers = () => {
     patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
 };
 
+/**
+ * Create the VM context in which to render.
+ *
+ * @param {string} locationUrl
+ * @param {any} globals
+ * @param {[{content: string, url: string}]} jsPackages
+ * @returns {{context: JSDOM, cumulativePackageSize: number}}
+ */
 const createRenderContext = function(locationUrl, globals, jsPackages) {
     const resourceLoader = new CustomResourceLoader();
 
@@ -214,9 +212,17 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
 
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
-    jsPackages.forEach(script => {
-        context.runVMScript(script);
-        cumulativePackageSize += script.size;
+    jsPackages.forEach(({content, url}) => {
+        context.run(content, {filename: url});
+
+        // A size estimate; it's really just an estimate
+        // though as we don't consider anything but the script text.
+        // Since we're running in node, we assume 2 bytes
+        // per character in the text. We aren't accounting for
+        // other info associated with that, though.
+        // This is used in our request stats when determining how "big"
+        // the code was to perform the current render.
+        cumulativePackageSize += content.length * 2;
     });
 
     return {
@@ -225,6 +231,14 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
     };
 };
 
+/**
+ *
+ * @param {string} locationUrl
+ * @param {any} globals
+ * @param {[{content: string, url: string}]} jsPackages
+ * @param {any} requestStats
+ * @returns {JSDOM}
+ */
 const createRenderContextWithStats = function(
     locationUrl,
     globals,

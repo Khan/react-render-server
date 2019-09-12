@@ -29,6 +29,9 @@ const inFlightRequests = {};
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
+ *
+ * @returns {Promise<{content: string, url: string}>} A promise of an object
+ * containing the content and the url from which it came.
  */
 const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
     if (triesLeftAfterThisOne == null) {
@@ -41,10 +44,7 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         return inFlightRequests[url];
     }
 
-    // TODO(jeff): Do we still need this profiling now that we're using
-    // stackdriver profiler and our other logging?
     const fetchProfile = profile.start("fetching " + url);
-
     const fetchPromise = new Promise((realResolve, realReject) => {
         // Log the time before we make the URL request.
         const startStamp = Date.now();
@@ -113,19 +113,13 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
                 // OK, I give up.
                 reject(err);
             } else {
-                const script = new vm.Script(res.text, {filename: url})
-                // Pass in a size estimate; it's really just an estimate
-                // though as we don't consider anything but the script text.
-                // Since we're running in node, we assume 2 bytes
-                // per character in the text. We aren't accounting for
-                // other info associated with that, though.
-                // This is used in our request stats when determining how "big"
-                // the code was to perform the current render.
-                script.size = res.text.length * 2;
                 if (requestStats) {
                     requestStats.packageFetches++;
                 }
-                resolve(script);
+                resolve({
+                    content: res.text,
+                    url,
+                });
             }
         });
     });
