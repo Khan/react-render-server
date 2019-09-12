@@ -21,7 +21,7 @@ const profile = require("./profile.js");
 const graphiteUtil = require("./graphite_util.js");
 
 // How many times we retry on 5xx error or similar, before giving up.
-const numRetries = 2;
+const numRetries = 2; // so 3 tries total
 
 // What requests are currently in flight?
 const inFlightRequests = {};
@@ -31,8 +31,7 @@ const inFlightRequests = {};
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
  */
-const fetchPackage = function(url, requestStats,
-                              triesLeftAfterThisOne) {
+const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
     if (triesLeftAfterThisOne == null) {
         triesLeftAfterThisOne = numRetries;
     }
@@ -129,6 +128,8 @@ const fetchPackage = function(url, requestStats,
                 // Since we're running in node, we assume 2 bytes
                 // per character in the text. We aren't accounting for
                 // other info associated with that, though.
+                // This is used in our request stats when determining how "big"
+                // the code was to perform the current render.
                 script.size = res.text.length * 2;
                 if (requestStats) {
                     requestStats.packageFetches++;

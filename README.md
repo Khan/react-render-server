@@ -46,28 +46,6 @@ In the request:
 - `secret` is a shared secret that will be pulled from disk on server bootup in
   order to discourage arbitrary code execution attempts against the server.
 
-## Component Sandboxes
-
-To sandbox the effects of rendering each component and to allow multiple
-versions of the same component to be rendered without re-deploying
-react-render-server, each combination of `urls` determines a unique key such
-that it is rendered in its own JavaScript context via the
-[node.js vm module][vm].
-
-## Caching
-
-To avoid duplicating work on every request, react-render-server makes use of
-[`lru-cache`][lru-cache], with a default size of 100MB.
-
-Two varieties of things are cached:
-
-1. Files downloaded from the sources listed in `urls`, keyed by the full URL.
-   This means if your file contents change, you'll need to include a cache
-   busting query param in the file URL, or have your file names contain a hash
-   of their contents.
-2. The component VM sandboxes as described above, keyed by the concatenation of
-   `urls`.
-
 ## Graceful Degradation
 
 On our user facing Python server, we have a 1 second timeout that aborts the
@@ -75,7 +53,6 @@ request to the react-render-server. Failures such as these are okay, because we
 can fall back to doing client-side rendering. This isn't part of this
 repository, but this server was designed with that graceful degradation
 behaviour in mind.
-
 
 ## Development
 
@@ -131,5 +108,4 @@ We may automate this process in the future.
 [react-dom]: https://www.npmjs.com/package/react-dom
 [aphrodite]: https://github.com/Khan/aphrodite
 [renderStatic]: https://github.com/Khan/aphrodite#server-side-rendering
-[lru-cache]: https://www.npmjs.com/package/lru-cache
 [vm]: https://nodejs.org/api/vm.html
