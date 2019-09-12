@@ -85,7 +85,7 @@ function initLogging(logLevel, isDev) {
         errorLogger,
     };
 
-    winston.debug(`Intialized logging with Level=${logLevel} DeveloperMode=${isDev}`);
+    winstonLogger.debug(`Intialized logging with Level=${logLevel} DeveloperMode=${isDev}`);
 
     return winstonLogger;
 }
