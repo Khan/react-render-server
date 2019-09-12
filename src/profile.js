@@ -13,7 +13,9 @@
  *
  * Which will log something that looks like this:
  *
- *     PROFILE: doing foo (finished after 16.7658 ms)
+ *     PROFILE(start): doing foo
+ *
+ *     PROFILE(end): doing foo (40ms)
  */
 const {format} = require("winston");
 const logging = require('./logging.js');
