@@ -26,22 +26,20 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
 
     _fetchJavaScript(url) {
         return fetchPackage(url).then(({content}) => {
-            const message = `FETCH: ${url}`;
-            if (this._active) {
-                logging.debug(`${message}`);
-                return Promise.resolve(new Buffer(content));
-            } else {
-                logging.warn(`File requested but never used (${message})`);
+            if (!this._active) {
+                logging.silly(`File requested but never used (${url})`);
                 return Promise.resolve(this.EMPTY);
             }
+            return Promise.resolve(new Buffer(content));
         });
     }
 
     fetch(url, options) {
+        const loggableUrl = url.startsWith("data:") ? "inline data" : url;
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
-            logging.warn(`File fetch tried by JSDOM after render (BLOCK: ${url})`);
+            logging.warn(`File fetch tried by JSDOM after render (BLOCK: ${loggableUrl})`);
 
             // Null means we're intentionally not loading this.
             return null;
@@ -52,7 +50,7 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         // need them for SSR-ing
         const JSFileRegex = /^.*\.js(?:\?.*)?/g;
         if (!JSFileRegex.test(url) || !this._active) {
-            logging.log("EMPTY: " + url);
+            logging.silly("EMPTY: %s", loggableUrl);
             // Null means we're intentionally not loading this.
             return null;
         }
