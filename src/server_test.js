@@ -64,7 +64,6 @@ describe("API endpoint /render", function() {
     const agent = supertest.agent(server);
 
     let mockScope;
-    let debugLoggingSpy;
     let errorLoggingSpy;
 
     before(() => {
@@ -79,15 +78,12 @@ describe("API endpoint /render", function() {
             .callsFake((secret, callback) =>
                 callback(null, secret === "sekret"),
             );
-        debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
     });
 
     afterEach(() => {
+        sinon.restore();
         nock.cleanAll();
-        renderSecret.matches.restore();
-        logging.debug.restore();
-        logging.error.restore();
     });
 
     it("should render a simple react component", async () => {
