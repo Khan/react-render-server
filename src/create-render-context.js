@@ -52,8 +52,7 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         }
 
         // If this is a JavaScript request, then we want to do some things to
-        // request it outselves. We check for js file urls with and
-        // without query params.
+        // request it ourselves, before we let JSDOM handle the result.
         return this._fetchJavaScript(url);
     }
 }
