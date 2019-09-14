@@ -16,10 +16,6 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         this.EMPTY = Buffer.from("");
     }
 
-    setScriptRunner(callback) {
-        this._runScript = callback;
-    }
-
     close() {
         this._active = false;
     }
@@ -142,10 +138,6 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
         });
-
-    // Our resource loader needs to execute any JS it loads, so let's tell it
-    // how to do that.
-    resourceLoader.setScriptRunner(script => context.runVMScript(script));
 
     // This means we can run scripts inside the jsdom context.
     context.run =
