@@ -9,7 +9,6 @@ const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
 
-const graphiteUtil = require("./graphite_util.js");
 const renderSecret = require("./secret.js");
 const server = require("./server.js");
 
@@ -67,7 +66,6 @@ describe("API endpoint /render", function() {
     let mockScope;
     let debugLoggingSpy;
     let errorLoggingSpy;
-    let graphiteLogStub;
 
     before(() => {
         nock.disableNetConnect();
@@ -83,7 +81,6 @@ describe("API endpoint /render", function() {
             );
         debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
-        graphiteLogStub = sinon.stub(graphiteUtil, "log");
     });
 
     afterEach(() => {
@@ -91,7 +88,6 @@ describe("API endpoint /render", function() {
         renderSecret.matches.restore();
         logging.debug.restore();
         logging.error.restore();
-        graphiteLogStub.restore();
     });
 
     it("should render a simple react component", async () => {
