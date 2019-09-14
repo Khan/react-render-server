@@ -54,5 +54,5 @@ appWithLogging.use(app);
 const server = appWithLogging.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;
-    logging.info(`react-render-server running at http://%s:%s`, host, port);
+    logging.info("react-render-server running at http://%s:%s", host, port);
 });
