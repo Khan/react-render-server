@@ -65,16 +65,22 @@ function getTransports(json, isDev) {
 }
 
 function initLogging(logLevel, isDev) {
+    // This is the logger that captures requests handled by our express server.
     const requestLogger = expressWinston.logger({
         level: logLevel,
         transports: getTransports(false, isDev),
         expressFormat: true,
         meta: false,
     });
+
+    // This is the logger that captures errors in our express server.
     const errorLogger = expressWinston.errorLogger({
         level: logLevel,
         transports: getTransports(true, isDev),
     });
+
+    // This is the logger that we use to log general information in our app.
+    // Whereever one might use console, use this instead.
     const winstonLogger = winston.createLogger({
         level: logLevel,
         transports: getTransports(false, isDev),
