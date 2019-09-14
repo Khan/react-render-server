@@ -13,7 +13,6 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     constructor() {
         super();
         this._active = true;
-        this.EMPTY = Buffer.from("");
     }
 
     close() {
@@ -24,7 +23,7 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         return fetchPackage(url).then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
-                return Promise.resolve(this.EMPTY);
+                return Promise.resolve(Buffer.from(""));
             }
             return Promise.resolve(new Buffer(content));
         });
