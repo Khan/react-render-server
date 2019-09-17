@@ -1,6 +1,8 @@
 /**
  * Simple tools for logging profiling data.
  *
+ * This wraps the winston API for profiling.
+ *
  * You can use it like this:
  *
  *     const profile = require("./profile.js");
@@ -11,29 +13,30 @@
  *
  * Which will log something that looks like this:
  *
- *     PROFILE: doing foo (finished after 16.7658 ms)
+ *     PROFILE(start): doing foo
+ *
+ *     PROFILE(end): doing foo (40ms)
  */
-
-const logging = require('winston');
-
-
-const hrtToMs = (hrt) => {
-    // high resolution timestamps are a tuple [seconds, nanoseconds]
-    return hrt[0] * 1000 + hrt[1] / 1e6;
-};
+const {format} = require("winston");
+const logging = require('./logging.js');
 
 const start = (msg) => {
-    // TODO(csilvers): return an empty function if the log-level is >= debug?
-    if (msg) {
-        logging.debug('PROFILE: %s (start)', msg);
+    if (!msg) {
+        throw new Error("Must provide a message or name for the profile session.");
     }
-    const startTime = process.hrtime();
+    // We use the winston profiling API to do the profiling bit, but we add
+    // some additional log entries to aid investigations (like spotting when
+    // a profiling task started as winston will only log once profiling is done)
+    logging.debug(`PROFILE(start): ${msg}`);
+
+    const profiler = logging.startTimer();
     return {
         end: (endMsg) => {
-            const endTime = process.hrtime();
-            logging.debug('PROFILE: %s (finished after %d ms)',
-                endMsg || msg,
-                (hrtToMs(endTime) - hrtToMs(startTime)).toFixed(4));
+            const message = endMsg || msg;
+            profiler.done({
+                message: `PROFILE(end): ${message}`,
+                level: "debug",
+            });
         },
     };
 };

@@ -8,7 +8,7 @@
 
 'use strict';
 
-const logging = require("winston");
+const logging = require("./logging.js");
 const createRenderContext = require('./create-render-context.js');
 const configureApolloNetwork = require('./configure-apollo-network.js');
 
@@ -80,7 +80,7 @@ const performRender = async () => {
  * That entrypoint should call __registerForSSR__ which gives us a callback
  * to actually get the rendered content.
  *
- * @param {[{url: string, content: string}]} jsPackages - Absolute URL to the
+ * @param {[Script]} jsPackages - Absolute URL to the
  *     client entry point that is to be loaded and will instigate the render.
  * @param {object} props - the props object to pass in to the
  *     renderer; the props used to render.
@@ -108,20 +108,19 @@ const render = async function(
     globals,
     requestStats,
 ) {
-    const {url: entryPointUrl} = jsPackages[jsPackages.length - 1];
-
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = createRenderContext(
         globals ? globals["location"] : "http://www.khanacademy.org",
         globals,
         jsPackages,
-        entryPointUrl,
         requestStats);
 
     context.window.ssrProps = props;
 
-    const renderProfile = profile.start("rendering " + entryPointUrl);
+    const renderProfile = profile.start(
+        `rendering ${globals && globals["location"] || ""}`,
+    );
 
     try {
         // If Apollo is required, get it configured on the context.

@@ -4,7 +4,7 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
-const logging = require("winston");
+const logging = require("./logging.js");
 const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
@@ -64,7 +64,6 @@ describe("API endpoint /render", function() {
     const agent = supertest.agent(server);
 
     let mockScope;
-    let debugLoggingSpy;
     let errorLoggingSpy;
 
     before(() => {
@@ -79,15 +78,12 @@ describe("API endpoint /render", function() {
             .callsFake((secret, callback) =>
                 callback(null, secret === "sekret"),
             );
-        debugLoggingSpy = sinon.spy(logging, "debug");
         errorLoggingSpy = sinon.spy(logging, "error");
     });
 
     afterEach(() => {
+        sinon.restore();
         nock.cleanAll();
-        renderSecret.matches.restore();
-        logging.debug.restore();
-        logging.error.restore();
     });
 
     it("should render a simple react component", async () => {
@@ -167,6 +163,10 @@ describe("API endpoint /render", function() {
 
     it("should log render-stats", async () => {
         // Arrange
+        const doneFake = sinon.fake();
+        sinon.stub(logging, "startTimer").returns(
+            {done: doneFake},
+        );
         const testProps = {
             name: "number!",
         };
@@ -199,7 +199,7 @@ describe("API endpoint /render", function() {
         });
 
         const expectedEntry =
-            "render-stats for " +
+            "PROFILE(end): render-stats for " +
             "https://www.khanacademy.org/webpacked/simple/entry.js";
 
         const expectedEntryWithStats =
@@ -219,17 +219,17 @@ describe("API endpoint /render", function() {
         // the information we expect to be logged.
         let foundEntry = false;
         let matchedStats = undefined;
-        debugLoggingSpy.args.forEach(arglist => {
-            arglist.forEach(arg => {
-                if (typeof arg === "string" && arg.startsWith(expectedEntry)) {
+        doneFake.args.forEach(arglist => {
+            arglist.forEach(({message}) => {
+                if (typeof message === "string" && message.startsWith(expectedEntry)) {
                     foundEntry = true;
-                    matchedStats = arg;
+                    matchedStats = message;
                 }
             });
         });
         assert.isTrue(
             foundEntry,
-            `No stats entry like ${expectedEntry}. ${JSON.stringify(debugLoggingSpy.args)}`,
+            `No stats entry like ${expectedEntry}.\n\n${JSON.stringify(doneFake.args)}`,
         );
         assert.equal(
             matchedStats,

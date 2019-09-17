@@ -1,6 +1,6 @@
 {
   "name": "react-render-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A node.js server for server-side rendering Khan Academy react components.",
   "main": "src/main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "debug": "nodemon -i src/render_cache src/main.js -- --dev --log-level=debug",
     "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
     "serve_local": "nodemon -i src/render_cache src/main.js -- --dev",
-    "test": "mocha --exit --reporter spec 'src/*_test.js'",
+    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh"
@@ -26,7 +26,7 @@
   "homepage": "https://github.com/Khan/react-render-server#readme",
   "dependencies": {
     "@google-cloud/debug-agent": "^4.0.3",
-    "@google-cloud/logging-winston": "^2.0.0",
+    "@google-cloud/logging-winston": "^2.0.1",
     "@google-cloud/profiler": "^2.0.2",
     "@google-cloud/trace-agent": "^4.1.1",
     "apollo-cache-inmemory": "1.3.0",
@@ -34,8 +34,8 @@
     "apollo-link-http": "1.5.3",
     "argparse": "^1.0.3",
     "body-parser": "^1.18.3",
-    "express": "^4.16.4",
-    "express-winston": "^3.0.1",
+    "express": "^4.17.1",
+    "express-winston": "^3.3.0",
     "graphql": "14.1.1",
     "graphql-tag": "2.8.0",
     "jsdom": "^15.1.1",
@@ -44,7 +44,7 @@
     "request": "^2.88.0",
     "superagent": "^4.0.0",
     "tmp": "^0.0.33",
-    "winston": "^3.0.0"
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",

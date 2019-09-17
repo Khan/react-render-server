@@ -14,7 +14,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const logging = require("winston");
+const logging = require("./logging.js");
 
 const secretPath = path.normalize(__dirname + "/../secret");
 let secret;
