@@ -17,7 +17,6 @@
  *
  *     PROFILE(end): doing foo (40ms)
  */
-const {format} = require("winston");
 const logging = require('./logging.js');
 
 const start = (msg) => {
@@ -31,11 +30,11 @@ const start = (msg) => {
 
     const profiler = logging.startTimer();
     return {
-        end: (endMsg) => {
+        end: (endMsg, level = "debug") => {
             const message = endMsg || msg;
             profiler.done({
                 message: `PROFILE(end): ${message}`,
-                level: "debug",
+                level,
             });
         },
     };

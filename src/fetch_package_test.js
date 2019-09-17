@@ -1,6 +1,7 @@
 'use strict';
 /* global describe, it, before, beforeEach, afterEach, after */
 
+const vm = require("vm");
 const assert = require("chai").assert;
 const nock = require("nock");
 
@@ -32,7 +33,8 @@ describe('fetchPackage', () => {
             assert.isDefined(res);
 
             // Let's run the loaded script to verify it worked.
-            res.runInThisContext();
+            const script = new vm.Script(res.content, res.url);
+            script.runInThisContext();
             assert.equal(global._fetched, "yay!");
             mockScope.done();
         });
@@ -83,7 +85,8 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
         return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            res.runInThisContext();
+            const script = new vm.Script(res.content, res.url);
+            script.runInThisContext();
             assert.equal(global._fetched, "yay!");
             mockScope.done();
         });

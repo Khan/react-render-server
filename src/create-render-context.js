@@ -5,6 +5,7 @@
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
+const logging = require("./logging.js");
 const profile = require("./profile.js");
 const fetchPackage = require("./fetch_package.js");
 
@@ -12,49 +13,31 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     constructor() {
         super();
         this._active = true;
-        this.EMPTY = Buffer.from("");
-    }
-
-    setScriptRunner(callback) {
-        this._runScript = callback;
     }
 
     close() {
         this._active = false;
     }
 
-    _executeFromCache(url) {
-        const requestStats = {};
-
-        return fetchPackage(url, requestStats)
-            .then(script => {
-                const source = requestStats.fromCache != null ? "CACHE" : "FETCH";
-                const message = `${source}: ${url}`;
-
-                if (this._active) {
-                    // eslint-disable-next-line no-console
-                    console.log(`${message}`);
-                    this._runScript(script);
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.warn(`File requested but never used (${message})`);
-                }
-            }).then(() => {
-                // Our JS queue will handle executing the code, so we just
-                // resolve with a dummy script.
-                return this.EMPTY;
-            });
+    _fetchJavaScript(url) {
+        return fetchPackage(url).then(({content}) => {
+            if (!this._active) {
+                logging.silly(`File requested but never used (${url})`);
+                return Promise.resolve(Buffer.from(""));
+            }
+            return Promise.resolve(new Buffer(content));
+        });
     }
 
     fetch(url, options) {
+        const loggableUrl = url.startsWith("data:") ? "inline data" : url;
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
-            // eslint-disable-next-line no-console
-            console.warn(`File fetch tried by JSDOM after render (BLOCK: ${url})`);
+            logging.warn(`File fetch tried by JSDOM after render (BLOCK: ${loggableUrl})`);
 
-            // We just resolve with an empty string.
-            return Promise.resolve(this.EMPTY);
+            // Null means we're intentionally not loading this.
+            return null;
         }
 
         // If this is not a JavaScript request or the JSDOM context has been
@@ -62,15 +45,14 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         // need them for SSR-ing
         const JSFileRegex = /^.*\.js(?:\?.*)?/g;
         if (!JSFileRegex.test(url) || !this._active) {
-            // eslint-disable-next-line no-console
-            console.log("EMPTY: " + url);
-            // We just resolve with an empty string.
-            return Promise.resolve(this.EMPTY);
+            logging.silly("EMPTY: %s", loggableUrl);
+            // Null means we're intentionally not loading this.
+            return null;
         }
 
-        // If this is a JavaScript request, then we want to direct it through
-        // our cache. We check for js file urls with and without query params.
-        return this._executeFromCache(url);
+        // If this is a JavaScript request, then we want to do some things to
+        // request it ourselves, before we let JSDOM handle the result.
+        return this._fetchJavaScript(url);
     }
 }
 
@@ -109,8 +91,7 @@ const patchTimers = () => {
                 }
                 if (!warned) {
                     warned = true;
-                    // eslint-disable-next-line no-console
-                    console.warn("Dangling timer(s) encountered");
+                    logging.warn("Dangling timer(s) encountered");
                 }
             };
             return old(gatedCallback, ...args);
@@ -124,6 +105,14 @@ const patchTimers = () => {
     patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
 };
 
+/**
+ * Create the VM context in which to render.
+ *
+ * @param {string} locationUrl
+ * @param {any} globals
+ * @param {[{content: string, url: string}]} jsPackages
+ * @returns {{context: JSDOM, cumulativePackageSize: number}}
+ */
 const createRenderContext = function(locationUrl, globals, jsPackages) {
     const resourceLoader = new CustomResourceLoader();
 
@@ -147,10 +136,6 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
         });
-
-    // Our resource loader needs to execute any JS it loads, so let's tell it
-    // how to do that.
-    resourceLoader.setScriptRunner(script => context.runVMScript(script));
 
     // This means we can run scripts inside the jsdom context.
     context.run =
@@ -214,9 +199,17 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
 
     // Now we execute inside the sandbox context each script package.
     let cumulativePackageSize = 0;
-    jsPackages.forEach(script => {
-        context.runVMScript(script);
-        cumulativePackageSize += script.size;
+    jsPackages.forEach(({content, url}) => {
+        context.run(content, {filename: url});
+
+        // A size estimate; it's really just an estimate
+        // though as we don't consider anything but the script text.
+        // Since we're running in node, we assume 2 bytes
+        // per character in the text. We aren't accounting for
+        // other info associated with that, though.
+        // This is used in our request stats when determining how "big"
+        // the code was to perform the current render.
+        cumulativePackageSize += content.length * 2;
     });
 
     return {
@@ -225,6 +218,14 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
     };
 };
 
+/**
+ *
+ * @param {string} locationUrl
+ * @param {any} globals
+ * @param {[{content: string, url: string}]} jsPackages
+ * @param {any} requestStats
+ * @returns {JSDOM}
+ */
 const createRenderContextWithStats = function(
     locationUrl,
     globals,

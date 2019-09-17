@@ -29,6 +29,9 @@ const inFlightRequests = {};
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
+ *
+ * @returns {Promise<{content: string, url: string}>} A promise of an object
+ * containing the content and the url from which it came.
  */
 const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
     if (triesLeftAfterThisOne == null) {
@@ -41,14 +44,19 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         return inFlightRequests[url];
     }
 
-    // TODO(jeff): Do we still need this profiling now that we're using
-    // stackdriver profiler and our other logging?
-    const fetchProfile = profile.start("fetching " + url);
+    // Let's profile this activity.
+    const fetchProfile = profile.start(`FETCH: ${url}`);
+
+    // This is a helper function to terminate the profiling with a suitable
+    // message.
+    const reportFetchTime = (success) => {
+        fetchProfile.end(
+            `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}`,
+            success ? "debug" : "error",
+        );
+    };
 
     const fetchPromise = new Promise((realResolve, realReject) => {
-        // Log the time before we make the URL request.
-        const startStamp = Date.now();
-
         // Now create the request.
         const fetcher = request.get(url);
 
@@ -56,14 +64,6 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         // (Note the final promise returned by fetchPackage
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
-
-        // This is a helper function for logging data about the fetch request.
-        const reportFetchTime = (success) => {
-            const duration = Date.now() - startStamp;
-            logging.info(
-                `${success ? "FETCH_PASS" : "FETCH_FAIL"}: ${duration} ${url}`,
-            );
-        };
 
         // We wrap the resolve and reject so that we can capture the timings,
         // allowing us to use logs to make decisions about timeout and caching
@@ -113,26 +113,22 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
                 // OK, I give up.
                 reject(err);
             } else {
-                const script = new vm.Script(res.text, {filename: url})
-                // Pass in a size estimate; it's really just an estimate
-                // though as we don't consider anything but the script text.
-                // Since we're running in node, we assume 2 bytes
-                // per character in the text. We aren't accounting for
-                // other info associated with that, though.
-                // This is used in our request stats when determining how "big"
-                // the code was to perform the current render.
-                script.size = res.text.length * 2;
                 if (requestStats) {
                     requestStats.packageFetches++;
                 }
-                resolve(script);
+                resolve({
+                    content: res.text,
+                    url,
+                });
             }
         });
     });
 
-    fetchPromise.then(function() {
-        fetchProfile.end();
-    });
+    // Terminate the profiling.
+    fetchPromise.then(
+        () => reportFetchTime(true),
+        () => reportFetchTime(false),
+    );
 
     // This resolves to whichever promise finishes first.
     const retval = fetchPromise;
