@@ -58,8 +58,6 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         const fetcher = request.get(url);
 
         // We give the fetcher 60 seconds to get a response.
-        // (Note the final promise returned by fetchPackage
-        // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
 
         // Now we handle when the request ends, either successfully or
