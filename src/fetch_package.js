@@ -112,7 +112,6 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         () => reportFetchTime(false),
     );
 
-    // This resolves to whichever promise finishes first.
     const retval = fetchPromise;
 
     // Let other concurrent requests know that we're fetching this
