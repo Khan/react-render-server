@@ -62,7 +62,7 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
 
-        // Now we handle when the request ends, etiher successfully or
+        // Now we handle when the request ends, either successfully or
         // otherwise.
         fetcher.buffer().end((err, res) => {
             // The request is done: don't say it's inflight anymore!
