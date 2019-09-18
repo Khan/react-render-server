@@ -1,20 +1,22 @@
 {
   "name": "react-render-server",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A node.js server for server-side rendering Khan Academy react components.",
-  "main": "src/main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "ulimit -n 999999 || ulimit -n 2048; node src/main.js -p 8080 --log-level=debug",
-    "dev": "nodemon -i src/render_cache src/main.js -- --dev",
-    "debug": "nodemon -i src/render_cache src/main.js -- --dev --log-level=debug",
-    "profile": "node-debug -p 8040 --no-preload src/main.js --dev",
-    "serve_local": "nodemon -i src/render_cache src/main.js -- --dev",
-    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js'",
+    "clean": "rm -rf dist",
+    "start": "ulimit -n 999999 || ulimit -n 2048; npm run build && node dist/main.js -p 8080 --log-level=debug",
+    "dev": "npm run build && nodemon dist/main.js -- --dev",
+    "debug": "npm run build && nodemon dist/main.js -- --dev --log-level=debug",
+    "profile": "npm run build && node-debug -p 8040 --no-preload src/main.js --dev",
+    "serve_local": "npm run build && nodemon dist/main.js -- --dev",
+    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --compilers js:@babel/register",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
     "lint": "eslint --config ./eslint/eslintrc src",
-    "prettyquick": "pretty-quick"
+    "prettyquick": "pretty-quick",
+    "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata/**/*.js,*_test.js"
   },
   "repository": {
     "type": "git",
@@ -47,24 +49,30 @@
     "winston": "^3.2.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/preset-flow": "^7.0.0",
+    "@babel/register": "^7.6.0",
     "babel-eslint": "^10.0.3",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^5.2.0",
-    "nock": "^10.0.6",
-    "sinon": "^7.2.2",
-    "supertest": "^3.3.0",
     "eslint": "^6.4.0",
     "eslint-config-prettier": "^6.3.0",
     "eslint-plugin-flowtype": "^4.3.0",
     "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
     "eslint-plugin-prettier": "^3.1.1",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-react": "^7.14.3",
-    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "mocha": "^5.2.0",
+    "nock": "^10.0.6",
     "pre-commit": "^1.2.2",
     "prettier": "^1.18.2",
-    "pretty-quick": "^1.11.1"
+    "pretty-quick": "^1.11.1",
+    "sinon": "^7.2.2",
+    "supertest": "^3.3.0"
   },
   "engines": {
     "node": ">=8"

@@ -8,11 +8,12 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}/src/main.js",
+            "program": "${workspaceFolder}/dist/main.js",
             "args": [
                 "--dev",
                 "--port=8040"
             ],
+            "preLaunchTask": "npm: build"
         },
         {
             "type": "node",
@@ -24,8 +25,10 @@
                 "tdd",
                 "--timeout",
                 "999999",
+                "--compilers",
+                "js:@babel/register",
                 "--colors",
-                "${file}"
+                "${file}",
             ],
             "internalConsoleOptions": "openOnSessionStart"
         }
