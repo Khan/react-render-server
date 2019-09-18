@@ -10,11 +10,11 @@
  * file, to avoid letting this server execute arbitrary code.
  */
 
-'use strict';
+"use strict";
 
 const vm = require("vm");
 
-const request = require('superagent');
+const request = require("superagent");
 const logging = require("./logging.js");
 
 const profile = require("./profile.js");
@@ -93,8 +93,11 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
             delete inFlightRequests[url];
 
             if (err) {
-                if (err.response && err.response.status >= 400 &&
-                        err.response.status < 500) {
+                if (
+                    err.response &&
+                    err.response.status >= 400 &&
+                    err.response.status < 500
+                ) {
                     // One could imagine adding a 'negative' cache
                     // entry for 4xx errors, maybe with a maxAge of 1
                     // minute, but unless we see this being a problem
@@ -105,8 +108,11 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
                 // If we get here, we have a 5xx error or similar
                 // (socket timeout, maybe).  Let's retry a few times.
                 if (triesLeftAfterThisOne > 0) {
-                    fetchPackage(url, requestStats, triesLeftAfterThisOne - 1)
-                        .then(resolve, reject);
+                    fetchPackage(
+                        url,
+                        requestStats,
+                        triesLeftAfterThisOne - 1,
+                    ).then(resolve, reject);
                     return;
                 }
 

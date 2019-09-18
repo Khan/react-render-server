@@ -2,7 +2,7 @@
  * The main entrypoint for our react-component render server.
  */
 
-'use strict';
+"use strict";
 
 const args = require("./arguments.js");
 const logging = require("./logging.js");
@@ -10,16 +10,15 @@ const logging = require("./logging.js");
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
     // We need to do this as soon as possible so it can patch future requires.
-    const traceAgent = require('@google-cloud/trace-agent');
-    traceAgent.start({logLevel: 2});  // log at WARN and ERROR
+    const traceAgent = require("@google-cloud/trace-agent");
+    traceAgent.start({logLevel: 2}); // log at WARN and ERROR
 
-    const debugAgent = require('@google-cloud/debug-agent');
+    const debugAgent = require("@google-cloud/debug-agent");
     debugAgent.start({logLevel: 2});
 
-    const profiler = require('@google-cloud/profiler')
+    const profiler = require("@google-cloud/profiler");
     profiler.start();
 }
-
 
 // Now that cloud trace is set up, we can require() everything else.
 const express = require("express");
@@ -36,11 +35,11 @@ if (args.dev) {
         return callback(null, true);
     };
 
-    process.env.NODE_ENV = 'dev';
+    process.env.NODE_ENV = "dev";
 } else {
     // This is important for the default catch-all error handler:
     // http://expressjs.com/en/guide/error-handling.html
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = "production";
 }
 
 // Add logging support, based on

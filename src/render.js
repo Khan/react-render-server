@@ -6,11 +6,11 @@
  * necessary context for rendering it.
  */
 
-'use strict';
+"use strict";
 
 const logging = require("./logging.js");
-const createRenderContext = require('./create-render-context.js');
-const configureApolloNetwork = require('./configure-apollo-network.js');
+const createRenderContext = require("./create-render-context.js");
+const configureApolloNetwork = require("./configure-apollo-network.js");
 
 const profile = require("./profile.js");
 
@@ -29,30 +29,28 @@ const performRender = async () => {
     }
     // 1. Setup an Apollo client if one is expected.
     const maybeApolloClient = global.ApolloNetworkLink
-        // If network details were provided for Apollo then we go about
-        // wrapping the element in an Apollo provider (which will
-        // collect the data requirements of the child components and
-        // send off a network request to a GraphQL endpoint).
+        ? // If network details were provided for Apollo then we go about
+          // wrapping the element in an Apollo provider (which will
+          // collect the data requirements of the child components and
+          // send off a network request to a GraphQL endpoint).
 
-        // Build an Apollo client. This is responsible for making the
-        // network requests to the GraphQL endpoint and bringing back
-        // the data.
-        ? new global.ApolloClient.ApolloClient({
-            ssrMode: true,
-            link: global.ApolloNetworkLink,
-            cache: global.ApolloCache,
-        })
-        // For rendering things that have no Apollo-centric logic, we
-        // don't have a client.
-        : null;
+          // Build an Apollo client. This is responsible for making the
+          // network requests to the GraphQL endpoint and bringing back
+          // the data.
+          new global.ApolloClient.ApolloClient({
+              ssrMode: true,
+              link: global.ApolloNetworkLink,
+              cache: global.ApolloCache,
+          })
+        : // For rendering things that have no Apollo-centric logic, we
+          // don't have a client.
+          null;
 
     // Make a deep clone of the props in the context before
     // rendering them, so that any polyfills we have in the context
     // (like Array.prototype.includes) are applied to the elements
     // of the props.
-    const clonedProps = JSON.parse(
-        JSON.stringify(global.ssrProps),
-    );
+    const clonedProps = JSON.parse(JSON.stringify(global.ssrProps));
 
     const {getRenderPromiseCallback} = window.__rrs;
 
@@ -102,24 +100,20 @@ const performRender = async () => {
  * css will only be returned if the entrypoint makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
-const render = async function(
-    jsPackages,
-    props,
-    globals,
-    requestStats,
-) {
+const render = async function(jsPackages, props, globals, requestStats) {
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = createRenderContext(
         globals ? globals["location"] : "http://www.khanacademy.org",
         globals,
         jsPackages,
-        requestStats);
+        requestStats,
+    );
 
     context.window.ssrProps = props;
 
     const renderProfile = profile.start(
-        `rendering ${globals && globals["location"] || ""}`,
+        `rendering ${(globals && globals["location"]) || ""}`,
     );
 
     try {
@@ -152,10 +146,7 @@ const render = async function(
         try {
             context.close();
         } catch (e) {
-            logging.warn(
-                "Error while closing JSDOM context",
-                e.message,
-            );
+            logging.warn("Error while closing JSDOM context", e.message);
         }
         renderProfile.end();
     }

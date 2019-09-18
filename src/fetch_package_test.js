@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /* global describe, it, before, beforeEach, afterEach, after */
 
 const vm = require("vm");
@@ -7,18 +7,17 @@ const nock = require("nock");
 
 const fetchPackage = require("./fetch_package.js");
 
-
-describe('fetchPackage', () => {
+describe("fetchPackage", () => {
     let mockScope;
 
     before(() => {
         nock.disableNetConnect();
-        nock.enableNetConnect('127.0.0.1');
+        nock.enableNetConnect("127.0.0.1");
     });
 
     beforeEach(() => {
         global._fetched = undefined;
-        mockScope = nock('https://www.ka.org');
+        mockScope = nock("https://www.ka.org");
     });
 
     afterEach(() => {
@@ -29,7 +28,7 @@ describe('fetchPackage', () => {
     it("should fetch files", () => {
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
-        return fetchPackage("https://www.ka.org/ok.js").then(res => {
+        return fetchPackage("https://www.ka.org/ok.js").then((res) => {
             assert.isDefined(res);
 
             // Let's run the loaded script to verify it worked.
@@ -48,17 +47,18 @@ describe('fetchPackage', () => {
             (err) => {
                 assert.equal(404, err.response.status);
                 done();
-            });
+            },
+        );
     });
 
     it("should only fetch once for concurrent requests", () => {
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
         mockScope.get("/ok.js").reply(200, "global._fetched = 'ignored';");
 
-        return Promise.all(
-            [fetchPackage("https://www.ka.org/ok.js"),
-             fetchPackage("https://www.ka.org/ok.js")]
-        ).then(e => {
+        return Promise.all([
+            fetchPackage("https://www.ka.org/ok.js"),
+            fetchPackage("https://www.ka.org/ok.js"),
+        ]).then((e) => {
             assert.equal(e[0], e[1]);
             // We should still have pending mocks; the second request
             // should never have gotten sent.
@@ -71,13 +71,16 @@ describe('fetchPackage', () => {
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
 
-        fetchPackage("https://www.ka.org/ok.js").then(
-            (res) => done(new Error("Should have failed on 4xx")),
-            (err) => {
-                assert.equal(500, err.response.status);
-                mockScope.done();
-                done();
-            }).catch(done);
+        fetchPackage("https://www.ka.org/ok.js")
+            .then(
+                (res) => done(new Error("Should have failed on 4xx")),
+                (err) => {
+                    assert.equal(500, err.response.status);
+                    mockScope.done();
+                    done();
+                },
+            )
+            .catch(done);
     });
 
     it("should succeed on 5xx followed by 200", () => {
@@ -92,5 +95,3 @@ describe('fetchPackage', () => {
         });
     });
 });
-
-

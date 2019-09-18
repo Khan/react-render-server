@@ -1,4 +1,3 @@
-
 /**
  * Configure a given context to support Apollo
  *
@@ -13,7 +12,7 @@
 const ApolloClient = require("apollo-client");
 const apolloCacheInmemory = require("apollo-cache-inmemory");
 const apolloLinkHttp = require("apollo-link-http");
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 
 const createHttpLink = apolloLinkHttp.createHttpLink;
 const InMemoryCache = apolloCacheInmemory.InMemoryCache;
@@ -24,40 +23,39 @@ const configureApolloNetwork = (context) => {
     const handleNetworkFetch = (url, params) => {
         if (!url || url === BAD_URL) {
             return Promise.reject(
-                new Error("ApolloNetwork must have a valid url."));
+                new Error("ApolloNetwork must have a valid url."),
+            );
         }
         return new Promise((resolve, reject) => {
             let complete = false;
 
             fetch(url, params)
-            .then(result => {
-                // Ignore requests that've already been aborted
-                // (this should never happen)
-                if (complete) {
-                    return;
-                }
+                .then((result) => {
+                    // Ignore requests that've already been aborted
+                    // (this should never happen)
+                    if (complete) {
+                        return;
+                    }
 
-                // Handle server errors
-                if (result.status !== 200) {
-                    return reject(
-                        new Error("Server returned an error."));
-                }
+                    // Handle server errors
+                    if (result.status !== 200) {
+                        return reject(new Error("Server returned an error."));
+                    }
 
-                complete = true;
+                    complete = true;
 
-                resolve(result);
-            })
-            .catch(err => {
-                reject(err);
-            });
+                    resolve(result);
+                })
+                .catch((err) => {
+                    reject(err);
+                });
 
             // After a specified timeout we abort the request if
             // it's still on-going.
             setTimeout(() => {
                 if (!complete) {
                     complete = true;
-                    reject(new Error(
-                        "Server response exceeded timeout."));
+                    reject(new Error("Server response exceeded timeout."));
                 }
             }, context.ApolloNetwork.timeout || 1000);
         });

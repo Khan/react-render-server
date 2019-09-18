@@ -15,7 +15,7 @@ const server = require("./server.js");
 describe("API endpoint /_api/ping", () => {
     const agent = supertest.agent(server);
 
-    it("should return pong", done => {
+    it("should return pong", (done) => {
         agent.get("/_api/ping").expect("pong!\n", done);
     });
 });
@@ -26,12 +26,12 @@ describe("API endpoint /_api/version", () => {
         delete process.env["GAE_VERSION"];
     });
 
-    it("should return the module version in production", done => {
+    it("should return the module version in production", (done) => {
         process.env["GAE_VERSION"] = "foo-version";
         agent.get("/_api/version").expect("foo-version\n", done);
     });
 
-    it("should return the 'dev' in dev", done => {
+    it("should return the 'dev' in dev", (done) => {
         agent.get("/_api/version").expect("dev\n", done);
     });
 });
@@ -39,7 +39,7 @@ describe("API endpoint /_api/version", () => {
 describe("API endpoint /_ah/health", () => {
     const agent = supertest.agent(server);
 
-    it("should return ok!", done => {
+    it("should return ok!", (done) => {
         agent.get("/_ah/health").expect("ok!\n", done);
     });
 });
@@ -47,7 +47,7 @@ describe("API endpoint /_ah/health", () => {
 describe("API endpoint /_ah/start", () => {
     const agent = supertest.agent(server);
 
-    it("should return ok!", done => {
+    it("should return ok!", (done) => {
         agent.get("/_ah/start").expect("ok!\n", done);
     });
 });
@@ -55,7 +55,7 @@ describe("API endpoint /_ah/start", () => {
 describe("API endpoint /_ah/stop", () => {
     const agent = supertest.agent(server);
 
-    it("should return ok!", done => {
+    it("should return ok!", (done) => {
         agent.get("/_ah/stop").expect("ok!\n", done);
     });
 });
@@ -102,7 +102,7 @@ describe("API endpoint /render", function() {
             props: testProps,
             secret: "sekret",
         };
-        testJson.urls.forEach(url => {
+        testJson.urls.forEach((url) => {
             const path = url.substr("https://www.khanacademy.org".length);
             if (path.endsWith(".css")) {
                 mockScope
@@ -130,7 +130,7 @@ describe("API endpoint /render", function() {
         mockScope.done();
     });
 
-    it("should fail on invalid inputs", done => {
+    it("should fail on invalid inputs", (done) => {
         const url = "https://www.khanacademy.org/foo";
         const invalidInputs = [
             {},
@@ -148,11 +148,11 @@ describe("API endpoint /render", function() {
         ];
         let remainingTests = invalidInputs.length;
 
-        invalidInputs.forEach(testJson => {
+        invalidInputs.forEach((testJson) => {
             agent
                 .post("/render")
                 .send(testJson)
-                .expect(res => assert.equal(400, res.status))
+                .expect((res) => assert.equal(400, res.status))
                 .end(() => {
                     if (--remainingTests === 0) {
                         done();
@@ -164,9 +164,7 @@ describe("API endpoint /render", function() {
     it("should log render-stats", async () => {
         // Arrange
         const doneFake = sinon.fake();
-        sinon.stub(logging, "startTimer").returns(
-            {done: doneFake},
-        );
+        sinon.stub(logging, "startTimer").returns({done: doneFake});
         const testProps = {
             name: "number!",
         };
@@ -182,7 +180,7 @@ describe("API endpoint /render", function() {
             secret: "sekret",
         };
 
-        testJson.urls.forEach(url => {
+        testJson.urls.forEach((url) => {
             const path = url.substr("https://www.khanacademy.org".length);
             if (path.endsWith(".css")) {
                 mockScope
@@ -203,7 +201,8 @@ describe("API endpoint /render", function() {
             "https://www.khanacademy.org/webpacked/simple/entry.js";
 
         const expectedEntryWithStats =
-            expectedEntry + ": {" +
+            expectedEntry +
+            ": {" +
             '"pendingRenderRequests":0,' +
             '"packageFetches":4,' +
             '"fromCache":0,' +
@@ -219,9 +218,12 @@ describe("API endpoint /render", function() {
         // the information we expect to be logged.
         let foundEntry = false;
         let matchedStats = undefined;
-        doneFake.args.forEach(arglist => {
+        doneFake.args.forEach((arglist) => {
             arglist.forEach(({message}) => {
-                if (typeof message === "string" && message.startsWith(expectedEntry)) {
+                if (
+                    typeof message === "string" &&
+                    message.startsWith(expectedEntry)
+                ) {
                     foundEntry = true;
                     matchedStats = message;
                 }
@@ -229,12 +231,11 @@ describe("API endpoint /render", function() {
         });
         assert.isTrue(
             foundEntry,
-            `No stats entry like ${expectedEntry}.\n\n${JSON.stringify(doneFake.args)}`,
+            `No stats entry like ${expectedEntry}.\n\n${JSON.stringify(
+                doneFake.args,
+            )}`,
         );
-        assert.equal(
-            matchedStats,
-            expectedEntryWithStats,
-        );
+        assert.equal(matchedStats, expectedEntryWithStats);
         mockScope.done();
     });
 
@@ -256,7 +257,7 @@ describe("API endpoint /render", function() {
             secret: "sekret",
         };
 
-        testJson.urls.forEach(url => {
+        testJson.urls.forEach((url) => {
             const path = url.substr("https://www.khanacademy.org".length);
             if (path.endsWith(".css")) {
                 mockScope
@@ -277,8 +278,8 @@ describe("API endpoint /render", function() {
 
         // Assert
         let foundLogMessage = false;
-        errorLoggingSpy.args.forEach(arglist => {
-            arglist.forEach(arg => {
+        errorLoggingSpy.args.forEach((arglist) => {
+            arglist.forEach((arg) => {
                 if (arg === expected) {
                     foundLogMessage = true;
                 }

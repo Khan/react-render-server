@@ -2,12 +2,12 @@
  * Logging setup for our application.
  */
 const args = require("./arguments.js");
-const expressWinston = require('express-winston');
-const winston = require('winston');
+const expressWinston = require("express-winston");
+const winston = require("winston");
 const stream = require("stream");
 
-const StackdriverTransport = (
-    require('@google-cloud/logging-winston').LoggingWinston);
+const StackdriverTransport = require("@google-cloud/logging-winston")
+    .LoggingWinston;
 
 /**
  * This is how the log message gets formatted.
@@ -15,12 +15,12 @@ const StackdriverTransport = (
  * that we can read them :)
  */
 const prodFormatter = ({message, durationMs}) =>
-    `${message} ${durationMs && `(${durationMs}ms)` || ""}`;
+    `${message} ${(durationMs && `(${durationMs}ms)`) || ""}`;
 
 /**
  * Our dev format adds the log level.
  */
-const devFormatter = info => `${info.level}: ${prodFormatter(info)}`;
+const devFormatter = (info) => `${info.level}: ${prodFormatter(info)}`;
 
 function getFormatters(json, isDev) {
     const formatters = [
@@ -30,13 +30,13 @@ function getFormatters(json, isDev) {
     if (json) {
         formatters.push(winston.format.json());
         if (isDev) {
-            formatters.push(winston.format.prettyPrint({colorize: true}))
+            formatters.push(winston.format.prettyPrint({colorize: true}));
         }
     } else {
         formatters.push(winston.format.cli({all: isDev}));
-        formatters.push(winston.format.printf(
-            isDev ? devFormatter : prodFormatter,
-        ));
+        formatters.push(
+            winston.format.printf(isDev ? devFormatter : prodFormatter),
+        );
     }
 
     return winston.format.combine(...formatters);
@@ -52,14 +52,18 @@ function getTransports(json, isDev) {
         // During testing, we just dump logging to a stream.
         const sink = new stream.Writable({write: () => {}});
         sink._write = sink.write;
-        transports.push(new winston.transports.Stream({
-            format: getFormatters(json, isDev),
-            stream: sink,
-        }));
+        transports.push(
+            new winston.transports.Stream({
+                format: getFormatters(json, isDev),
+                stream: sink,
+            }),
+        );
     } else {
-        transports.push(new winston.transports.Console({
-            format: getFormatters(json, isDev),
-        }));
+        transports.push(
+            new winston.transports.Console({
+                format: getFormatters(json, isDev),
+            }),
+        );
     }
     return transports;
 }
@@ -91,7 +95,9 @@ function initLogging(logLevel, isDev) {
         errorLogger,
     };
 
-    winstonLogger.debug(`Intialized logging with Level=${logLevel} DeveloperMode=${isDev}`);
+    winstonLogger.debug(
+        `Intialized logging with Level=${logLevel} DeveloperMode=${isDev}`,
+    );
 
     return winstonLogger;
 }
