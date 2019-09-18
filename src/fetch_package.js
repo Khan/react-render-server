@@ -12,10 +12,7 @@
 
 'use strict';
 
-const vm = require("vm");
-
 const request = require('superagent');
-const logging = require("./logging.js");
 
 const profile = require("./profile.js");
 
@@ -56,29 +53,14 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         );
     };
 
-    const fetchPromise = new Promise((realResolve, realReject) => {
+    const fetchPromise = new Promise((resolve, reject) => {
         // Now create the request.
         const fetcher = request.get(url);
 
         // We give the fetcher 60 seconds to get a response.
-        // (Note the final promise returned by fetchPackage
-        // will probably time out sooner, due to the race() below.)
         fetcher.timeout(60000);
 
-        // We wrap the resolve and reject so that we can capture the timings,
-        // allowing us to use logs to make decisions about timeout and caching
-        // strategies.
-        const resolve = (...args) => {
-            reportFetchTime(true);
-            return realResolve(...args);
-        };
-
-        const reject = (...args) => {
-            reportFetchTime(false);
-            return realReject(...args);
-        };
-
-        // Now we handle when the request ends, etiher successfully or
+        // Now we handle when the request ends, either successfully or
         // otherwise.
         fetcher.buffer().end((err, res) => {
             // The request is done: don't say it's inflight anymore!
@@ -130,7 +112,6 @@ const fetchPackage = function(url, requestStats, triesLeftAfterThisOne) {
         () => reportFetchTime(false),
     );
 
-    // This resolves to whichever promise finishes first.
     const retval = fetchPromise;
 
     // Let other concurrent requests know that we're fetching this
