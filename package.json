@@ -13,8 +13,7 @@
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
-    "lint": "npx eslint --config ./eslint/eslintrc src",
-    "prettyquick": "npx pretty-quick"
+    "lint": "eslint --config ./eslint/eslintrc src",
   },
   "repository": {
     "type": "git",
@@ -72,6 +71,6 @@
   "pre-commit": [
     "lint",
     "test",
-    "prettyquick"
+    "pretty-quick"
   ]
 }
