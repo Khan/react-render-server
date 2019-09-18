@@ -16,7 +16,8 @@
     "set_default": "./set_default.sh",
     "lint": "eslint --config ./eslint/eslintrc src",
     "prettyquick": "pretty-quick",
-    "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata/**/*.js,*_test.js"
+    "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata/**/*.js,*_test.js",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
