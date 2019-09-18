@@ -23,9 +23,9 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         return fetchPackage(url).then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
-                return Promise.resolve(Buffer.from(""));
+                return Buffer.from("");
             }
-            return Promise.resolve(new Buffer(content));
+            return new Buffer(content);
         });
     }
 

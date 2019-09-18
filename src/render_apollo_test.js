@@ -1,8 +1,6 @@
 "use strict";
-/* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
-const vm = require("vm");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");

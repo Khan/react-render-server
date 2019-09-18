@@ -138,7 +138,7 @@ const respond400Error = (res, error, value) => {
     return res.status(400).json({error, value});
 };
 
-app.post("/render", checkSecret, (req, res) => {
+app.post("/render", checkSecret, async (req, res) => {
     // Validate the input.
     const {urls, props, globals} = req.body;
 
@@ -179,31 +179,44 @@ app.post("/render", checkSecret, (req, res) => {
         fetchPackage(url, req.requestStats),
     );
 
-    // TODO(joshuan): Consider moving to async/await.
-    Promise.all(fetchPromises)
-        .then(
-            (packages) =>
-                render(packages, props, globals, req.requestStats).then(
-                    (renderedState) => {
-                        // We store the updated request-stats in renderedState
-                        // (the only way to get the updated data back from our
-                        // subprocess); pop that out into update req.requestStats.
-                        req.requestStats = renderedState.requestStats;
-                        delete renderedState.requestStats;
-                        res.json(renderedState);
-                    },
-                ),
-            (err) => handleFetchError(err, res),
-        )
-        .catch((err) => {
-            logging.error(
-                "Rendering failure: " + jsUrls[jsUrls.length - 1] + " :",
-                err.stack,
-            );
-            // A rendering error is probably a bad component, so we
-            // give a 400.
-            res.status(400).json({error: err.toString(), stack: err.stack});
-        });
+    const fetchPackages = async () => {
+        try {
+            return await Promise.all(fetchPromises);
+        } catch (err) {
+            handleFetchError(err, res);
+            return null;
+        }
+    };
+
+    const packages = await fetchPackages();
+    if (packages == null) {
+        return;
+    }
+
+    try {
+        const renderedState = await render(
+            packages,
+            props,
+            globals,
+            req.requestStats,
+        );
+
+        // We store the updated request-stats in renderedState
+        // (the only way to get the updated data back from our
+        // subprocess); pop that out into update req.requestStats.
+        // eslint-disable-next-line require-atomic-updates
+        req.requestStats = renderedState.requestStats;
+        delete renderedState.requestStats;
+        res.json(renderedState);
+    } catch (err) {
+        logging.error(
+            "Rendering failure: " + jsUrls[jsUrls.length - 1] + " :",
+            err.stack,
+        );
+        // A rendering error is probably a bad component, so we
+        // give a 400.
+        res.status(400).json({error: err.toString(), stack: err.stack});
+    }
 });
 
 app.get("/_api/ping", (req, res) => res.send("pong!\n"));

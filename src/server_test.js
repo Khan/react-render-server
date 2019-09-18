@@ -1,5 +1,4 @@
 "use strict";
-/* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
 

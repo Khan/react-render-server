@@ -1,3 +1,5 @@
+/* eslint-disable */
+/** TODO(jeff): Re-enable eslint and fix issues once PR #17 lands */
 /**
  * Fetch a package from the place that has packages.
  *
@@ -12,10 +14,7 @@
 
 "use strict";
 
-const vm = require("vm");
-
 const request = require("superagent");
-const logging = require("./logging.js");
 
 const profile = require("./profile.js");
 

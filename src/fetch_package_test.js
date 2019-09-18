@@ -1,7 +1,5 @@
 "use strict";
-/* global describe, it, before, beforeEach, afterEach, after */
 
-const vm = require("vm");
 const assert = require("chai").assert;
 const nock = require("nock");
 
@@ -25,73 +23,83 @@ describe("fetchPackage", () => {
         nock.cleanAll();
     });
 
-    it("should fetch files", () => {
+    it("should fetch files", async () => {
+        // Arrange
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
-        return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            assert.isDefined(res);
+        // Act
+        const result = await fetchPackage("https://www.ka.org/ok.js");
 
-            // Let's run the loaded script to verify it worked.
-            const script = new vm.Script(res.content, res.url);
-            script.runInThisContext();
-            assert.equal(global._fetched, "yay!");
-            mockScope.done();
-        });
+        // Assert
+        assert.isDefined(result);
+        assert.equal(result.url, "https://www.ka.org/ok.js");
+        assert.equal(result.content, "global._fetched = 'yay!';");
+        mockScope.done();
     });
 
-    it("should fail on 4xx", (done) => {
+    it("should fail on 4xx", async () => {
+        // Arrange
         mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
 
-        fetchPackage("https://www.ka.org/ok.js").then(
-            (res) => done(new Error("Should have failed on 4xx")),
-            (err) => {
-                assert.equal(404, err.response.status);
-                done();
-            },
-        );
+        // Act
+        try {
+            await fetchPackage("https://www.ka.org/ok.js");
+        } catch (e) {
+            // Assert
+            assert.equal(404, e.response.status);
+            return;
+        }
+        throw new Error("Should have failed on 4xx");
     });
 
-    it("should only fetch once for concurrent requests", () => {
+    it("should only fetch once for concurrent requests", async () => {
+        // Arrange
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
         mockScope.get("/ok.js").reply(200, "global._fetched = 'ignored';");
 
-        return Promise.all([
+        // Act
+        const result = await Promise.all([
             fetchPackage("https://www.ka.org/ok.js"),
             fetchPackage("https://www.ka.org/ok.js"),
-        ]).then((e) => {
-            assert.equal(e[0], e[1]);
-            // We should still have pending mocks; the second request
-            // should never have gotten sent.
-            assert.notEqual(0, mockScope.pendingMocks().length);
-        });
+        ]);
+
+        // Assert
+        assert.equal(result[0], result[1]);
+        // We should still have pending mocks; the second request
+        // should never have gotten sent.
+        assert.notEqual(0, mockScope.pendingMocks().length);
     });
 
-    it("should retry on 5xx", (done) => {
+    it("should retry on 5xx", async () => {
+        // Arrange
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
 
-        fetchPackage("https://www.ka.org/ok.js")
-            .then(
-                (res) => done(new Error("Should have failed on 4xx")),
-                (err) => {
-                    assert.equal(500, err.response.status);
-                    mockScope.done();
-                    done();
-                },
-            )
-            .catch(done);
+        // Act
+        try {
+            await fetchPackage("https://www.ka.org/ok.js");
+        } catch (e) {
+            // Assert
+            assert.equal(500, e.response.status);
+            mockScope.done();
+            return;
+        }
+
+        throw new Error("Should have failed on 5xx");
     });
 
-    it("should succeed on 5xx followed by 200", () => {
+    it("should succeed on 5xx followed by 200", async () => {
+        // Arrange
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
-        return fetchPackage("https://www.ka.org/ok.js").then((res) => {
-            const script = new vm.Script(res.content, res.url);
-            script.runInThisContext();
-            assert.equal(global._fetched, "yay!");
-            mockScope.done();
-        });
+        // Act
+        const result = await fetchPackage("https://www.ka.org/ok.js");
+
+        // Assert
+        assert.equal(result.url, "https://www.ka.org/ok.js");
+        assert.equal(result.content, "global._fetched = 'yay!';");
+        mockScope.done();
     });
 });

@@ -1,8 +1,6 @@
 "use strict";
-/* global describe, it, before, beforeEach, afterEach, after */
 
 const fs = require("fs");
-const vm = require("vm");
 const jsdom = require("jsdom");
 
 const chai = require("chai");
@@ -168,32 +166,5 @@ describe("render", () => {
 
         // Assert
         assert.deepEqual(result, expectation);
-    });
-
-    it("should polyfill methods on props", async () => {
-        // Arrange
-        const packages = loadPackages(["polyfill/entry.js"]);
-        // Remove the Array.prototype.includes method to ensure that it gets
-        // polyfilled.
-        const oldIncludes = Array.prototype.includes;
-        Array.prototype.includes = undefined;
-
-        // This test case checks for the existence of a key in our props keys.
-        // We tell it which key to check for using the props themselves.
-        const props = {
-            thekey: "this is the one",
-            keyName: "thekey",
-        };
-
-        // Act
-        let result;
-        try {
-            result = await render(packages, props);
-        } finally {
-            Array.prototype.includes = oldIncludes;
-        }
-
-        // Assert
-        assert.include(result.html, "true");
     });
 });

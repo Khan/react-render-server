@@ -4,9 +4,6 @@
 
 "use strict";
 
-const args = require("./arguments.js");
-const logging = require("./logging.js");
-
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
     // We need to do this as soon as possible so it can patch future requires.
@@ -22,6 +19,9 @@ if (!args.dev) {
 
 // Now that cloud trace is set up, we can require() everything else.
 const express = require("express");
+
+const args = require("./arguments.js");
+const logging = require("./logging.js");
 
 const app = require("./server.js");
 const renderSecret = require("./secret.js");

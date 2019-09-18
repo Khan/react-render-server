@@ -19,46 +19,36 @@ const InMemoryCache = apolloCacheInmemory.InMemoryCache;
 
 const BAD_URL = "BAD_URL";
 
+const timeout = async (timeout, errorMsg) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            reject(new Error(errorMsg));
+        }, timeout);
+    });
+};
+
 const configureApolloNetwork = (context) => {
-    const handleNetworkFetch = (url, params) => {
+    const handleNetworkFetch = async (url, params) => {
         if (!url || url === BAD_URL) {
-            return Promise.reject(
-                new Error("ApolloNetwork must have a valid url."),
-            );
+            throw new Error("ApolloNetwork must have a valid url.");
         }
-        return new Promise((resolve, reject) => {
-            let complete = false;
 
-            fetch(url, params)
-                .then((result) => {
-                    // Ignore requests that've already been aborted
-                    // (this should never happen)
-                    if (complete) {
-                        return;
-                    }
-
-                    // Handle server errors
-                    if (result.status !== 200) {
-                        return reject(new Error("Server returned an error."));
-                    }
-
-                    complete = true;
-
-                    resolve(result);
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-
+        const result = await Promise.race([
+            fetch(url, params),
             // After a specified timeout we abort the request if
             // it's still on-going.
-            setTimeout(() => {
-                if (!complete) {
-                    complete = true;
-                    reject(new Error("Server response exceeded timeout."));
-                }
-            }, context.ApolloNetwork.timeout || 1000);
-        });
+            timeout(
+                context.ApolloNetwork.timeout || 1000,
+                "Server response exceeded timeout.",
+            ),
+        ]);
+
+        // Handle server errors
+        if (result.status !== 200) {
+            throw new Error("Server returned an error.");
+        }
+
+        return result;
     };
 
     Object.assign(context, {
