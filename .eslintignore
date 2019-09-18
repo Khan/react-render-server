@@ -1,0 +1,10 @@
+node_modules
+flow-typed/**/*.js
+coverage
+
+# eslint can't handle the type defintion for the addStyle HOC
+**/dist
+
+config
+
+src/testdata

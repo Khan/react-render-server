@@ -23,9 +23,9 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         return fetchPackage(url).then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
-                return Promise.resolve(Buffer.from(""));
+                return Buffer.from("");
             }
-            return Promise.resolve(new Buffer(content));
+            return new Buffer(content);
         });
     }
 
@@ -34,7 +34,9 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
-            logging.warn(`File fetch tried by JSDOM after render (BLOCK: ${loggableUrl})`);
+            logging.warn(
+                `File fetch tried by JSDOM after render (BLOCK: ${loggableUrl})`,
+            );
 
             // Null means we're intentionally not loading this.
             return null;
@@ -73,9 +75,7 @@ const getScript = function(fnOrText, options) {
 };
 
 const runInContext = function(jsdomContext, fnOrText, options = {}) {
-    return jsdomContext.runVMScript(
-        getScript(fnOrText, options),
-    );
+    return jsdomContext.runVMScript(getScript(fnOrText, options));
 };
 
 const patchTimers = () => {
@@ -118,10 +118,11 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
 
     // A minimal document, for parts of our code that assume there's a DOM.
     const context = new jsdom.JSDOM(
-        "<!DOCTYPE html><html><head></head><body></body></html>", {
+        "<!DOCTYPE html><html><head></head><body></body></html>",
+        {
             // The base location. We can't modify window.location directly
             // but this allows us to provide one.
-            url:  locationUrl,
+            url: locationUrl,
             // We want to run scripts that would normally run in a web browser
             // so we give them as much leeway as we can. Obviously, this is a
             // security risk if access to this service is not properly secured.
@@ -135,11 +136,12 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
             // actually rendering things. While JSDOM does not render, we can
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
-        });
+        },
+    );
 
     // This means we can run scripts inside the jsdom context.
-    context.run =
-        (fnOrText, options) => runInContext(context, fnOrText, options);
+    context.run = (fnOrText, options) =>
+        runInContext(context, fnOrText, options);
 
     // Let's make sure our sandbox window is how we want.
     const sandbox = context.window;
@@ -170,7 +172,7 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
     //     window.__registerForSSR__(renderElement);
     //
     context.run(() => {
-        window.__registerForSSR__ = getRenderPromiseCallback => {
+        window.__registerForSSR__ = (getRenderPromiseCallback) => {
             window.__rrs = {
                 getRenderPromiseCallback,
             };
@@ -181,7 +183,9 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
 
     // Set up a close handler to be called after rendering is done.
     context.close = () => {
-        context.run(() => { window.__SSR_ACTIVE__ = false; });
+        context.run(() => {
+            window.__SSR_ACTIVE__ = false;
+        });
         resourceLoader.close();
         context.window.close();
     };
@@ -189,9 +193,9 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
     // Now, before we load any code, we make sure any globals we've been asked
     // to set are made available to the VM context.
     if (globals) {
-        Object.keys(globals).forEach(key => {
+        Object.keys(globals).forEach((key) => {
             // Location is a special case, so we want to block changing that.
-            if (key !== 'location') {
+            if (key !== "location") {
                 context.window[key] = globals[key];
             }
         });
@@ -233,11 +237,14 @@ const createRenderContextWithStats = function(
     requestStats,
 ) {
     const vmConstructionProfile = profile.start(
-        `building VM ${globals && `for ${globals["location"]}` || ""}`,
+        `building VM ${(globals && `for ${globals["location"]}`) || ""}`,
     );
 
-    const {context, cumulativePackageSize} =
-        createRenderContext(locationUrl, globals, jsPackages);
+    const {context, cumulativePackageSize} = createRenderContext(
+        locationUrl,
+        globals,
+        jsPackages,
+    );
 
     vmConstructionProfile.end();
 

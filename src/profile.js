@@ -17,11 +17,13 @@
  *
  *     PROFILE(end): doing foo (40ms)
  */
-const logging = require('./logging.js');
+const logging = require("./logging.js");
 
 const start = (msg) => {
     if (!msg) {
-        throw new Error("Must provide a message or name for the profile session.");
+        throw new Error(
+            "Must provide a message or name for the profile session.",
+        );
     }
     // We use the winston profiling API to do the profiling bit, but we add
     // some additional log entries to aid investigations (like spotting when
@@ -40,4 +42,4 @@ const start = (msg) => {
     };
 };
 
-module.exports = { start: start };
+module.exports = {start: start};

@@ -9,7 +9,7 @@
  * also one reason we have this weird matches() indirection.
  */
 
-'use strict';
+"use strict";
 
 const fs = require("fs");
 const path = require("path");
@@ -21,39 +21,37 @@ let secret;
 
 // Used by the benchmark/loadtest tool.
 const get = function(done) {
-  if (secret) {
-    return done(null, secret);
-  }
-
-  fs.readFile(secretPath, "utf-8", (err, contents) => {
-    if (err) {
-      logging.error(`FATAL ERROR (${err}): You must create a file:`);
-      logging.error('    ' + secretPath);
-      logging.error('Its contents should be the secret-string at');
-      logging.error('    https://phabricator.khanacademy.org/K121');
-      return done(err);
+    if (secret) {
+        return done(null, secret);
     }
 
-    secret = contents.trim();
-    if (!secret) {
-        return done(new Error('secret file is empty!'));
-    }
+    fs.readFile(secretPath, "utf-8", (err, contents) => {
+        if (err) {
+            logging.error(`FATAL ERROR (${err}): You must create a file:`);
+            logging.error("    " + secretPath);
+            logging.error("Its contents should be the secret-string at");
+            logging.error("    https://phabricator.khanacademy.org/K121");
+            return done(err);
+        }
 
-    return done(null, secret);
-  });
-};
+        secret = contents.trim();
+        if (!secret) {
+            return done(new Error("secret file is empty!"));
+        }
 
-
-const matches = function(actual, done) {
-    return get((err, secret) => {
-      if (err) {
-        return done(err);
-      }
-
-      return done(null, secret === actual);
+        return done(null, secret);
     });
 };
 
+const matches = function(actual, done) {
+    return get((err, secret) => {
+        if (err) {
+            return done(err);
+        }
+
+        return done(null, secret === actual);
+    });
+};
 
 // get is only used by the benchmarking/loadtest tool.
-module.exports = { matches: matches, get: get };
+module.exports = {matches: matches, get: get};
