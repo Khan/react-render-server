@@ -4,10 +4,10 @@
 const fs = require("fs");
 
 const assert = require("chai").assert;
-const logging = require("./logging.js");
 const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
+const logging = require("./logging.js");
 
 const renderSecret = require("./secret.js");
 const server = require("./server.js");

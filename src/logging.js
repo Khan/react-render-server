@@ -1,13 +1,13 @@
 /**
  * Logging setup for our application.
  */
-const args = require("./arguments.js");
+const stream = require("stream");
 const expressWinston = require("express-winston");
 const winston = require("winston");
-const stream = require("stream");
 
 const StackdriverTransport = require("@google-cloud/logging-winston")
     .LoggingWinston;
+const args = require("./arguments.js");
 
 /**
  * This is how the log message gets formatted.
