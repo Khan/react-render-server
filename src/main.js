@@ -4,6 +4,17 @@
 
 "use strict";
 
+// Now that cloud trace is set up, we can require() everything else.
+const express = require("express");
+
+const args = require("./arguments.js");
+const logging = require("./logging.js");
+
+const app = require("./server.js");
+const renderSecret = require("./secret.js");
+
+const port = args.port;
+
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
     // We need to do this as soon as possible so it can patch future requires.
@@ -16,17 +27,6 @@ if (!args.dev) {
     const profiler = require("@google-cloud/profiler");
     profiler.start();
 }
-
-// Now that cloud trace is set up, we can require() everything else.
-const express = require("express");
-
-const args = require("./arguments.js");
-const logging = require("./logging.js");
-
-const app = require("./server.js");
-const renderSecret = require("./secret.js");
-
-const port = args.port;
 
 // Set up our globals and singletons
 if (args.dev) {
