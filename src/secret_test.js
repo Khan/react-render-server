@@ -46,29 +46,35 @@ describe("secret", () => {
         await assert.isRejected(promise, "secret file is empty!");
     });
 
-    it("can match secret to actual value", (done) => {
+    it("can match secret to actual value", async () => {
+        // Arrange
         sinon
             .stub(fs, "readFile")
             .callsFake((filePath, encoding, callback) =>
                 callback(null, "sekret"),
             );
-        renderSecret.matches("sekret", (err, valueMatches) => {
-            assert.equal(valueMatches, true, "Should match secret value ");
-            done();
-        });
+        sinon.stub(args, "dev").get(() => false);
+
+        // Act
+        const valueMatches = await matches("sekret");
+
+        // Assert
+        assert.isTrue(valueMatches, "Should match secret value ");
     });
 
-    it("can match cached secret to actual value", (done) => {
-        // On the second run through, the fs.readFile function should not be called.
-        sinon
-            .stub(fs, "readFile")
-            .callsFake((filePath, encoding, callback) =>
-                callback(new Error("Should not be called")),
-            );
+    it("can match cached secret to actual value", async () => {
+        // Arrange
+        sinon.stub(args, "dev").get(() => false);
 
-        renderSecret.matches("sekret", (err, valueMatches) => {
-            assert.equal(valueMatches, true, "Should match secret value ");
-            done();
+        // On the second run through, the fs.readFile function should not be called.
+        sinon.stub(fs, "readFile").callsFake((filePath, encoding, callback) => {
+            callback(new Error("Should not be called"));
         });
+
+        // Act
+        const valueMatches = await matches("sekret");
+
+        // Assert
+        assert.isTrue(valueMatches, "Should match secret value ");
     });
 });
