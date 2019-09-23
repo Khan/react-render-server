@@ -1,4 +1,4 @@
-// @noflow
+// @flow
 /**
  * A simple module for exposing the secret for /render calls.
  *
@@ -12,47 +12,62 @@
 
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-const logging = require("./logging.js");
+import args from "./arguments.js";
+import logging from "./logging.js";
 
-const secretPath = path.normalize(__dirname + "/../secret");
-let secret;
+const secretPath: string = path.normalize(__dirname + "/../secret");
+let secret: string;
 
-// Used by the benchmark/loadtest tool.
-const get = function(done) {
+// Exported for use by the benchmark/loadtest tool.
+export const get = function(done: (?Error, ?string) => void): void {
     if (secret) {
-        return done(null, secret);
+        done(null, secret);
+        return;
     }
 
-    fs.readFile(secretPath, "utf-8", (err, contents) => {
+    fs.readFile(secretPath, "utf-8", (err: ?Error, contents: string): void => {
         if (err) {
-            logging.error(`FATAL ERROR (${err}): You must create a file:`);
+            logging.error(
+                `FATAL ERROR (${err.message}): You must create a file:`,
+            );
             logging.error("    " + secretPath);
             logging.error("Its contents should be the secret-string at");
             logging.error("    https://phabricator.khanacademy.org/K121");
-            return done(err);
+            done(err);
+            return;
         }
 
         secret = contents.trim();
         if (!secret) {
-            return done(new Error("secret file is empty!"));
+            done(new Error("secret file is empty!"));
+            return;
         }
 
-        return done(null, secret);
+        done(null, secret);
+        return;
     });
 };
 
-const matches = function(actual, done) {
-    return get((err, secret) => {
+export const matches = function(
+    actualSecret: string,
+    done: (?Error, ?boolean) => void,
+): void {
+    if (args.dev) {
+        // Disable the need for secrets.
+        done(null, true);
+        return;
+    }
+
+    return get((err: ?Error, secret: ?string): void => {
         if (err) {
-            return done(err);
+            done(err);
+            return;
         }
 
-        return done(null, secret === actual);
+        done(null, secret === actualSecret);
+        return;
     });
 };
-
-// get is only used by the benchmarking/loadtest tool.
-module.exports = {matches: matches, get: get};

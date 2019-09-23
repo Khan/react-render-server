@@ -104,5 +104,5 @@ function initLogging(logLevel, isDev) {
     return winstonLogger;
 }
 
-const logger = initLogging(args.log_level, args.dev);
+const logger = initLogging(args.logLevel, args.dev);
 module.exports = logger;

@@ -12,7 +12,6 @@ const args = require("./arguments.js");
 const logging = require("./logging.js");
 
 const app = require("./server.js");
-const renderSecret = require("./secret.js");
 
 const port = args.port;
 
@@ -31,11 +30,6 @@ if (!args.dev) {
 
 // Set up our globals and singletons
 if (args.dev) {
-    // Disable the need for secrets.
-    renderSecret.matches = (actual, callback) => {
-        return callback(null, true);
-    };
-
     process.env.NODE_ENV = "dev";
 } else {
     // This is important for the default catch-all error handler:

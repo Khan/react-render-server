@@ -6,7 +6,7 @@ import argparse from "argparse";
 
 import packageInfo from "../package.json";
 
-import type {Arguments} from "./types.js";
+import type {LogLevel, IProvideArguments} from "./types.js";
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -30,7 +30,7 @@ parser.addArgument(["--log-level"], {
 
 // We only want to parse the args if we're running inside our main app.
 // Could be src/main.js or dist/main.js.
-const args: Arguments = process.argv[1].endsWith("/main.js")
+const args = process.argv[1].endsWith("/main.js")
     ? parser.parseArgs()
     : {
           // Some defaults for tests and the like.
@@ -39,4 +39,27 @@ const args: Arguments = process.argv[1].endsWith("/main.js")
           port: 42,
       };
 
-export default args;
+/**
+ * Wrapper class with accessors that can be overridden in testing.
+ */
+class ArgumentProvider implements IProvideArguments {
+    _args: any;
+
+    constructor(args: any) {
+        this._args = args;
+    }
+
+    get port(): number {
+        return this._args.port;
+    }
+
+    get logLevel(): LogLevel {
+        return this._args.log_level;
+    }
+
+    get dev(): boolean {
+        return this._args.dev;
+    }
+}
+
+export default new ArgumentProvider(args);
