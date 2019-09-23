@@ -1,0 +1,17 @@
+[version]
+0.108.0
+
+[ignore]
+<PROJECT_ROOT>/coverage
+<PROJECT_ROOT>/dist
+<PROJECT_ROOT>/.vscode
+<PROJECT_ROOT>/bin
+<PROJECT_ROOT>/src/testdata
+
+[include]
+<PROJECT_ROOT>/src
+
+[options]
+emoji=true
+exact_by_default=true
+module.use_strict=true

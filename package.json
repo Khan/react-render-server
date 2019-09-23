@@ -14,7 +14,7 @@
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
-    "lint": "eslint --config ./eslint/eslintrc src",
+    "lint": "flow && eslint --config ./eslint/eslintrc src",
     "prettyquick": "pretty-quick",
     "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata",
     "postinstall": "npm run build"
@@ -67,6 +67,7 @@
     "eslint-plugin-prettier": "^3.1.1",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-react": "^7.14.3",
+    "flow-bin": "^0.108.0",
     "mocha": "^5.2.0",
     "nock": "^10.0.6",
     "pre-commit": "^1.2.2",
