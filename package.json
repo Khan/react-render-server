@@ -10,7 +10,7 @@
     "debug": "npm run build && nodemon dist/main.js -- --dev --log-level=debug",
     "profile": "npm run build && node-debug -p 8040 --no-preload src/main.js --dev",
     "serve_local": "npm run build && nodemon dist/main.js -- --dev",
-    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --compilers js:@babel/register",
+    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --require @babel/register",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
