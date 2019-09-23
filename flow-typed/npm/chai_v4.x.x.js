@@ -287,6 +287,167 @@ declare module "chai" {
 
     // chai-immutable
     static sizeOf(val: mixed, length: number): void;
+
+    // chai-as-promised
+    static eventually: PromisedAssert;
+    static isFulfilled(promise: Promise<any>, message?: string): Promise<void>;
+    static becomes(promise: Promise<any>, expected: any, message?: string): Promise<void>;
+    static doesNotBecome(promise: Promise<T>, expected: any, message?: string): Promise<void>;
+    static isRejected<T>(promise: Promise<T>, message?: string): Promise<void>;
+    static isRejected<T>(promise: Promise<T>, expected: any, message?: string): Promise<void>;
+    static isRejected<T>(promise: Promise<T>, match: RegExp, message?: string): Promise<void>;
+    static notify(fn: Function): Promise<void>;
+  }
+
+  declare interface PromisedAssert {
+      fail(actual?: any, expected?: any, msg?: string, operator?: string): Promise<void>;
+
+      isOk(val: any, msg?: string): Promise<void>;
+      ok(val: any, msg?: string): Promise<void>;
+      isNotOk(val: any, msg?: string): Promise<void>;
+      notOk(val: any, msg?: string): Promise<void>;
+
+      equal(act: any, exp: any, msg?: string): Promise<void>;
+      notEqual(act: any, exp: any, msg?: string): Promise<void>;
+
+      strictEqual(act: any, exp: any, msg?: string): Promise<void>;
+      notStrictEqual(act: any, exp: any, msg?: string): Promise<void>;
+
+      deepEqual(act: any, exp: any, msg?: string): Promise<void>;
+      notDeepEqual(act: any, exp: any, msg?: string): Promise<void>;
+
+      isAbove(val: number, above: number, msg?: string): Promise<void>;
+      isAtLeast(val: number, atLeast: number, msg?: string): Promise<void>;
+      isAtBelow(val: number, below: number, msg?: string): Promise<void>;
+      isAtMost(val: number, atMost: number, msg?: string): Promise<void>;
+
+      isTrue(val: any, msg?: string): Promise<void>;
+      isFalse(val: any, msg?: string): Promise<void>;
+
+      isNotTrue(val: any, msg?: string): Promise<void>;
+      isNotFalse(val: any, msg?: string): Promise<void>;
+
+      isNull(val: any, msg?: string): Promise<void>;
+      isNotNull(val: any, msg?: string): Promise<void>;
+
+      isNaN(val: any, msg?: string): Promise<void>;
+      isNotNaN(val: any, msg?: string): Promise<void>;
+
+      exists(val: any, msg?: string): Promise<void>;
+      notExists(val: any, msg?: string): Promise<void>;
+
+      isUndefined(val: any, msg?: string): Promise<void>;
+      isDefined(val: any, msg?: string): Promise<void>;
+
+      isFunction(val: any, msg?: string): Promise<void>;
+      isNotFunction(val: any, msg?: string): Promise<void>;
+
+      isObject(val: any, msg?: string): Promise<void>;
+      isNotObject(val: any, msg?: string): Promise<void>;
+
+      isArray(val: any, msg?: string): Promise<void>;
+      isNotArray(val: any, msg?: string): Promise<void>;
+
+      isString(val: any, msg?: string): Promise<void>;
+      isNotString(val: any, msg?: string): Promise<void>;
+
+      isNumber(val: any, msg?: string): Promise<void>;
+      isNotNumber(val: any, msg?: string): Promise<void>;
+
+      isBoolean(val: any, msg?: string): Promise<void>;
+      isNotBoolean(val: any, msg?: string): Promise<void>;
+
+      typeOf(val: any, type: string, msg?: string): Promise<void>;
+      notTypeOf(val: any, type: string, msg?: string): Promise<void>;
+
+      instanceOf(val: any, type: Function, msg?: string): Promise<void>;
+      notInstanceOf(val: any, type: Function, msg?: string): Promise<void>;
+
+      include(exp: string, inc: any, msg?: string): Promise<void>;
+      include(exp: any[], inc: any, msg?: string): Promise<void>;
+
+      notInclude(exp: string, inc: any, msg?: string): Promise<void>;
+      notInclude(exp: any[], inc: any, msg?: string): Promise<void>;
+
+      match(exp: any, re: RegExp, msg?: string): Promise<void>;
+      notMatch(exp: any, re: RegExp, msg?: string): Promise<void>;
+
+      property(obj: Object, prop: string, msg?: string): Promise<void>;
+      notProperty(obj: Object, prop: string, msg?: string): Promise<void>;
+      deepProperty(obj: Object, prop: string, msg?: string): Promise<void>;
+      notDeepProperty(obj: Object, prop: string, msg?: string): Promise<void>;
+
+      propertyVal(obj: Object, prop: string, val: any, msg?: string): Promise<void>;
+      propertyNotVal(obj: Object, prop: string, val: any, msg?: string): Promise<void>;
+
+      deepPropertyVal(obj: Object, prop: string, val: any, msg?: string): Promise<void>;
+      deepPropertyNotVal(obj: Object, prop: string, val: any, msg?: string): Promise<void>;
+
+      lengthOf(exp: any, len: number, msg?: string): Promise<void>;
+      //alias frenzy
+      throw(fn: Function, msg?: string): Promise<void>;
+      throw(fn: Function, regExp: RegExp): Promise<void>;
+      throw(fn: Function, errType: Function, msg?: string): Promise<void>;
+      throw(fn: Function, errType: Function, regExp: RegExp): Promise<void>;
+
+      throws(fn: Function, msg?: string): Promise<void>;
+      throws(fn: Function, regExp: RegExp): Promise<void>;
+      throws(fn: Function, errType: Function, msg?: string): Promise<void>;
+      throws(fn: Function, errType: Function, regExp: RegExp): Promise<void>;
+
+      Throw(fn: Function, msg?: string): Promise<void>;
+      Throw(fn: Function, regExp: RegExp): Promise<void>;
+      Throw(fn: Function, errType: Function, msg?: string): Promise<void>;
+      Throw(fn: Function, errType: Function, regExp: RegExp): Promise<void>;
+
+      doesNotThrow(fn: Function, msg?: string): Promise<void>;
+      doesNotThrow(fn: Function, regExp: RegExp): Promise<void>;
+      doesNotThrow(fn: Function, errType: Function, msg?: string): Promise<void>;
+      doesNotThrow(fn: Function, errType: Function, regExp: RegExp): Promise<void>;
+
+      operator(val: any, operator: string, val2: any, msg?: string): Promise<void>;
+      closeTo(act: number, exp: number, delta: number, msg?: string): Promise<void>;
+      approximately(act: number, exp: number, delta: number, msg?: string): Promise<void>;
+
+      sameMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      sameDeepMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      sameOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      notSameOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      sameDeepOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      notSameDeepOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      includeOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      notIncludeOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      includeDeepOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      notIncludeDeepOrderedMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      includeMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+      includeDeepMembers(set1: any[], set2: any[], msg?: string): Promise<void>;
+
+      oneOf(val: any, list: any[], msg?: string): Promise<void>;
+
+      changes(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+      doesNotChange(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+      increases(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+      doesNotIncrease(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+      decreases(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+      doesNotDecrease(modifier: Function, obj: Object, property: string, msg?: string): Promise<void>;
+
+      ifError(val: any, msg?: string): Promise<void>;
+
+      isExtensible(obj: Object, msg?: string): Promise<void>;
+      isNotExtensible(obj: Object, msg?: string): Promise<void>;
+
+      isSealed(obj: Object, msg?: string): Promise<void>;
+      sealed(obj: Object, msg?: string): Promise<void>;
+      isNotSealed(obj: Object, msg?: string): Promise<void>;
+      notSealed(obj: Object, msg?: string): Promise<void>;
+
+      isFrozen(obj: Object, msg?: string): Promise<void>;
+      frozen(obj: Object, msg?: string): Promise<void>;
+      isNotFrozen(obj: Object, msg?: string): Promise<void>;
+      notFrozen(obj: Object, msg?: string): Promise<void>;
+
+      isEmpty(val: any, msg?: string): Promise<void>;
+      isNotEmpty(val: any, msg?: string): Promise<void>;
   }
 
   declare var config: {
