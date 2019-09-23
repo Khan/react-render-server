@@ -45,6 +45,17 @@ declare class $winstonConsoleTransport<T> extends $winstonTransport {
   ): $winstonConsoleTransport<T>;
 }
 
+declare type $winstonStreamTransportConfig<T: $winstonLevels> = {
+  level?: $Keys<T>,
+  stream: NodeJS.WritableStream,
+  eol?: string,
+  ...,
+};
+
+declare class $winstonStreamTransport<T> extends $winstonTransport {
+  constructor(config?: $winstonStreamTransportConfig<T>): $winstonStreamTransport<T>;
+}
+
 declare type $winstonLoggerConfig<T: $winstonLevels> = {
   exitOnError?: boolean,
   format?: $winstonFormat,
@@ -65,7 +76,7 @@ declare type $winstonLogger<T: $winstonLevels> = {
 };
 
 declare type $winstonConfigSubModule = { npm: () => $winstonNpmLogLevels, ... };
-  
+
 declare type $winstonFormatJsonOptions = {
   replacer?: (key: string, value: any) => any,
   space?: number,
@@ -73,8 +84,13 @@ declare type $winstonFormatJsonOptions = {
   ...
 };
 
+declare type winstonFormatCliOptions = {
+  ...
+};
+
 declare type $winstonFormatSubModule = {
   ((info: Object) => Object): () => $winstonFormat,
+  cli: (options?: $winstonFormatCliOptions) => $winstonFormat,
   combine: (...args: Array<$winstonFormat>) => $winstonFormat,
   json: (options?: $winstonFormatJsonOptions) => $winstonFormat,
   label: (config?: Object) => $winstonFormat,
@@ -102,6 +118,7 @@ declare class $winstonContainer<T> {
   has(loggerId: string): boolean;
 }
 
+
 declare module "winston" {
   declare export type Levels = $winstonLevels;
   declare export type NpmLogLevels = $winstonNpmLogLevels;
@@ -112,6 +129,8 @@ declare module "winston" {
   declare export type FileTransport<T: Levels> = $winstonFileTransport<T>;
   declare export type ConsoleTransportConfig<T: Levels> = $winstonConsoleTransportConfig<T>;
   declare export type ConsoleTransport<T: Levels> = $winstonConsoleTransport<T>;
+  declare export type StreamTransportConfig<T: Levels> = $winstonStreamTransportConfig<T>;
+  declare export type StreamTransport<T: Levels> = $winstonStreamTransport<T>;
   declare export type LoggerConfig<T: Levels> = $winstonLoggerConfig<T>;
   declare export type Logger<T: Levels> = $winstonLogger<T>;
   declare export type ConfigSubModule = $winstonConfigSubModule;
@@ -125,6 +144,7 @@ declare module "winston" {
     transports: {
       Console: typeof $winstonConsoleTransport,
       File: typeof $winstonFileTransport,
+      Stream: typeof $winstonStreamTransport,
       ...
     },
     createLogger: <T>($winstonLoggerConfig<T>) => $winstonLogger<T>,

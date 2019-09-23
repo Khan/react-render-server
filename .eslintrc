@@ -23,14 +23,9 @@
         }
     ],
     "rules": {
-        "flowtype/require-exact-type": [
-            "error",
-            "always"
-        ],
         "flowtype/no-types-missing-file-annotation": "error",
         "import/no-unresolved": "error",
         "import/named": "error",
-        "import/default": "error",
         "import/no-absolute-path": "error",
         "import/no-self-import": "error",
         "import/no-useless-path-segments": "error",

@@ -3,13 +3,12 @@
  * The main entrypoint for our react-component render server.
  */
 
-"use strict";
+import logging, {middleware} from "./logging.js";
 
 // Now that cloud trace is set up, we can require() everything else.
 const express = require("express");
 
 const args = require("./arguments.js");
-const logging = require("./logging.js");
 
 const app = require("./server.js");
 
@@ -41,8 +40,8 @@ if (args.dev) {
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
 const appWithLogging = express();
 
-appWithLogging.use(logging.middleware.requestLogger);
-appWithLogging.use(logging.middleware.errorLogger);
+appWithLogging.use(middleware.requestLogger);
+appWithLogging.use(middleware.errorLogger);
 appWithLogging.use(app);
 
 const server = appWithLogging.listen(port, () => {

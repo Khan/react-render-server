@@ -18,7 +18,7 @@
  *
  *     PROFILE(end): doing foo (40ms)
  */
-const logging = require("./logging.js");
+import logging from "./logging.js";
 
 const start = (msg) => {
     if (!msg) {

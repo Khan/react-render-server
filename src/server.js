@@ -3,11 +3,10 @@
  * The high-level logic for our serving endpoints (api routes).
  */
 
-"use strict";
+import logging from "./logging.js";
 
 const bodyParser = require("body-parser");
 const express = require("express");
-const logging = require("./logging.js");
 
 const fetchPackage = require("./fetch_package.js");
 const profile = require("./profile.js");

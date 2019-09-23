@@ -4,10 +4,12 @@
  * Create a render context object.
  */
 
+import logging from "./logging.js";
+
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
-const logging = require("./logging.js");
+
 const profile = require("./profile.js");
 const fetchPackage = require("./fetch_package.js");
 

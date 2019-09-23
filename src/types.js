@@ -1,7 +1,18 @@
 // @flow
-import type {Levels} from "winston";
+import type {
+    NpmLogLevels,
+    Logger as WinstonLogger,
+    Info as WinstonInfo,
+} from "winston";
 
-export type LogLevel = $Keys<Levels>;
+export type Info = {
+    ...WinstonInfo<NpmLogLevels>,
+    durationMs: number,
+    ...
+};
+
+export type LogLevel = $Keys<NpmLogLevels>;
+export type Logger = WinstonLogger<NpmLogLevels>;
 
 /* eslint-disable flowtype/no-dupe-keys */
 export interface IProvideArguments {
