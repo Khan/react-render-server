@@ -20,11 +20,6 @@ parser.addArgument(["--dev"], {
     action: "storeTrue",
     help: "Set if running on dev; controls caching/etc.",
 });
-parser.addArgument(["--render-timeout"], {
-    type: "int",
-    defaultValue: 1000,
-    help: "How many ms until we abort a render as taking too long.",
-});
 parser.addArgument(["--log-level"], {
     defaultValue: "info",
     choices: ["silly", "debug", "verbose", "info", "warn", "error"],
