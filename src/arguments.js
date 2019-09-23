@@ -2,9 +2,11 @@
 /**
  * Parse the arguments for our application.
  */
-const argparse = require("argparse");
+import argparse from "argparse";
 
-const packageInfo = require("../package.json");
+import packageInfo from "../package.json";
+
+import type {Arguments} from "./types.js";
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -28,12 +30,13 @@ parser.addArgument(["--log-level"], {
 
 // We only want to parse the args if we're running inside our main app.
 // Could be src/main.js or dist/main.js.
-const args = process.argv[1].endsWith("/main.js")
+const args: Arguments = process.argv[1].endsWith("/main.js")
     ? parser.parseArgs()
     : {
           // Some defaults for tests and the like.
           log_level: "debug",
           dev: true,
+          port: 42,
       };
 
-module.exports = args;
+export default args;
