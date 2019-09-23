@@ -1,18 +1,16 @@
-// @noflow
+// @flow
 /**
  * The main entrypoint for our react-component render server.
  */
 
+import express from "express";
 import logging, {middleware} from "./logging.js";
 
 // Now that cloud trace is set up, we can require() everything else.
-const express = require("express");
 
-const args = require("./arguments.js");
+import args from "./arguments.js";
 
-const app = require("./server.js");
-
-const port = args.port;
+import app from "./server.js";
 
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
@@ -44,8 +42,26 @@ appWithLogging.use(middleware.requestLogger);
 appWithLogging.use(middleware.errorLogger);
 appWithLogging.use(app);
 
-const server = appWithLogging.listen(port, () => {
-    const host = server.address().address;
-    const port = server.address().port;
-    logging.info("react-render-server running at http://%s:%s", host, port);
+const server = appWithLogging.listen(args.port, (err: ?Error) => {
+    if (server == null || err != null) {
+        logging.error(
+            `react-render-server appears not to have started: ${(err &&
+                err.message) ||
+                "Unknown error"}`,
+        );
+        return;
+    }
+
+    const address = server.address();
+    if (address == null || typeof address === "string") {
+        logging.warn(
+            "react-render-server may not have started properly: %s",
+            address,
+        );
+        return;
+    }
+
+    const host = address.address;
+    const port = address.port;
+    logging.info(`react-render-server running at http://${host}:${port}`);
 });
