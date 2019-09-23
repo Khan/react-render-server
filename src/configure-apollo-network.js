@@ -1,3 +1,4 @@
+// @noflow
 /**
  * Configure a given context to support Apollo
  *

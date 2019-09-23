@@ -1,3 +1,4 @@
+// @noflow
 /**
  * The main entrypoint for our react-component render server.
  */

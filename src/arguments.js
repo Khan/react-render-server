@@ -1,3 +1,4 @@
+// @flow
 /**
  * Parse the arguments for our application.
  */

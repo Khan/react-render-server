@@ -1,3 +1,5 @@
+// @noflow
+
 /**
  * Logging setup for our application.
  */

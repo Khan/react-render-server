@@ -6,6 +6,22 @@
         "import",
         "promise"
     ],
+    "overrides": [
+        {
+            "files": ["src/*.js"],
+            "settings": {
+                "flowtype": {
+                    "onlyFilesWithFlowAnnotation": false
+                }
+            }
+        },
+        {
+            "files": ["**/*_test.js"],
+            "rules": {
+                "max-lines": "off"
+            }
+        }
+    ],
     "rules": {
         "flowtype/require-exact-type": [
             "error",

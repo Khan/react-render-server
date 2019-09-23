@@ -1,3 +1,5 @@
+// @noflow
+
 /**
  * Create a render context object.
  */

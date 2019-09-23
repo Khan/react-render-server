@@ -1,3 +1,4 @@
+// @noflow
 /**
  * Simple tools for logging profiling data.
  *

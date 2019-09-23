@@ -1,3 +1,4 @@
+// @noflow
 /**
  * A simple module for exposing the secret for /render calls.
  *

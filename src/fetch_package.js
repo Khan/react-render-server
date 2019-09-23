@@ -1,3 +1,5 @@
+// @noflow
+
 /**
  * Fetch a package from the place that has packages.
  *

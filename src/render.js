@@ -1,3 +1,4 @@
+// @noflow
 /**
  * The core functionality of actually rendering.
  *
