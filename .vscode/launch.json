@@ -28,7 +28,7 @@
                 "--compilers",
                 "js:@babel/register",
                 "--colors",
-                "${file}",
+                "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         }
