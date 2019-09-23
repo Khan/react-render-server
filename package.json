@@ -14,7 +14,7 @@
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
-    "lint": "flow && eslint --config ./eslint/eslintrc src",
+    "lint": "flow && eslint --config .eslintrc src",
     "prettyquick": "pretty-quick",
     "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata",
     "postinstall": "npm run build"
