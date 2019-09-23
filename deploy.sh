@@ -33,9 +33,6 @@ git fetch origin
 # Don't deploy if tests fail
 npm test
 
-# Build the code that actually will run
-npm run build
-
 # Use the default value for use_appengine_api. This is configuration set by
 # deployment of webapp.
 gcloud config set "app/use_appengine_api" "True"
