@@ -23,7 +23,7 @@ import logging from "./logging.js";
 import type {LogLevel} from "./types.js";
 
 type ProfileSession = {
-    end: (endMsg: string, level?: LogLevel) => void,
+    end: (endMsg?: string, level?: LogLevel) => void,
 };
 
 const start = (msg: string): ProfileSession => {
@@ -39,7 +39,7 @@ const start = (msg: string): ProfileSession => {
 
     const profiler = logging.startTimer();
     return {
-        end: (endMsg, level = "debug") => {
+        end: (endMsg?: string, level?: LogLevel = "debug") => {
             const message = endMsg || msg;
             profiler.done({
                 message: `PROFILE(end): ${message}`,

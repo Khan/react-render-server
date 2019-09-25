@@ -10,7 +10,7 @@ import logging from "./logging.js";
 import profile from "./profile.js";
 
 import type {$Request, $Response, NextFunction} from "express";
-import type {RenderBody} from "./types.js";
+import type {RenderBody, RequestStats} from "./types.js";
 
 const fetchPackage = require("./fetch_package.js");
 const renderSecret = require("./secret.js");
@@ -83,13 +83,13 @@ app.use(
         // our-request-start as the value we log.
         // We store the stats-to-log in `req` as a hacky way of holding
         // per-request stats.
-        res.locals.requestStats = {
+        res.locals.requestStats = ({
             pendingRenderRequests: pendingRenderRequests,
             packageFetches: 0,
             fromCache: 0,
             vmContextSize: 0,
             createdVmContext: false,
-        };
+        }: RequestStats);
 
         pendingRenderRequests++;
         const renderProfile = profile.start("/render");

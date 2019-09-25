@@ -1,29 +1,38 @@
-// @noflow
+// @flow
 
 /**
  * Create a render context object.
  */
 
+import vm from "vm";
+
+import * as jsdom from "jsdom";
+
 import logging from "./logging.js";
 import profile from "./profile.js";
+import fetchPackage from "./fetch_package.js";
 
-const vm = require("vm");
-// TODO(csilvers): try to get rid of the dependency on jsdom
-const jsdom = require("jsdom");
+import type {JSDOM, FetchOptions} from "jsdom";
+import type {Globals, JavaScriptPackage, RequestStats} from "./types.js";
 
-const fetchPackage = require("./fetch_package.js");
+type RenderContextWithSize = {
+    context: JSDOM,
+    cumulativePackageSize: number,
+};
 
 class CustomResourceLoader extends jsdom.ResourceLoader {
+    _active: boolean;
+
     constructor() {
         super();
         this._active = true;
     }
 
-    close() {
+    close(): void {
         this._active = false;
     }
 
-    _fetchJavaScript(url) {
+    _fetchJavaScript(url: string): Promise<Buffer> {
         return fetchPackage(url).then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
@@ -33,7 +42,7 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
         });
     }
 
-    fetch(url, options) {
+    fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
         const loggableUrl = url.startsWith("data:") ? "inline data" : url;
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
@@ -62,7 +71,10 @@ class CustomResourceLoader extends jsdom.ResourceLoader {
     }
 }
 
-const getScript = function(fnOrText, options) {
+const getScript = function(
+    fnOrText: Function | string,
+    options: vm$ScriptOptions,
+) {
     switch (typeof fnOrText) {
         case "function":
             const script = "(\n" + fnOrText.toString() + "\n)()";
@@ -117,7 +129,11 @@ const patchTimers = () => {
  * @param {[{content: string, url: string}]} jsPackages
  * @returns {{context: JSDOM, cumulativePackageSize: number}}
  */
-const createRenderContext = function(locationUrl, globals, jsPackages) {
+const createRenderContext = function(
+    locationUrl: string,
+    globals: Globals,
+    jsPackages: Array<JavaScriptPackage>,
+): RenderContextWithSize {
     const resourceLoader = new CustomResourceLoader();
 
     // A minimal document, for parts of our code that assume there's a DOM.
@@ -234,12 +250,12 @@ const createRenderContext = function(locationUrl, globals, jsPackages) {
  * @param {any} requestStats
  * @returns {JSDOM}
  */
-const createRenderContextWithStats = function(
-    locationUrl,
-    globals,
-    jsPackages,
-    requestStats,
-) {
+export default function createRenderContextWithStats(
+    locationUrl: string,
+    globals: Globals,
+    jsPackages: Array<any>,
+    requestStats: RequestStats,
+): JSDOM {
     const vmConstructionProfile = profile.start(
         `building VM ${(globals && `for ${globals["location"]}`) || ""}`,
     );
@@ -258,6 +274,4 @@ const createRenderContextWithStats = function(
     }
 
     return context;
-};
-
-module.exports = createRenderContextWithStats;
+}

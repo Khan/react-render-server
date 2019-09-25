@@ -14,14 +14,30 @@ export type Info = {
 export type LogLevel = $Keys<NpmLogLevels>;
 export type Logger = WinstonLogger<NpmLogLevels>;
 
+export type Globals = {
+    +location: string,
+    +[key: string]: mixed,
+    ...
+};
+
 export type RenderBody = {
-    urls: Array<string>,
-    globals: {
-        [key: string]: mixed,
-        ...,
-    },
-    props: mixed,
-    secret: string,
+    +urls: Array<string>,
+    +globals: Globals,
+    +props: mixed,
+    +secret: string,
+};
+
+export type JavaScriptPackage = {
+    +content: string,
+    +url: string,
+};
+
+export type RequestStats = {
+    pendingRenderRequests: number,
+    packageFetches: number,
+    fromCache: number,
+    vmContextSize: number,
+    createdVmContext: boolean,
 };
 
 /* eslint-disable flowtype/no-dupe-keys */
