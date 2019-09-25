@@ -1,13 +1,16 @@
-// @noflow
+// @flow
 /**
  * The high-level logic for our serving endpoints (api routes).
  */
 
+import bodyParser from "body-parser";
+import express from "express";
+
 import logging from "./logging.js";
 import profile from "./profile.js";
 
-const bodyParser = require("body-parser");
-const express = require("express");
+import type {$Request, $Response, NextFunction} from "express";
+import type {RenderBody} from "./types.js";
 
 const fetchPackage = require("./fetch_package.js");
 const renderSecret = require("./secret.js");
@@ -72,51 +75,58 @@ app.use(bodyParser.json({limit: "5mb"}));
  */
 
 // This middleware manages the number of connections, and logs about it.
-app.use("/render", (req, res, next) => {
-    // The number of concurrent requests will fluctuate as this
-    // request is evaluated.  We arbitrarily take the number at
-    // our-request-start as the value we log.
-    // We store the stats-to-log in `req` as a hacky way of holding
-    // per-request stats.
-    req.requestStats = {
-        pendingRenderRequests: pendingRenderRequests,
-        packageFetches: 0,
-        fromCache: 0,
-        vmContextSize: 0,
-        createdVmContext: false,
-    };
+app.use(
+    "/render",
+    (req: $Request, res: $Response, next: NextFunction): mixed => {
+        // The number of concurrent requests will fluctuate as this
+        // request is evaluated.  We arbitrarily take the number at
+        // our-request-start as the value we log.
+        // We store the stats-to-log in `req` as a hacky way of holding
+        // per-request stats.
+        res.locals.requestStats = {
+            pendingRenderRequests: pendingRenderRequests,
+            packageFetches: 0,
+            fromCache: 0,
+            vmContextSize: 0,
+            createdVmContext: false,
+        };
 
-    pendingRenderRequests++;
-    const renderProfile = profile.start("/render");
+        pendingRenderRequests++;
+        const renderProfile = profile.start("/render");
 
-    // Monkey-patch res.end so we can do our logging at request-end.
-    const end = res.end;
-    res.end = (chunk, encoding) => {
-        pendingRenderRequests--;
-        if (res.statusCode < 300) {
-            // only log on successful fetches
-            renderProfile.end(
-                `render-stats for ${
-                    req.body.urls[req.body.urls.length - 1]
-                }: ` + JSON.stringify(req.requestStats),
-            );
+        // Register for the response finish so we can finish up our stats.
+        res.on("finish", () => {
+            pendingRenderRequests--;
+            if (res.statusCode < 300) {
+                // only log on successful fetches
+                const renderBody: RenderBody = (req.body: any);
+                renderProfile.end(
+                    `render-stats for ${
+                        renderBody.urls[renderBody.urls.length - 1]
+                    }: ${JSON.stringify(res.locals.requestStats) || ""}`,
+                );
+            }
+        });
+        next();
+    },
+);
+
+const checkSecret = function(
+    req: $Request,
+    res: $Response,
+    next: NextFunction,
+): mixed {
+    const {secret}: RenderBody = (req.body: any);
+    renderSecret.matches(secret, (err: ?Error, secretMatches: ?boolean) => {
+        if (err != null || !secretMatches) {
+            res.status(400).send({error: "Missing or invalid secret"});
+            return;
         }
-        res.end = end;
-        res.end(chunk, encoding);
-    };
-    next();
-});
-
-const checkSecret = function(req, res, next) {
-    renderSecret.matches(req.body.secret, (err, secretMatches) => {
-        if (err || !secretMatches) {
-            return res.status(400).send({error: "Missing or invalid secret"});
-        }
-        return next();
+        next();
     });
 };
 
-const handleFetchError = function(err, res) {
+const handleFetchError = function(err: any, res: $Response): void {
     // Error handler for fetching failures.
     if (err.response && err.response.error) {
         logging.error(
@@ -138,9 +148,9 @@ const respond400Error = (res, error, value) => {
     return res.status(400).json({error, value});
 };
 
-app.post("/render", checkSecret, async (req, res) => {
+app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Validate the input.
-    const {urls, props, globals} = req.body;
+    const {urls, props, globals}: RenderBody = (req.body: any);
 
     if (!Array.isArray(urls) || !urls.every((url) => typeof url === "string")) {
         return respond400Error(
@@ -176,7 +186,7 @@ app.post("/render", checkSecret, async (req, res) => {
 
     // Fetch the entry point and its dependencies.
     const fetchPromises = jsUrls.map((url) =>
-        fetchPackage(url, req.requestStats),
+        fetchPackage(url, res.locals.requestStats),
     );
 
     const fetchPackages = async () => {
@@ -198,14 +208,14 @@ app.post("/render", checkSecret, async (req, res) => {
             packages,
             props,
             globals,
-            req.requestStats,
+            res.locals.requestStats,
         );
 
         // We store the updated request-stats in renderedState
         // (the only way to get the updated data back from our
         // subprocess); pop that out into update req.requestStats.
         // eslint-disable-next-line require-atomic-updates
-        req.requestStats = renderedState.requestStats;
+        res.locals.requestStats = renderedState.requestStats;
         delete renderedState.requestStats;
         res.json(renderedState);
     } catch (err) {
@@ -219,23 +229,22 @@ app.post("/render", checkSecret, async (req, res) => {
     }
 });
 
-app.get("/_api/ping", (req, res) => res.send("pong!\n"));
+app.get("/_api/ping", (req: $Request, res: $Response) => res.send("pong!\n"));
 
-app.get("/_api/version", (req, res) => {
+app.get("/_api/version", (req: $Request, res: $Response) => {
     // This will return the module version ID we set when deploying.
     res.send((process.env["GAE_VERSION"] || "dev") + "\n");
 });
-
 // These are used by the Managed VM lifecycle functions:
 // https://cloud.google.com/appengine/docs/managed-vms/custom-runtimes#lifecycle_events
-app.get("/_ah/health", (req, res) => res.send("ok!\n"));
-app.get("/_ah/start", (req, res) => res.send("ok!\n"));
-app.get("/_ah/stop", (req, res) => res.send("ok!\n"));
+app.get("/_ah/health", (req: $Request, res: $Response) => res.send("ok!\n"));
+app.get("/_ah/start", (req: $Request, res: $Response) => res.send("ok!\n"));
+app.get("/_ah/stop", (req: $Request, res: $Response) => res.send("ok!\n"));
 
 // Simplistic priming endpoint. Calling this endpoint uses CPU and thus
 // hopefully causes the autoscaler to spin up more instances. This endpoint
 // takes about 2 seconds when called locally on my laptop.
-app.get("/prime", (req, res) => {
+app.get("/prime", (req: $Request, res: $Response) => {
     for (let i = 0; i < 3000000000; i++) {
         // noop
     }

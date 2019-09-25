@@ -14,6 +14,16 @@ export type Info = {
 export type LogLevel = $Keys<NpmLogLevels>;
 export type Logger = WinstonLogger<NpmLogLevels>;
 
+export type RenderBody = {
+    urls: Array<string>,
+    globals: {
+        [key: string]: mixed,
+        ...,
+    },
+    props: mixed,
+    secret: string,
+};
+
 /* eslint-disable flowtype/no-dupe-keys */
 /**
  * Disable no-dupe-keys here because the eslint rule appears to be incorrectly
