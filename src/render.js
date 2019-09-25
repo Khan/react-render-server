@@ -1,3 +1,4 @@
+// @noflow
 /**
  * The core functionality of actually rendering.
  *
@@ -5,10 +6,8 @@
  * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
+import logging from "./logging.js";
 
-"use strict";
-
-const logging = require("./logging.js");
 const createRenderContext = require("./create-render-context.js");
 const configureApolloNetwork = require("./configure-apollo-network.js");
 

@@ -1,4 +1,5 @@
-"use strict";
+// @noflow
+import logging from "./logging.js";
 
 const fs = require("fs");
 
@@ -6,7 +7,6 @@ const assert = require("chai").assert;
 const nock = require("nock");
 const sinon = require("sinon");
 const supertest = require("supertest");
-const logging = require("./logging.js");
 
 const renderSecret = require("./secret.js");
 const server = require("./server.js");

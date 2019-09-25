@@ -1,23 +1,16 @@
+// @flow
 /**
  * The main entrypoint for our react-component render server.
  */
 
-"use strict";
+import express from "express";
 
-// Now that cloud trace is set up, we can require() everything else.
-const express = require("express");
-
-const args = require("./arguments.js");
-const logging = require("./logging.js");
-
-const app = require("./server.js");
-const renderSecret = require("./secret.js");
-
-const port = args.port;
+import logging, {middleware} from "./logging.js";
+import args from "./arguments.js";
+import app from "./server.js";
 
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
-    // We need to do this as soon as possible so it can patch future requires.
     const traceAgent = require("@google-cloud/trace-agent");
     traceAgent.start({logLevel: 2}); // log at WARN and ERROR
 
@@ -30,11 +23,6 @@ if (!args.dev) {
 
 // Set up our globals and singletons
 if (args.dev) {
-    // Disable the need for secrets.
-    renderSecret.matches = (actual, callback) => {
-        return callback(null, true);
-    };
-
     process.env.NODE_ENV = "dev";
 } else {
     // This is important for the default catch-all error handler:
@@ -46,12 +34,30 @@ if (args.dev) {
 //   https://cloud.google.com/nodejs/getting-started/logging-application-events
 const appWithLogging = express();
 
-appWithLogging.use(logging.middleware.requestLogger);
-appWithLogging.use(logging.middleware.errorLogger);
+appWithLogging.use(middleware.requestLogger);
+appWithLogging.use(middleware.errorLogger);
 appWithLogging.use(app);
 
-const server = appWithLogging.listen(port, () => {
-    const host = server.address().address;
-    const port = server.address().port;
-    logging.info("react-render-server running at http://%s:%s", host, port);
+const server = appWithLogging.listen(args.port, (err: ?Error) => {
+    if (server == null || err != null) {
+        logging.error(
+            `react-render-server appears not to have started: ${(err &&
+                err.message) ||
+                "Unknown error"}`,
+        );
+        return;
+    }
+
+    const address = server.address();
+    if (address == null || typeof address === "string") {
+        logging.warn(
+            "react-render-server may not have started properly: %s",
+            address,
+        );
+        return;
+    }
+
+    const host = address.address;
+    const port = address.port;
+    logging.info(`react-render-server running at http://${host}:${port}`);
 });

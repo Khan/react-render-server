@@ -1,12 +1,9 @@
-"use strict";
-
+// @noflow
 const fs = require("fs");
 const jsdom = require("jsdom");
 
 const chai = require("chai");
-const chaiAsPromised = require("chai-as-promised");
 
-chai.use(chaiAsPromised);
 const {assert} = chai;
 
 const sinon = require("sinon");

@@ -4,3 +4,7 @@ docs
 *.css
 *.yml
 *.txt
+dist
+node_modules
+flow-typed
+.vscode

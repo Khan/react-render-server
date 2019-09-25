@@ -1,4 +1,4 @@
-"use strict";
+// @noflow
 
 const assert = require("chai").assert;
 const nock = require("nock");

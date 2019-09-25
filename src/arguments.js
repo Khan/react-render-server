@@ -1,9 +1,12 @@
+// @flow
 /**
  * Parse the arguments for our application.
  */
-const argparse = require("argparse");
+import argparse from "argparse";
 
-const packageInfo = require("../package.json");
+import packageInfo from "../package.json";
+
+import type {LogLevel, IProvideArguments} from "./types.js";
 
 const parser = new argparse.ArgumentParser({
     version: packageInfo.version,
@@ -19,11 +22,6 @@ parser.addArgument(["--dev"], {
     action: "storeTrue",
     help: "Set if running on dev; controls caching/etc.",
 });
-parser.addArgument(["--render-timeout"], {
-    type: "int",
-    defaultValue: 1000,
-    help: "How many ms until we abort a render as taking too long.",
-});
 parser.addArgument(["--log-level"], {
     defaultValue: "info",
     choices: ["silly", "debug", "verbose", "info", "warn", "error"],
@@ -38,6 +36,30 @@ const args = process.argv[1].endsWith("/main.js")
           // Some defaults for tests and the like.
           log_level: "debug",
           dev: true,
+          port: 42,
       };
 
-module.exports = args;
+/**
+ * Wrapper class with accessors that can be overridden in testing.
+ */
+class ArgumentProvider implements IProvideArguments {
+    _args: any;
+
+    constructor(args: any) {
+        this._args = args;
+    }
+
+    get port(): number {
+        return this._args.port;
+    }
+
+    get logLevel(): LogLevel {
+        return this._args.log_level;
+    }
+
+    get dev(): boolean {
+        return this._args.dev;
+    }
+}
+
+export default new ArgumentProvider(args);

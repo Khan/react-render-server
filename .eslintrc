@@ -1,20 +1,44 @@
 {
     "extends": [
-        "./eslint/eslintrc"
+        "./eslint/eslintrc",
+        "plugin:eslint-comments/recommended"
     ],
     "plugins": [
         "import",
-        "promise"
+        "promise",
+        "eslint-comments",
+        "disable"
+    ],
+    "settings": {
+        "eslint-plugin-disable": {
+          "paths": {
+            "react": ["src/*.js"]
+          }
+        }
+    },
+    "overrides": [
+        {
+            "files": ["src/*.js"],
+            "settings": {
+                "flowtype": {
+                    "onlyFilesWithFlowAnnotation": false
+                },
+                "react": {
+                    "version": "16.3"
+                }
+            }
+        },
+        {
+            "files": ["**/*_test.js"],
+            "rules": {
+                "max-lines": "off"
+            }
+        }
     ],
     "rules": {
-        "flowtype/require-exact-type": [
-            "error",
-            "always"
-        ],
         "flowtype/no-types-missing-file-annotation": "error",
         "import/no-unresolved": "error",
         "import/named": "error",
-        "import/default": "error",
         "import/no-absolute-path": "error",
         "import/no-self-import": "error",
         "import/no-useless-path-segments": "error",
@@ -23,15 +47,6 @@
         "import/no-deprecated": "error",
         "import/first": "error",
         "import/no-duplicates": "error",
-        "import/order": [
-            "error",
-            {
-                "groups": [
-                    "builtin",
-                    "external"
-                ]
-            }
-        ],
         "import/newline-after-import": "error",
         "import/no-unassigned-import": "error",
         "import/no-named-default": "error",
@@ -47,6 +62,7 @@
         "promise/param-names": "error",
         "promise/catch-or-return": "error",
         "promise/no-new-statics": "error",
-        "promise/no-return-in-finally": "error"
+        "promise/no-return-in-finally": "error",
+        "eslint-comments/no-unused-disable": "error"
     }
 }

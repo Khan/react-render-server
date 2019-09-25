@@ -1,3 +1,4 @@
+// @flow
 /**
  * A simple module for exposing the secret for /render calls.
  *
@@ -8,50 +9,62 @@
  * This is in its own module to allow for mocking in tests.  That's
  * also one reason we have this weird matches() indirection.
  */
+import fs from "fs";
+import path from "path";
 
-"use strict";
+import args from "./arguments.js";
+import logging from "./logging.js";
 
-const fs = require("fs");
-const path = require("path");
+const secretPath: string = path.normalize(__dirname + "/../secret");
+let secret: string;
 
-const logging = require("./logging.js");
-
-const secretPath = path.normalize(__dirname + "/../secret");
-let secret;
-
-// Used by the benchmark/loadtest tool.
-const get = function(done) {
+// Exported for use by the benchmark/loadtest tool.
+export const get = function(done: (?Error, ?string) => void): void {
     if (secret) {
-        return done(null, secret);
+        done(null, secret);
+        return;
     }
 
-    fs.readFile(secretPath, "utf-8", (err, contents) => {
+    fs.readFile(secretPath, "utf-8", (err: ?Error, contents: string): void => {
         if (err) {
-            logging.error(`FATAL ERROR (${err}): You must create a file:`);
+            logging.error(
+                `FATAL ERROR (${err.message}): You must create a file:`,
+            );
             logging.error("    " + secretPath);
             logging.error("Its contents should be the secret-string at");
             logging.error("    https://phabricator.khanacademy.org/K121");
-            return done(err);
+            done(err);
+            return;
         }
 
         secret = contents.trim();
         if (!secret) {
-            return done(new Error("secret file is empty!"));
+            done(new Error("secret file is empty!"));
+            return;
         }
 
-        return done(null, secret);
+        done(null, secret);
+        return;
     });
 };
 
-const matches = function(actual, done) {
-    return get((err, secret) => {
+export const matches = function(
+    actualSecret: string,
+    done: (?Error, ?boolean) => void,
+): void {
+    if (args.dev) {
+        // Disable the need for secrets.
+        done(null, true);
+        return;
+    }
+
+    return get((err: ?Error, secret: ?string): void => {
         if (err) {
-            return done(err);
+            done(err);
+            return;
         }
 
-        return done(null, secret === actual);
+        done(null, secret === actualSecret);
+        return;
     });
 };
-
-// get is only used by the benchmarking/loadtest tool.
-module.exports = {matches: matches, get: get};
