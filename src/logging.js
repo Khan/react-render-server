@@ -9,9 +9,9 @@ import winston from "winston";
 
 import {LoggingWinston as StackdriverTransport} from "@google-cloud/logging-winston";
 
-import type {NpmLogLevels, Format} from "winston";
 import args from "./arguments.js";
 
+import type {NpmLogLevels, Format} from "winston";
 import type {Info, Logger, LogLevel} from "./types.js";
 
 /**
@@ -36,7 +36,7 @@ function getFormatters(json, isDev) {
     if (json) {
         formatters.push(winston.format.json());
         if (isDev) {
-            formatters.push(winston.format.prettyPrint());
+            formatters.push(winston.format.prettyPrint({colorize: true}));
         }
     } else {
         formatters.push(winston.format.cli({all: isDev}));

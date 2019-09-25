@@ -1,6 +1,4 @@
 // @flow
-"use strict";
-
 import fs from "fs";
 import {promisify} from "util";
 

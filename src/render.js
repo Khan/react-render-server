@@ -6,9 +6,6 @@
  * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
-
-"use strict";
-
 import logging from "./logging.js";
 
 const createRenderContext = require("./create-render-context.js");

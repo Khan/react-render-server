@@ -9,9 +9,6 @@
  * This is in its own module to allow for mocking in tests.  That's
  * also one reason we have this weird matches() indirection.
  */
-
-"use strict";
-
 import fs from "fs";
 import path from "path";
 

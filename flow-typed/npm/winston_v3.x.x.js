@@ -45,6 +45,7 @@ declare class $winstonConsoleTransport<T> extends $winstonTransport {
   ): $winstonConsoleTransport<T>;
 }
 
+// Start: https://github.com/Khan/react-render-server/pull/20
 declare type $winstonStreamTransportConfig<T: $winstonLevels> = {
   level?: $Keys<T>,
   stream: NodeJS.WritableStream,
@@ -55,6 +56,7 @@ declare type $winstonStreamTransportConfig<T: $winstonLevels> = {
 declare class $winstonStreamTransport<T> extends $winstonTransport {
   constructor(config?: $winstonStreamTransportConfig<T>): $winstonStreamTransport<T>;
 }
+// End: https://github.com/Khan/react-render-server/pull/20
 
 declare type $winstonLoggerConfig<T: $winstonLevels> = {
   exitOnError?: boolean,
@@ -84,18 +86,30 @@ declare type $winstonFormatJsonOptions = {
   ...
 };
 
-declare type winstonFormatCliOptions = {
+// Start: https://github.com/Khan/react-render-server/pull/20
+declare type $winstonFormatPrintPrintOptions = {
+  depth?: number,
+  colorize?: boolean,
   ...
 };
 
+declare type winstonFormatCliOptions = {
+  ...
+};
+// End: https://github.com/Khan/react-render-server/pull/20
+
 declare type $winstonFormatSubModule = {
   ((info: Object) => Object): () => $winstonFormat,
+  // Start: https://github.com/Khan/react-render-server/pull/20
   cli: (options?: $winstonFormatCliOptions) => $winstonFormat,
+  // End: https://github.com/Khan/react-render-server/pull/20
   combine: (...args: Array<$winstonFormat>) => $winstonFormat,
   json: (options?: $winstonFormatJsonOptions) => $winstonFormat,
   label: (config?: Object) => $winstonFormat,
   metadata: () => $winstonFormat,
-  prettyPrint: () => $winstonFormat,
+  // Start: https://github.com/Khan/react-render-server/pull/20
+  prettyPrint: (options?: $winstonFormatPrintPrintOptions) => $winstonFormat,
+  // End: https://github.com/Khan/react-render-server/pull/20
   simple: () => $winstonFormat,
   splat: () => $winstonFormat,
   timestamp: (?{
@@ -129,8 +143,10 @@ declare module "winston" {
   declare export type FileTransport<T: Levels> = $winstonFileTransport<T>;
   declare export type ConsoleTransportConfig<T: Levels> = $winstonConsoleTransportConfig<T>;
   declare export type ConsoleTransport<T: Levels> = $winstonConsoleTransport<T>;
+  // Start: https://github.com/Khan/react-render-server/pull/20
   declare export type StreamTransportConfig<T: Levels> = $winstonStreamTransportConfig<T>;
   declare export type StreamTransport<T: Levels> = $winstonStreamTransport<T>;
+  // End: https://github.com/Khan/react-render-server/pull/20
   declare export type LoggerConfig<T: Levels> = $winstonLoggerConfig<T>;
   declare export type Logger<T: Levels> = $winstonLogger<T>;
   declare export type ConfigSubModule = $winstonConfigSubModule;
@@ -144,7 +160,9 @@ declare module "winston" {
     transports: {
       Console: typeof $winstonConsoleTransport,
       File: typeof $winstonFileTransport,
+      // Start: https://github.com/Khan/react-render-server/pull/20
       Stream: typeof $winstonStreamTransport,
+      // End: https://github.com/Khan/react-render-server/pull/20
       ...
     },
     createLogger: <T>($winstonLoggerConfig<T>) => $winstonLogger<T>,

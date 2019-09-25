@@ -1,6 +1,4 @@
 // @noflow
-"use strict";
-
 const fs = require("fs");
 const jsdom = require("jsdom");
 

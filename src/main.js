@@ -4,17 +4,13 @@
  */
 
 import express from "express";
+
 import logging, {middleware} from "./logging.js";
-
-// Now that cloud trace is set up, we can require() everything else.
-
 import args from "./arguments.js";
-
 import app from "./server.js";
 
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
-    // We need to do this as soon as possible so it can patch future requires.
     const traceAgent = require("@google-cloud/trace-agent");
     traceAgent.start({logLevel: 2}); // log at WARN and ERROR
 
