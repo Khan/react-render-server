@@ -31,7 +31,8 @@ parser.addArgument(["--log-level"], {
 });
 
 // We only want to parse the args if we're running inside our main app.
-const args = process.argv[1].endsWith("/src/main.js")
+// Could be src/main.js or dist/main.js.
+const args = process.argv[1].endsWith("/main.js")
     ? parser.parseArgs()
     : {
           // Some defaults for tests and the like.
