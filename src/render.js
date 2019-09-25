@@ -7,11 +7,10 @@
  * necessary context for rendering it.
  */
 import logging from "./logging.js";
+import profile from "./profile.js";
 
 const createRenderContext = require("./create-render-context.js");
 const configureApolloNetwork = require("./configure-apollo-network.js");
-
-const profile = require("./profile.js");
 
 /**
  * This method is executed whenever a render is needed. It is executed inside

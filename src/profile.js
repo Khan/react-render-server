@@ -1,4 +1,4 @@
-// @noflow
+// @flow
 /**
  * Simple tools for logging profiling data.
  *
@@ -6,7 +6,7 @@
  *
  * You can use it like this:
  *
- *     const profile = require("./profile.js");
+ *     import profile from "./profile.js";
  *
  *     const fooProfile = profile.start("doing foo");
  *     foo();
@@ -20,7 +20,13 @@
  */
 import logging from "./logging.js";
 
-const start = (msg) => {
+import type {LogLevel} from "./types.js";
+
+type ProfileSession = {
+    end: (endMsg: string, level: LogLevel) => void,
+};
+
+const start = (msg: string): ProfileSession => {
     if (!msg) {
         throw new Error(
             "Must provide a message or name for the profile session.",
@@ -43,4 +49,4 @@ const start = (msg) => {
     };
 };
 
-module.exports = {start: start};
+export default {start: start};
