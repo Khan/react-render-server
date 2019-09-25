@@ -288,6 +288,7 @@ declare module "chai" {
     // chai-immutable
     static sizeOf(val: mixed, length: number): void;
 
+    // Start: https://github.com/Khan/react-render-server/pull/20
     // chai-as-promised
     static eventually: PromisedAssert;
     static isFulfilled(promise: Promise<any>, message?: string): Promise<void>;
@@ -297,8 +298,10 @@ declare module "chai" {
     static isRejected<T>(promise: Promise<T>, expected: any, message?: string): Promise<void>;
     static isRejected<T>(promise: Promise<T>, match: RegExp, message?: string): Promise<void>;
     static notify(fn: Function): Promise<void>;
+    // End: https://github.com/Khan/react-render-server/pull/20
   }
 
+  // Start: https://github.com/Khan/react-render-server/pull/20
   declare interface PromisedAssert {
       fail(actual?: any, expected?: any, msg?: string, operator?: string): Promise<void>;
 
@@ -449,6 +452,7 @@ declare module "chai" {
       isEmpty(val: any, msg?: string): Promise<void>;
       isNotEmpty(val: any, msg?: string): Promise<void>;
   }
+  // End: https://github.com/Khan/react-render-server/pull/20
 
   declare var config: {
     includeStack: boolean,
