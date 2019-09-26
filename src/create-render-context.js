@@ -5,12 +5,12 @@
  */
 
 import logging from "./logging.js";
+import profile from "./profile.js";
 
 const vm = require("vm");
 // TODO(csilvers): try to get rid of the dependency on jsdom
 const jsdom = require("jsdom");
 
-const profile = require("./profile.js");
 const fetchPackage = require("./fetch_package.js");
 
 class CustomResourceLoader extends jsdom.ResourceLoader {

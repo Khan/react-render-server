@@ -4,12 +4,12 @@
  */
 
 import logging from "./logging.js";
+import profile from "./profile.js";
 
 const bodyParser = require("body-parser");
 const express = require("express");
 
 const fetchPackage = require("./fetch_package.js");
-const profile = require("./profile.js");
 const renderSecret = require("./secret.js");
 const render = require("./render.js");
 

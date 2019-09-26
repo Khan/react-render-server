@@ -58,6 +58,15 @@ declare class $winstonStreamTransport<T> extends $winstonTransport {
 }
 // End: https://github.com/Khan/react-render-server/pull/20
 
+
+// Start: https://github.com/Khan/react-render-server/pull/21
+declare type $winstonProfiler<T: $winstonLevels> = {
+  logger: $winstonLogger<T>,
+  start: Date,
+  done(info?: $winstonInfo<T>): boolean,
+}
+// End: https://github.com/Khan/react-render-server/pull/21
+
 declare type $winstonLoggerConfig<T: $winstonLevels> = {
   exitOnError?: boolean,
   format?: $winstonFormat,
@@ -74,6 +83,9 @@ declare type $winstonLogger<T: $winstonLevels> = {
   configure: ($winstonLoggerConfig<T>) => void,
   log: (message: $winstonInfo<T>) => void,
   remove: $winstonTransport => void,
+  // Start: https://github.com/Khan/react-render-server/pull/21
+  startTimer: () => $winstonProfiler<T>;
+  // End: https://github.com/Khan/react-render-server/pull/21
   ...
 };
 

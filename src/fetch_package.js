@@ -12,11 +12,9 @@
  * file, to avoid letting this server execute arbitrary code.
  */
 
-"use strict";
+import profile from "./profile.js";
 
 const request = require("superagent");
-
-const profile = require("./profile.js");
 
 // How many times we retry on 5xx error or similar, before giving up.
 const numRetries = 2; // so 3 tries total
