@@ -9,7 +9,9 @@
 import logging from "./logging.js";
 import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
-import configureApolloNetwork from "./configure-apollo-network.js";
+import configureApolloNetwork, {
+    typeof getApolloClient,
+} from "./configure-apollo-network.js";
 
 import type {
     Globals,
@@ -17,6 +19,11 @@ import type {
     RenderResult,
     RequestStats,
 } from "./types.js";
+
+type RenderCallback = (
+    props: mixed,
+    apolloClient: $Call<getApolloClient>,
+) => Promise<RenderResult>;
 
 /**
  * This method is executed whenever a render is needed. It is executed inside
@@ -31,24 +38,11 @@ const performRender = async (): Promise<RenderResult> => {
         // eslint-disable-next-line no-debugger
         debugger;
     }
-    // 1. Setup an Apollo client if one is expected.
-    const maybeApolloClient = global.ApolloNetworkLink
-        ? // If network details were provided for Apollo then we go about
-          // wrapping the element in an Apollo provider (which will
-          // collect the data requirements of the child components and
-          // send off a network request to a GraphQL endpoint).
 
-          // Build an Apollo client. This is responsible for making the
-          // network requests to the GraphQL endpoint and bringing back
-          // the data.
-          new global.ApolloClient.ApolloClient({
-              ssrMode: true,
-              link: global.ApolloNetworkLink,
-              cache: global.ApolloCache,
-          })
-        : // For rendering things that have no Apollo-centric logic, we
-          // don't have a client.
-          null;
+    const {getApolloClient} = await import("./configure-apollo-network.js");
+
+    // Setup an Apollo client if one is expected.
+    const maybeApolloClient = getApolloClient();
 
     // Make a deep clone of the props in the context before
     // rendering them, so that any polyfills we have in the context
@@ -56,7 +50,9 @@ const performRender = async (): Promise<RenderResult> => {
     // of the props.
     const clonedProps = JSON.parse(JSON.stringify(global.ssrProps));
 
-    const {getRenderPromiseCallback} = window.__rrs;
+    // Get the render callback that the client registered.
+    const getRenderPromiseCallback: RenderCallback =
+        window.__rrs.getRenderPromiseCallback;
 
     // Now ask the client to render.
     // The client should also get the data here with
