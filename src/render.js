@@ -8,8 +8,8 @@
  */
 import logging from "./logging.js";
 import profile from "./profile.js";
+import createRenderContext from "./create-render-context.js";
 
-const createRenderContext = require("./create-render-context.js");
 const configureApolloNetwork = require("./configure-apollo-network.js");
 
 /**
