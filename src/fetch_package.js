@@ -1,4 +1,4 @@
-// @noflow
+// @flow
 
 /**
  * Fetch a package from the place that has packages.
@@ -12,15 +12,21 @@
  * file, to avoid letting this server execute arbitrary code.
  */
 
+import request from "superagent";
 import profile from "./profile.js";
 
-const request = require("superagent");
+import type {JavaScriptPackage, RequestStats} from "./types.js";
+
+type InflightRequests = {
+    [url: string]: Promise<JavaScriptPackage>,
+    ...,
+};
 
 // How many times we retry on 5xx error or similar, before giving up.
-const numRetries = 2; // so 3 tries total
+const DefaultNumRetries: number = 2; // so 3 tries total
 
 // What requests are currently in flight?
-const inFlightRequests = {};
+const inFlightRequests: InflightRequests = {};
 
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
@@ -30,11 +36,11 @@ const inFlightRequests = {};
  * @returns {Promise<{content: string, url: string}>} A promise of an object
  * containing the content and the url from which it came.
  */
-const fetchPackage = async function(url, requestStats, triesLeftAfterThisOne) {
-    if (triesLeftAfterThisOne == null) {
-        triesLeftAfterThisOne = numRetries;
-    }
-
+export default async function fetchPackage(
+    url: string,
+    requestStats?: RequestStats,
+    triesLeftAfterThisOne?: number = DefaultNumRetries,
+): Promise<JavaScriptPackage> {
     // If a different request has already asked for this url, just
     // tag along with it rather than making our own request.
     if (inFlightRequests[url]) {
@@ -46,14 +52,14 @@ const fetchPackage = async function(url, requestStats, triesLeftAfterThisOne) {
 
     // This is a helper function to terminate the profiling with a suitable
     // message.
-    const reportFetchTime = (success) => {
+    const reportFetchTime = (success: boolean): void => {
         fetchProfile.end(
             `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}`,
             success ? "debug" : "error",
         );
     };
 
-    const doFetch = async () => {
+    const doFetch = async (): Promise<JavaScriptPackage> => {
         // Now create the request.
         const fetcher = request.get(url);
 
@@ -117,6 +123,4 @@ const fetchPackage = async function(url, requestStats, triesLeftAfterThisOne) {
     // url, so they don't try to do it too.
     inFlightRequests[url] = fetchPromise;
     return fetchPromise;
-};
-
-module.exports = fetchPackage;
+}
