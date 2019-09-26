@@ -9,9 +9,7 @@
 import logging from "./logging.js";
 import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
-import configureApolloNetwork, {
-    typeof getApolloClient,
-} from "./configure-apollo-network.js";
+import configureApolloNetwork from "./configure-apollo-network.js";
 
 import type {
     Globals,
@@ -20,14 +18,21 @@ import type {
     RequestStats,
 } from "./types.js";
 
+import type {
+    ApolloGlobals,
+    ApolloNetworkConfiguration,
+    ApolloClientInstance,
+} from "./configure-apollo-network.js";
+
 type RenderCallback = (
     props: mixed,
-    apolloClient: $Call<getApolloClient>,
+    apolloClient: ?ApolloClientInstance,
 ) => Promise<RenderResult>;
 
 /**
  * This method is executed whenever a render is needed. It is executed inside
- * the vm context.
+ * the vm context. Because of that, it cannot reference methods that are not
+ * a part of the VM context of it's own implementation.
  */
 const performRender = async (): Promise<RenderResult> => {
     if (window["__DEBUG_RENDER__"]) {
@@ -39,7 +44,61 @@ const performRender = async (): Promise<RenderResult> => {
         debugger;
     }
 
-    const {getApolloClient} = await import("./configure-apollo-network.js");
+    /**
+     * Helper to get the Apollo global setup info together.
+     *
+     * Ideally, this would live in configure-apollo-network so everything
+     * was in one place, but because we're executing this in the VM, it cannot
+     * reference that code that way.
+     */
+    const getApolloGlobals = (): ?ApolloGlobals => {
+        const apolloNetworkConfig: ?ApolloNetworkConfiguration = (global.ApolloNetwork: any);
+
+        if (apolloNetworkConfig == null) {
+            return null;
+        }
+
+        return {
+            ApolloClientModule: global.ApolloClientModule,
+            ApolloNetworkLink: global.ApolloNetworkLink,
+            ApolloCache: global.ApolloCache,
+        };
+    };
+
+    /**
+     * This builds an apollo client if we need one. Again, would be nice if
+     * this were colocated with configure-apollo-network, alas due to VM context
+     * execution, they can't. However, we do share the types to make it clear.
+     */
+    const getApolloClient = (): ?ApolloClientInstance => {
+        const apolloGlobals = getApolloGlobals();
+
+        if (apolloGlobals == null) {
+            // For rendering things that have no Apollo-centric logic, we
+            // don't have a client.
+            return null;
+        }
+
+        const {
+            ApolloClientModule,
+            ApolloNetworkLink,
+            ApolloCache,
+        } = apolloGlobals;
+
+        // If network details were provided for Apollo then we go about
+        // wrapping the element in an Apollo provider (which will
+        // collect the data requirements of the child components and
+        // send off a network request to a GraphQL endpoint).
+
+        // Build an Apollo client. This is responsible for making the
+        // network requests to the GraphQL endpoint and bringing back
+        // the data.
+        return new ApolloClientModule.ApolloClient({
+            ssrMode: true,
+            link: ApolloNetworkLink,
+            cache: ApolloCache,
+        });
+    };
 
     // Setup an Apollo client if one is expected.
     const maybeApolloClient = getApolloClient();
