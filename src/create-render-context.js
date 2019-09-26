@@ -79,7 +79,7 @@ class CustomResourceLoader extends ResourceLoader {
 const getScript = function(
     fnOrText: Function | string,
     options: vm$ScriptOptions,
-) {
+): any {
     switch (typeof fnOrText) {
         case "function":
             const script = "(\n" + fnOrText.toString() + "\n)()";
@@ -95,13 +95,21 @@ const getScript = function(
     }
 };
 
-const runInContext = function(jsdomContext, fnOrText, options = {}) {
+const runInContext = function(
+    jsdomContext: RenderContext,
+    fnOrText: Function | string,
+    options: vm$ScriptOptions = {},
+): any {
     return jsdomContext.runVMScript(getScript(fnOrText, options));
 };
 
-const patchTimers = () => {
+const patchTimers = (): void => {
     let warned = false;
-    const patchCallbackFnWithGate = (obj, fnName, gateName) => {
+    const patchCallbackFnWithGate = (
+        obj: any,
+        fnName: string,
+        gateName: string,
+    ) => {
         const old = obj[fnName];
         delete obj[fnName];
         obj[fnName] = (callback, ...args) => {
