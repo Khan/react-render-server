@@ -1,4 +1,10 @@
 // @flow
+import * as ApolloClient from "apollo-client";
+
+import type {JSDOM} from "jsdom";
+import type {ApolloCache} from "apollo-client";
+import type {ApolloLink} from "apollo-link-http";
+
 import type {
     NpmLogLevels,
     Logger as WinstonLogger,
@@ -39,6 +45,22 @@ export type RequestStats = {
     vmContextSize: number,
     createdVmContext: boolean,
 };
+
+type ApolloNetworkConfiguration = {
+    timeout?: number,
+    url?: string,
+    headers?: any,
+};
+
+export interface RenderContext extends JSDOM {
+    close: () => void;
+    run: (fnOrText: Function | string, options?: vm$ScriptOptions) => mixed;
+
+    ApolloClient?: typeof ApolloClient;
+    ApolloNetworkLink?: ApolloLink;
+    ApolloCache?: ApolloCache<mixed>;
+    ApolloNetwork?: ApolloNetworkConfiguration;
+}
 
 /* eslint-disable flowtype/no-dupe-keys */
 /**

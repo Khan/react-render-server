@@ -1,4 +1,4 @@
-// @noflow
+// @flow
 /**
  * Configure a given context to support Apollo
  *
@@ -10,17 +10,16 @@
  * Requests will automatically timeout after 1000ms, unless another
  * timeout is provided via a 'timeout' property.
  */
-const ApolloClient = require("apollo-client");
-const apolloCacheInmemory = require("apollo-cache-inmemory");
-const apolloLinkHttp = require("apollo-link-http");
-const fetch = require("node-fetch");
+import * as ApolloClient from "apollo-client";
+import {InMemoryCache} from "apollo-cache-inmemory";
+import {createHttpLink} from "apollo-link-http";
+import fetch from "node-fetch";
 
-const createHttpLink = apolloLinkHttp.createHttpLink;
-const InMemoryCache = apolloCacheInmemory.InMemoryCache;
+import type {RenderContext} from "./types.js";
 
 const BAD_URL = "BAD_URL";
 
-const timeout = async (timeout, errorMsg) => {
+const timeout = async (timeout: number, errorMsg: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             reject(new Error(errorMsg));
@@ -28,7 +27,12 @@ const timeout = async (timeout, errorMsg) => {
     });
 };
 
-const configureApolloNetwork = (context) => {
+export default function configureApolloNetwork(context: RenderContext): void {
+    const {ApolloNetwork} = context;
+    if (ApolloNetwork == null) {
+        return;
+    }
+
     const handleNetworkFetch = async (url, params) => {
         if (!url || url === BAD_URL) {
             throw new Error("ApolloNetwork must have a valid url.");
@@ -39,13 +43,13 @@ const configureApolloNetwork = (context) => {
             // After a specified timeout we abort the request if
             // it's still on-going.
             timeout(
-                context.ApolloNetwork.timeout || 1000,
+                ApolloNetwork.timeout || 1000,
                 "Server response exceeded timeout.",
             ),
         ]);
 
         // Handle server errors
-        if (result.status !== 200) {
+        if (!result || result.status !== 200) {
             throw new Error("Server returned an error.");
         }
 
@@ -67,13 +71,11 @@ const configureApolloNetwork = (context) => {
             // HACK(briang): If you give the uri undefined, it will call
             // fetch("/graphql") but we want to ensure that an undefined URL
             // will fail the request.
-            uri: context.ApolloNetwork.url || BAD_URL,
+            uri: ApolloNetwork.url || BAD_URL,
             fetch: handleNetworkFetch,
-            headers: context.ApolloNetwork.headers,
+            headers: ApolloNetwork.headers,
         }),
 
         ApolloCache: new InMemoryCache(),
     });
-};
-
-module.exports = configureApolloNetwork;
+}

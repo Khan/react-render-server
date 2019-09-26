@@ -6,21 +6,26 @@
 
 import vm from "vm";
 
-import * as jsdom from "jsdom";
+import {JSDOM, ResourceLoader} from "jsdom";
 
 import logging from "./logging.js";
 import profile from "./profile.js";
 import fetchPackage from "./fetch_package.js";
 
-import type {JSDOM, FetchOptions} from "jsdom";
-import type {Globals, JavaScriptPackage, RequestStats} from "./types.js";
+import type {FetchOptions} from "jsdom";
+import type {
+    Globals,
+    JavaScriptPackage,
+    RenderContext,
+    RequestStats,
+} from "./types.js";
 
 type RenderContextWithSize = {
-    context: JSDOM,
+    context: RenderContext,
     cumulativePackageSize: number,
 };
 
-class CustomResourceLoader extends jsdom.ResourceLoader {
+class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
 
     constructor() {
@@ -137,7 +142,7 @@ const createRenderContext = function(
     const resourceLoader = new CustomResourceLoader();
 
     // A minimal document, for parts of our code that assume there's a DOM.
-    const context = new jsdom.JSDOM(
+    const context: RenderContext = (new JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>",
         {
             // The base location. We can't modify window.location directly
@@ -157,7 +162,7 @@ const createRenderContext = function(
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
         },
-    );
+    ): any);
 
     // This means we can run scripts inside the jsdom context.
     context.run = (fnOrText, options) =>
@@ -168,7 +173,12 @@ const createRenderContext = function(
     sandbox.global = sandbox;
     sandbox.self = sandbox;
 
-    // This makes sure that qTip2 doesn't try to use the canvas.
+    /**
+     * This makes sure that qTip2 doesn't try to use the canvas.
+     *
+     * TODO(somewhatabstact): Do we need this hack still? Is there are better
+     * way? $FlowFixMe
+     */
     sandbox.HTMLCanvasElement.prototype.getContext = undefined;
 
     // Setup callback.
@@ -255,7 +265,7 @@ export default function createRenderContextWithStats(
     globals: Globals,
     jsPackages: Array<any>,
     requestStats: RequestStats,
-): JSDOM {
+): RenderContext {
     const vmConstructionProfile = profile.start(
         `building VM ${(globals && `for ${globals["location"]}`) || ""}`,
     );

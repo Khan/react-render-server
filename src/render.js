@@ -9,8 +9,7 @@
 import logging from "./logging.js";
 import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
-
-const configureApolloNetwork = require("./configure-apollo-network.js");
+import configureApolloNetwork from "./configure-apollo-network.js";
 
 /**
  * This method is executed whenever a render is needed. It is executed inside
@@ -116,9 +115,7 @@ const render = async function(jsPackages, props, globals, requestStats) {
 
     try {
         // If Apollo is required, get it configured on the context.
-        if (context.window.ApolloNetwork) {
-            configureApolloNetwork(context.window);
-        }
+        configureApolloNetwork(context.window);
 
         // Now that everything is setup, we can invoke our rendering.
         if (context.window.__rrs == null) {
