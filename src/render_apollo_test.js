@@ -1,13 +1,8 @@
-// @noflow
+// @flow
+import fs from "fs";
+import {assert} from "chai";
 import render from "./render.js";
-
-const fs = require("fs");
-
-const chai = require("chai");
-
-const {assert} = chai;
-
-const nock = require("nock");
+import nock from "nock";
 
 describe("render apollo", () => {
     const loadPackages = (packageNames) =>
@@ -93,6 +88,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -118,6 +114,7 @@ describe("render apollo", () => {
             packages,
             {name: "Test Class 1"},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -155,6 +152,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                     headers: headers,
@@ -182,6 +180,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -222,6 +221,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -249,6 +249,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {},
             },
         );
@@ -275,6 +276,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -303,6 +305,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -334,6 +337,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -362,6 +366,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                 },
@@ -393,6 +398,7 @@ describe("render apollo", () => {
             packages,
             {},
             {
+                location: "https://www.khanacademy.org",
                 ApolloNetwork: {
                     url: "https://www.ka.org/graphql",
                     timeout: 100,

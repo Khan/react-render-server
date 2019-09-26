@@ -1,9 +1,8 @@
-// @noflow
+// @flow
 
 import fetchPackage from "./fetch_package.js";
-
-const assert = require("chai").assert;
-const nock = require("nock");
+import {assert} from "chai";
+import nock from "nock";
 
 describe("fetchPackage", () => {
     let mockScope;

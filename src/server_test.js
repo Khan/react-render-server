@@ -1,15 +1,12 @@
-// @noflow
+// @flow
+import fs from "fs";
+import {assert} from "chai";
+import nock from "nock";
+import sinon from "sinon";
+import supertest from "supertest";
+import * as renderSecret from "./secret.js";
+import server from "./server.js";
 import logging from "./logging.js";
-
-const fs = require("fs");
-
-const assert = require("chai").assert;
-const nock = require("nock");
-const sinon = require("sinon");
-const supertest = require("supertest");
-
-const renderSecret = require("./secret.js");
-const server = require("./server.js");
 
 describe("API endpoint /_api/ping", () => {
     const agent = supertest.agent(server);

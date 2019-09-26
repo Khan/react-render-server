@@ -163,7 +163,7 @@ export default async function render(
     jsPackages: Array<JavaScriptPackage>,
     props: mixed,
     globals: Globals,
-    requestStats: RequestStats,
+    requestStats?: RequestStats,
 ) {
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
