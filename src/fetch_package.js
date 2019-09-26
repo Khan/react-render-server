@@ -48,13 +48,17 @@ export default async function fetchPackage(
     }
 
     // Let's profile this activity.
-    const fetchProfile = profile.start(`FETCH: ${url}`);
+    const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
+    const retryText = isRetry
+        ? `RETRY#: ${DEFAULT_NUM_RETRIES - triesLeftAfterThisOne}`
+        : "";
+    const fetchProfile = profile.start(`FETCH: ${url}${retryText}`);
 
     // This is a helper function to terminate the profiling with a suitable
     // message.
     const reportFetchTime = (success: boolean): void => {
         fetchProfile.end(
-            `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}`,
+            `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}${retryText}`,
             success ? "debug" : "error",
         );
     };

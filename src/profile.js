@@ -35,7 +35,9 @@ const start = (msg: string): ProfileSession => {
     // We use the winston profiling API to do the profiling bit, but we add
     // some additional log entries to aid investigations (like spotting when
     // a profiling task started as winston will only log once profiling is done)
-    logging.debug(`PROFILE(start): ${msg}`);
+    // We log the start markers at "silly" as generally we just want the end
+    // summary. However the start markers may be useful if we have to dig in.
+    logging.silly(`PROFILE(start): ${msg}`);
 
     const profiler = logging.startTimer();
     return {
