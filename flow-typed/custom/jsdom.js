@@ -1,7 +1,6 @@
 // flow-typed signature: 6393943152251b303dd7a2ad2a2fff94
 // flow-typed version: <<STUB>>/jsdom_v15.1.1/flow_v0.108.0
 
-import type {EventEmitter} from 'events';
 import type {MarkupData} from 'parse5';
 import type {CookieJar} from 'tough-cookie';
 
