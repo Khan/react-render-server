@@ -1,4 +1,4 @@
-// @noflow
+// @flow
 /**
  * The core functionality of actually rendering.
  *
@@ -11,11 +11,18 @@ import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
 import configureApolloNetwork from "./configure-apollo-network.js";
 
+import type {
+    Globals,
+    JavaScriptPackage,
+    RenderResult,
+    RequestStats,
+} from "./types.js";
+
 /**
  * This method is executed whenever a render is needed. It is executed inside
  * the vm context.
  */
-const performRender = async () => {
+const performRender = async (): Promise<RenderResult> => {
     if (window["__DEBUG_RENDER__"]) {
         // To activate, set __DEBUG_RENDER__ to truthy on the vm context.
         // Special debug entrypoint because this is run inside the vm context
@@ -55,14 +62,14 @@ const performRender = async () => {
     // The client should also get the data here with
     // ReactApollo.getDataFromTree (or other mechanism specific to the
     // framework, if not React).
-    const result = await getRenderPromiseCallback(
+    const result: RenderResult = await getRenderPromiseCallback(
         clonedProps,
         maybeApolloClient,
     );
 
     // We need to pass back any data so that it can be rendered directly
     // into the page (for the re-hydration).
-    if (global.ApolloNetworkLink) {
+    if (maybeApolloClient != null) {
         result.data = maybeApolloClient.extract();
     }
     return result;
@@ -97,7 +104,12 @@ const performRender = async () => {
  * css will only be returned if the entrypoint makes use of Aphrodite
  * (https://github.com/Khan/aphrodite).
  */
-const render = async function(jsPackages, props, globals, requestStats) {
+export default async function render(
+    jsPackages: Array<JavaScriptPackage>,
+    props: mixed,
+    globals: Globals,
+    requestStats: RequestStats,
+) {
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = createRenderContext(
@@ -141,10 +153,9 @@ const render = async function(jsPackages, props, globals, requestStats) {
         try {
             context.close();
         } catch (e) {
-            logging.warn("Error while closing JSDOM context", e.message);
+            const {message}: Error = e;
+            logging.warn("Error while closing JSDOM context", message);
         }
         renderProfile.end();
     }
-};
-
-module.exports = render;
+}

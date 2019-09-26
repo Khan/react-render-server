@@ -1,4 +1,6 @@
 // @noflow
+import render from "./render.js";
+
 const fs = require("fs");
 
 const chai = require("chai");
@@ -6,8 +8,6 @@ const chai = require("chai");
 const {assert} = chai;
 
 const nock = require("nock");
-
-const render = require("./render.js");
 
 describe("render apollo", () => {
     const loadPackages = (packageNames) =>

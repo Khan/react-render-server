@@ -1,9 +1,5 @@
 // @flow
-import * as ApolloClient from "apollo-client";
-
 import type {JSDOM} from "jsdom";
-import type {ApolloCache} from "apollo-client";
-import type {ApolloLink} from "apollo-link-http";
 
 import type {
     NpmLogLevels,
@@ -46,21 +42,25 @@ export type RequestStats = {
     createdVmContext: boolean,
 };
 
-type ApolloNetworkConfiguration = {
-    timeout?: number,
-    url?: string,
-    headers?: any,
-};
-
 export interface RenderContext extends JSDOM {
     close: () => void;
-    run: (fnOrText: Function | string, options?: vm$ScriptOptions) => mixed;
-
-    ApolloClient?: typeof ApolloClient;
-    ApolloNetworkLink?: ApolloLink;
-    ApolloCache?: ApolloCache<mixed>;
-    ApolloNetwork?: ApolloNetworkConfiguration;
+    run: <TReturns>(
+        fnOrText: (() => TReturns) | string,
+        options?: vm$ScriptOptions,
+    ) => TReturns;
 }
+
+export type RenderResult = {
+    data?: any,
+    requestStats?: RequestStats,
+    ...
+};
+
+export type PackageJson = {
+    version: string,
+    description: string,
+    ...
+};
 
 /* eslint-disable flowtype/no-dupe-keys */
 /**

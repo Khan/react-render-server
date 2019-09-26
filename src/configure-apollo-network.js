@@ -15,7 +15,13 @@ import {InMemoryCache} from "apollo-cache-inmemory";
 import {createHttpLink} from "apollo-link-http";
 import fetch from "node-fetch";
 
-import type {RenderContext} from "./types.js";
+import type {DOMWindow} from "jsdom";
+
+type ApolloNetworkConfiguration = {
+    timeout?: number,
+    url?: string,
+    headers?: any,
+};
 
 const BAD_URL = "BAD_URL";
 
@@ -27,9 +33,11 @@ const timeout = async (timeout: number, errorMsg: string): Promise<void> => {
     });
 };
 
-export default function configureApolloNetwork(context: RenderContext): void {
-    const {ApolloNetwork} = context;
-    if (ApolloNetwork == null) {
+export default function configureApolloNetwork(contextWindow: DOMWindow): void {
+    const apolloNetworkConfiguration: ApolloNetworkConfiguration = (contextWindow[
+        "ApolloNetwork"
+    ]: any);
+    if (apolloNetworkConfiguration == null) {
         return;
     }
 
@@ -43,7 +51,7 @@ export default function configureApolloNetwork(context: RenderContext): void {
             // After a specified timeout we abort the request if
             // it's still on-going.
             timeout(
-                ApolloNetwork.timeout || 1000,
+                apolloNetworkConfiguration.timeout || 1000,
                 "Server response exceeded timeout.",
             ),
         ]);
@@ -56,7 +64,7 @@ export default function configureApolloNetwork(context: RenderContext): void {
         return result;
     };
 
-    Object.assign(context, {
+    Object.assign(contextWindow, {
         // We need to use the server-side Node.js version of
         // apollo-client (the ones we use on the main site
         // don't include the server-side rendering logic).
@@ -71,9 +79,9 @@ export default function configureApolloNetwork(context: RenderContext): void {
             // HACK(briang): If you give the uri undefined, it will call
             // fetch("/graphql") but we want to ensure that an undefined URL
             // will fail the request.
-            uri: ApolloNetwork.url || BAD_URL,
+            uri: apolloNetworkConfiguration.url || BAD_URL,
             fetch: handleNetworkFetch,
-            headers: ApolloNetwork.headers,
+            headers: apolloNetworkConfiguration.headers,
         }),
 
         ApolloCache: new InMemoryCache(),

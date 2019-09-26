@@ -6,12 +6,20 @@ import argparse from "argparse";
 
 import packageInfo from "../package.json";
 
-import type {LogLevel, IProvideArguments} from "./types.js";
+import type {LogLevel, PackageJson, IProvideArguments} from "./types.js";
+
+type RawParsedArgs = {
+    log_level: LogLevel,
+    dev: boolean,
+    port: number,
+};
+
+const packageInfoJson: PackageJson = packageInfo;
 
 const parser = new argparse.ArgumentParser({
-    version: packageInfo.version,
+    version: packageInfoJson.version,
     addHelp: true,
-    description: packageInfo.description,
+    description: packageInfoJson.description,
 });
 parser.addArgument(["-p", "--port"], {
     type: "int",
@@ -30,8 +38,8 @@ parser.addArgument(["--log-level"], {
 
 // We only want to parse the args if we're running inside our main app.
 // Could be src/main.js or dist/main.js.
-const args = process.argv[1].endsWith("/main.js")
-    ? parser.parseArgs()
+const args: RawParsedArgs = process.argv[1].endsWith("/main.js")
+    ? parser.parseArgs<RawParsedArgs>()
     : {
           // Some defaults for tests and the like.
           log_level: "debug",
@@ -43,9 +51,9 @@ const args = process.argv[1].endsWith("/main.js")
  * Wrapper class with accessors that can be overridden in testing.
  */
 class ArgumentProvider implements IProvideArguments {
-    _args: any;
+    _args: RawParsedArgs;
 
-    constructor(args: any) {
+    constructor(args: RawParsedArgs) {
         this._args = args;
     }
 
