@@ -57,6 +57,7 @@
                 "ignorePackages": true
             }
         ],
+        "import/no-commonjs": "error",
         "promise/always-return": "error",
         "promise/no-return-wrap": "error",
         "promise/param-names": "error",
