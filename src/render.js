@@ -182,7 +182,15 @@ export default async function render(
 
     try {
         // If Apollo is required, get it configured on the context.
-        configureApolloNetwork(context.window);
+        const apolloNetwork: ?ApolloNetworkConfiguration = (context.window
+            .ApolloNetwork: any);
+        const apolloGlobals = configureApolloNetwork(apolloNetwork);
+
+        /**
+         * We attach these things to the context window so that when running
+         * inside the VM, our code can retrieve them and operate upon them.
+         */
+        Object.assign(context.window, apolloGlobals);
 
         // Now that everything is setup, we can invoke our rendering.
         if (context.window.__rrs == null) {

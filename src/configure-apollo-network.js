@@ -15,7 +15,6 @@ import {InMemoryCache} from "apollo-cache-inmemory";
 import {createHttpLink} from "apollo-link-http";
 import fetch from "node-fetch";
 
-import type {DOMWindow} from "jsdom";
 import type {NormalizedCacheObject} from "apollo-cache-inmemory";
 import type {ApolloClient, ApolloCache, ApolloLink} from "apollo-client";
 
@@ -43,10 +42,11 @@ const timeout = async (timeout: number, errorMsg: string): Promise<void> => {
     });
 };
 
-export default function configureApolloNetwork(contextWindow: DOMWindow): void {
-    const ApolloNetwork: ?ApolloNetworkConfiguration = (contextWindow.ApolloNetwork: any);
-    if (ApolloNetwork == null) {
-        return;
+export default function configureApolloNetwork(
+    apolloNetwork: ?ApolloNetworkConfiguration,
+): ?ApolloGlobals {
+    if (apolloNetwork == null) {
+        return null;
     }
 
     const handleNetworkFetch = async (url: string, params: any) => {
@@ -59,7 +59,7 @@ export default function configureApolloNetwork(contextWindow: DOMWindow): void {
             // After a specified timeout we abort the request if
             // it's still on-going.
             timeout(
-                ApolloNetwork.timeout || 1000,
+                apolloNetwork.timeout || 1000,
                 "Server response exceeded timeout.",
             ),
         ]);
@@ -76,17 +76,13 @@ export default function configureApolloNetwork(contextWindow: DOMWindow): void {
         // HACK(briang): If you give the uri undefined, it will call
         // fetch("/graphql") but we want to ensure that an undefined URL
         // will fail the request.
-        uri: ApolloNetwork.url || BAD_URL,
+        uri: apolloNetwork.url || BAD_URL,
         fetch: handleNetworkFetch,
-        headers: ApolloNetwork.headers,
+        headers: apolloNetwork.headers,
     });
 
     /**
      * Build all the configuration into an object.
-     *
-     * We do this so that it is strongly typed against the type that the
-     * receiving code uses; helping us verify we're setting things up the
-     * way the consumer will expect.
      */
     const apolloGlobals: ApolloGlobals = {
         // We need to use the server-side Node.js version of
@@ -106,9 +102,5 @@ export default function configureApolloNetwork(contextWindow: DOMWindow): void {
         ApolloCache: new InMemoryCache(),
     };
 
-    /**
-     * We attach these things to the context DOMWindow so that when running
-     * inside the VM, our code can retrieve them and operate upon them.
-     */
-    Object.assign(contextWindow, apolloGlobals);
+    return apolloGlobals;
 }
