@@ -9,12 +9,12 @@ import express from "express";
 import logging from "./logging.js";
 import profile from "./profile.js";
 
+import fetchPackage from "./fetch_package.js";
+import * as renderSecret from "./secret.js";
+import render from "./render.js";
+
 import type {$Request, $Response, NextFunction} from "express";
 import type {RenderBody, RequestStats} from "./types.js";
-
-const fetchPackage = require("./fetch_package.js");
-const renderSecret = require("./secret.js");
-const render = require("./render.js");
 
 // We keep track of how many render requests are currently "in
 // flight", to help us estimate how long a new request will take.
@@ -186,7 +186,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
 
     // Fetch the entry point and its dependencies.
     const fetchPromises = jsUrls.map((url) =>
-        fetchPackage(url, res.locals.requestStats),
+        fetchPackage(url, (res.locals.requestStats: any)),
     );
 
     const fetchPackages = async () => {
