@@ -23,7 +23,7 @@ type InflightRequests = {
 };
 
 // How many times we retry on 5xx error or similar, before giving up.
-const DefaultNumRetries: number = 2; // so 3 tries total
+const DEFAULT_NUM_RETRIES: number = 2; // so 3 tries total
 
 // What requests are currently in flight?
 const inFlightRequests: InflightRequests = {};
@@ -39,7 +39,7 @@ const inFlightRequests: InflightRequests = {};
 export default async function fetchPackage(
     url: string,
     requestStats?: RequestStats,
-    triesLeftAfterThisOne?: number = DefaultNumRetries,
+    triesLeftAfterThisOne?: number = DEFAULT_NUM_RETRIES,
 ): Promise<JavaScriptPackage> {
     // If a different request has already asked for this url, just
     // tag along with it rather than making our own request.
