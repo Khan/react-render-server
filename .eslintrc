@@ -12,13 +12,13 @@
     "settings": {
         "eslint-plugin-disable": {
           "paths": {
-            "react": ["src/*.js"]
+            "react": ["./*.js", "src/*.js"]
           }
         }
     },
     "overrides": [
         {
-            "files": ["src/*.js"],
+            "files": ["./*.js", "src/*.js"],
             "settings": {
                 "flowtype": {
                     "onlyFilesWithFlowAnnotation": false
