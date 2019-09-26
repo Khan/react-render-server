@@ -23,7 +23,7 @@ import logging from "./logging.js";
 import type {LogLevel} from "./types.js";
 
 type ProfileSession = {
-    end: (endMsg: string, level: LogLevel) => void,
+    end: (endMsg: string, level?: LogLevel) => void,
 };
 
 const start = (msg: string): ProfileSession => {
