@@ -86,8 +86,10 @@ export default function configureApolloNetwork(
      */
     const apolloGlobals: ApolloGlobals = {
         // We need to use the server-side Node.js version of
-        // apollo-client (the ones we use on the main site
-        // don't include the server-side rendering logic).
+        // apollo-client module import rather than the "browser" version.
+        // So we provide the Node-imported version to our render context that
+        // would otherwise be importing code inside of the JSDOM browser-like
+        // code.
         ApolloClientModule: ApolloClientModule,
 
         // Additionally, we need to build a request mechanism for actually
@@ -96,7 +98,7 @@ export default function configureApolloNetwork(
         // should be very similar to the logic held in apollo-wrapper.jsx.
         // NOTE(somewhatabstract): We have to cast to any here since the type
         // of ApolloLink exported from apollo-link-http and the one exported
-        // from apollo-client aren't see as the same type by flow (annoying).
+        // from apollo-client aren't seen as the same type by flow (annoying).
         ApolloNetworkLink: (apolloLink: any),
 
         ApolloCache: new InMemoryCache(),
