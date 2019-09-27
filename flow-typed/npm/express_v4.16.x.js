@@ -124,7 +124,6 @@ declare type express$Middleware =
     ) => mixed)
   | ((
       error: Error,
-      // $FlowFixMe
       req: express$Request,
       res: express$Response,
       next: express$NextFunction
@@ -188,8 +187,7 @@ declare class express$Router extends express$Route {
   param(
     param: string,
     callback: (
-      // $FlowFixMe
-      req: $Subtype<express$Request>,
+      req: express$Request,
       res: express$Response,
       next: express$NextFunction,
       id: string
