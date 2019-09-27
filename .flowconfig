@@ -11,6 +11,9 @@
 [include]
 <PROJECT_ROOT>/src
 
+[libs]
+<PROJECT_ROOT>/flow-typed/**/*.js
+
 [options]
 emoji=true
 exact_by_default=true
