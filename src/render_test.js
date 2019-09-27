@@ -1,14 +1,9 @@
-// @noflow
+// @flow
+import fs from "fs";
+import jsdom from "jsdom";
+import {assert} from "chai";
+import sinon from "sinon";
 import render from "./render.js";
-
-const fs = require("fs");
-const jsdom = require("jsdom");
-
-const chai = require("chai");
-
-const {assert} = chai;
-
-const sinon = require("sinon");
 
 describe("render", () => {
     const loadPackages = (packageNames) =>
@@ -25,7 +20,7 @@ describe("render", () => {
     });
 
     afterEach(() => {
-        jsdom.JSDOM.restore();
+        sinon.restore();
     });
 
     it("should perform basic render flow", async () => {
@@ -41,7 +36,9 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props);
+        const result = await render(packages, props, {
+            location: "https://example.com",
+        });
 
         // Assert
         assert.deepEqual(result, expectation);
@@ -68,7 +65,9 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props);
+        const result = await render(packages, props, {
+            location: "https://example.com",
+        });
 
         // Assert
         assert.deepEqual(result, expectation);
@@ -95,7 +94,9 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props);
+        const result = await render(packages, props, {
+            location: "https://example.com",
+        });
 
         // Assert
         assert.deepEqual(result, expectation);
@@ -104,10 +105,22 @@ describe("render", () => {
     it("should render the same thing for the same parameters", async () => {
         // Arrange
         const packages = loadPackages(["basic/entry.js"]);
-        const expectation = await render(packages, {name: "A NAME"});
+        const expectation = await render(
+            packages,
+            {name: "A NAME"},
+            {
+                location: "https://example.com",
+            },
+        );
 
         // Act
-        const result = await render(packages, {name: "A NAME"});
+        const result = await render(
+            packages,
+            {name: "A NAME"},
+            {
+                location: "https://example.com",
+            },
+        );
 
         // Assert
         assert.deepEqual(result, expectation);
@@ -116,10 +129,22 @@ describe("render", () => {
     it("should render the same thing differently with different props", async () => {
         // Arrange
         const packages = loadPackages(["basic/entry.js"]);
-        const expectation = await render(packages, {name: "A NAME"});
+        const expectation = await render(
+            packages,
+            {name: "A NAME"},
+            {
+                location: "https://example.com",
+            },
+        );
 
         // Act
-        const result = await render(packages, {name: "A DIFFERENT NAME"});
+        const result = await render(
+            packages,
+            {name: "A DIFFERENT NAME"},
+            {
+                location: "https://example.com",
+            },
+        );
 
         // Assert
         assert.notDeepEqual(result, expectation);
@@ -136,7 +161,14 @@ describe("render", () => {
 
         // Act
         // All we're testing for here is that this renders without crashing.
-        const underTest = async () => await render(packages, {name: "A NAME"});
+        const underTest = async () =>
+            await render(
+                packages,
+                {name: "A NAME"},
+                {
+                    location: "https://example.com",
+                },
+            );
 
         // Assert
         assert.doesNotThrow(underTest);

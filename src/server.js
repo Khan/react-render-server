@@ -251,4 +251,4 @@ app.get("/prime", (req: $Request, res: $Response) => {
     res.send("ok\n");
 });
 
-module.exports = app;
+export default app;

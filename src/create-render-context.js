@@ -264,7 +264,7 @@ export default function createRenderContextWithStats(
     locationUrl: string,
     globals: Globals,
     jsPackages: Array<any>,
-    requestStats: RequestStats,
+    requestStats?: RequestStats,
 ): RenderContext {
     const vmConstructionProfile = profile.start(
         `building VM ${(globals && `for ${globals["location"]}`) || ""}`,

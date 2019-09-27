@@ -12,13 +12,13 @@
     "settings": {
         "eslint-plugin-disable": {
           "paths": {
-            "react": ["src/*.js"]
+            "react": ["./*.js", "src/*.js"]
           }
         }
     },
     "overrides": [
         {
-            "files": ["src/*.js"],
+            "files": ["./*.js", "src/*.js"],
             "settings": {
                 "flowtype": {
                     "onlyFilesWithFlowAnnotation": false
@@ -57,6 +57,7 @@
                 "ignorePackages": true
             }
         ],
+        "import/no-commonjs": "error",
         "promise/always-return": "error",
         "promise/no-return-wrap": "error",
         "promise/param-names": "error",
