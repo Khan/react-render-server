@@ -10,12 +10,27 @@
  * Requests will automatically timeout after 1000ms, unless another
  * timeout is provided via a 'timeout' property.
  */
-import * as ApolloClient from "apollo-client";
+import * as ApolloClientModule from "apollo-client";
 import {InMemoryCache} from "apollo-cache-inmemory";
 import {createHttpLink} from "apollo-link-http";
 import fetch from "node-fetch";
 
-import type {RenderContext} from "./types.js";
+import type {NormalizedCacheObject} from "apollo-cache-inmemory";
+import type {ApolloClient, ApolloCache, ApolloLink} from "apollo-client";
+
+export type ApolloNetworkConfiguration = {
+    timeout?: number,
+    url?: string,
+    headers?: any,
+};
+
+export type ApolloGlobals = {
+    +ApolloClientModule: typeof ApolloClientModule,
+    +ApolloNetworkLink: ApolloLink,
+    +ApolloCache: ApolloCache<NormalizedCacheObject>,
+};
+
+export type ApolloClientInstance = ApolloClient<NormalizedCacheObject>;
 
 const BAD_URL = "BAD_URL";
 
@@ -27,13 +42,14 @@ const timeout = async (timeout: number, errorMsg: string): Promise<void> => {
     });
 };
 
-export default function configureApolloNetwork(context: RenderContext): void {
-    const {ApolloNetwork} = context;
-    if (ApolloNetwork == null) {
-        return;
+export default function configureApolloNetwork(
+    apolloNetwork: ?ApolloNetworkConfiguration,
+): ?ApolloGlobals {
+    if (apolloNetwork == null) {
+        return null;
     }
 
-    const handleNetworkFetch = async (url, params) => {
+    const handleNetworkFetch = async (url: string, params: any) => {
         if (!url || url === BAD_URL) {
             throw new Error("ApolloNetwork must have a valid url.");
         }
@@ -43,7 +59,7 @@ export default function configureApolloNetwork(context: RenderContext): void {
             // After a specified timeout we abort the request if
             // it's still on-going.
             timeout(
-                ApolloNetwork.timeout || 1000,
+                apolloNetwork.timeout || 1000,
                 "Server response exceeded timeout.",
             ),
         ]);
@@ -56,26 +72,37 @@ export default function configureApolloNetwork(context: RenderContext): void {
         return result;
     };
 
-    Object.assign(context, {
+    const apolloLink = createHttpLink({
+        // HACK(briang): If you give the uri undefined, it will call
+        // fetch("/graphql") but we want to ensure that an undefined URL
+        // will fail the request.
+        uri: apolloNetwork.url || BAD_URL,
+        fetch: handleNetworkFetch,
+        headers: apolloNetwork.headers,
+    });
+
+    /**
+     * Build all the configuration into an object.
+     */
+    const apolloGlobals: ApolloGlobals = {
         // We need to use the server-side Node.js version of
-        // apollo-client (the ones we use on the main site
-        // don't include the server-side rendering logic).
-        ApolloClient: ApolloClient,
+        // apollo-client module import rather than the "browser" version.
+        // So we provide the Node-imported version to our render context that
+        // would otherwise be importing code inside of the JSDOM browser-like
+        // code.
+        ApolloClientModule: ApolloClientModule,
 
         // Additionally, we need to build a request mechanism for actually
         // making a network request to our GraphQL endpoint. We use the
         // node-fetch module for making this request. This logic
         // should be very similar to the logic held in apollo-wrapper.jsx.
-
-        ApolloNetworkLink: createHttpLink({
-            // HACK(briang): If you give the uri undefined, it will call
-            // fetch("/graphql") but we want to ensure that an undefined URL
-            // will fail the request.
-            uri: ApolloNetwork.url || BAD_URL,
-            fetch: handleNetworkFetch,
-            headers: ApolloNetwork.headers,
-        }),
+        // NOTE(somewhatabstract): We have to cast to any here since the type
+        // of ApolloLink exported from apollo-link-http and the one exported
+        // from apollo-client aren't seen as the same type by flow (annoying).
+        ApolloNetworkLink: (apolloLink: any),
 
         ApolloCache: new InMemoryCache(),
-    });
+    };
+
+    return apolloGlobals;
 }

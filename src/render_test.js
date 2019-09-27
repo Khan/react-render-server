@@ -1,4 +1,6 @@
 // @noflow
+import render from "./render.js";
+
 const fs = require("fs");
 const jsdom = require("jsdom");
 
@@ -7,8 +9,6 @@ const chai = require("chai");
 const {assert} = chai;
 
 const sinon = require("sinon");
-
-const render = require("./render.js");
 
 describe("render", () => {
     const loadPackages = (packageNames) =>

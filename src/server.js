@@ -208,7 +208,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             packages,
             props,
             globals,
-            res.locals.requestStats,
+            (res.locals.requestStats: any),
         );
 
         // We store the updated request-stats in renderedState
