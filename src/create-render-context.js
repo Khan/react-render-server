@@ -38,7 +38,7 @@ class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
-        return fetchPackage(url).then(({content}) => {
+        return fetchPackage(url, "JSDOM").then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
                 return Buffer.from("");

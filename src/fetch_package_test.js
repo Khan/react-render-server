@@ -27,7 +27,7 @@ describe("fetchPackage", () => {
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
         // Act
-        const result = await fetchPackage("https://www.ka.org/ok.js");
+        const result = await fetchPackage("https://www.ka.org/ok.js", "TEST");
 
         // Assert
         assert.isDefined(result);
@@ -42,7 +42,7 @@ describe("fetchPackage", () => {
 
         // Act
         try {
-            await fetchPackage("https://www.ka.org/ok.js");
+            await fetchPackage("https://www.ka.org/ok.js", "TEST");
         } catch (e) {
             // Assert
             assert.equal(404, e.response.status);
@@ -58,8 +58,8 @@ describe("fetchPackage", () => {
 
         // Act
         const result = await Promise.all([
-            fetchPackage("https://www.ka.org/ok.js"),
-            fetchPackage("https://www.ka.org/ok.js"),
+            fetchPackage("https://www.ka.org/ok.js", "TEST"),
+            fetchPackage("https://www.ka.org/ok.js", "TEST"),
         ]);
 
         // Assert
@@ -77,7 +77,7 @@ describe("fetchPackage", () => {
 
         // Act
         try {
-            await fetchPackage("https://www.ka.org/ok.js");
+            await fetchPackage("https://www.ka.org/ok.js", "TEST");
         } catch (e) {
             // Assert
             assert.equal(500, e.response.status);
@@ -94,7 +94,7 @@ describe("fetchPackage", () => {
         mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
 
         // Act
-        const result = await fetchPackage("https://www.ka.org/ok.js");
+        const result = await fetchPackage("https://www.ka.org/ok.js", "TEST");
 
         // Assert
         assert.equal(result.url, "https://www.ka.org/ok.js");

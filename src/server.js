@@ -185,12 +185,12 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     }
 
     // Fetch the entry point and its dependencies.
-    const fetchPromises = jsUrls.map((url) =>
-        fetchPackage(url, (res.locals.requestStats: any)),
-    );
-
+    const requestStats: RequestStats = (res.locals.requestStats: any);
     const fetchPackages = async () => {
         try {
+            const fetchPromises = jsUrls.map((url) =>
+                fetchPackage(url, "SERVER", requestStats),
+            );
             return await Promise.all(fetchPromises);
         } catch (err) {
             handleFetchError(err, res);
@@ -208,7 +208,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             packages,
             props,
             globals,
-            (res.locals.requestStats: any),
+            requestStats,
         );
 
         // We store the updated request-stats in renderedState
