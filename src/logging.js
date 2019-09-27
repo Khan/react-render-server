@@ -11,6 +11,7 @@ import {LoggingWinston as StackdriverTransport} from "@google-cloud/logging-wins
 
 import args from "./arguments.js";
 
+import type {Middleware} from "express";
 import type {NpmLogLevels, Format} from "winston";
 import type {Info, Logger, LogLevel} from "./types.js";
 
@@ -80,15 +81,15 @@ function getTransports(json, isDev) {
 type Loggers = {
     default: Logger,
     middleware: {
-        requestLogger: any,
-        errorLogger: any,
+        requestLogger: Middleware,
+        errorLogger: Middleware,
     },
 };
 
 function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
     // This is the logger that captures requests handled by our express server.
     const requestLogger = expressWinston.logger({
-        level: logLevel,
+        level: `${logLevel}`,
         transports: getTransports(false, isDev),
         expressFormat: true,
         meta: false,
@@ -96,7 +97,7 @@ function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
 
     // This is the logger that captures errors in our express server.
     const errorLogger = expressWinston.errorLogger({
-        level: logLevel,
+        level: `${logLevel}`,
         transports: getTransports(true, isDev),
     });
 

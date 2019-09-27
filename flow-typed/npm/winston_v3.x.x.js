@@ -133,7 +133,7 @@ declare type $winstonFormatSubModule = {
   }) => $winstonFormat,
   colorize: () => $winstonFormat,
   logstash: () => $winstonFormat,
-  printf: ((args: $winstonInfo<Object>) => string) => $winstonFormat,
+  printf: ((args: $winstonInfo<any>) => string) => $winstonFormat,
   ...
 };
 
