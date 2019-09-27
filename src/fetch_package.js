@@ -48,27 +48,28 @@ export default async function fetchPackage(
         return inFlightRequests[url];
     }
 
-    // Let's profile this activity.
-    const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
-    const retryText = isRetry
-        ? ` RETRY#: ${DEFAULT_NUM_RETRIES - triesLeftAfterThisOne}`
-        : "";
-    const fetchProfile = profile.start(
-        `FETCH(${requester}): ${url}${retryText}`,
-    );
-
-    // This is a helper function to terminate the profiling with a suitable
-    // message.
-    const reportFetchTime = (success: boolean): void => {
-        fetchProfile.end(
-            `${
-                success ? "FETCH_PASS" : "FETCH_FAIL"
-            }(${requester}) ${url}${retryText}`,
-            success ? "debug" : "error",
-        );
-    };
-
     const doFetch = async (): Promise<JavaScriptPackage> => {
+        // Let's profile this activity.
+        // We start the profiling when the promise is executed.
+        const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
+        const retryText = isRetry
+            ? ` RETRY#: ${DEFAULT_NUM_RETRIES - triesLeftAfterThisOne}`
+            : "";
+        const fetchProfile = profile.start(
+            `FETCH(${requester}): ${url}${retryText}`,
+        );
+
+        // This is a helper function to terminate the profiling with a suitable
+        // message.
+        const reportFetchTime = (success: boolean): void => {
+            fetchProfile.end(
+                `${
+                    success ? "FETCH_PASS" : "FETCH_FAIL"
+                }(${requester}) ${url}${retryText}`,
+                success ? "debug" : "error",
+            );
+        };
+
         // Now create the request.
         const fetcher = request.get(url);
 
