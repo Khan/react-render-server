@@ -7,7 +7,7 @@ import sinon from "sinon";
 import args from "./arguments.js";
 import * as renderSecret from "./secret.js";
 
-const matches = promisify(renderSecret.matches);
+const matches: (string) => Promise<boolean> = promisify(renderSecret.matches);
 
 describe("secret", () => {
     afterEach(() => {
@@ -18,8 +18,12 @@ describe("secret", () => {
         // Arrange
         sinon
             .stub(fs, "readFile")
-            .callsFake((filePath, encoding, callback) =>
-                callback(new Error("File not found")),
+            .callsFake(
+                (
+                    filePath: string,
+                    encoding: null,
+                    callback: (?Error, ?string) => void,
+                ) => callback(new Error("File not found")),
             );
         sinon.stub(args, "dev").get(() => false);
 
@@ -34,7 +38,13 @@ describe("secret", () => {
         // Arrange
         sinon
             .stub(fs, "readFile")
-            .callsFake((filePath, encoding, callback) => callback(null, ""));
+            .callsFake(
+                (
+                    filePath: string,
+                    encoding: null,
+                    callback: (?Error, ?string) => void,
+                ) => callback(null, ""),
+            );
         sinon.stub(args, "dev").get(() => false);
 
         // Act
@@ -48,8 +58,12 @@ describe("secret", () => {
         // Arrange
         sinon
             .stub(fs, "readFile")
-            .callsFake((filePath, encoding, callback) =>
-                callback(null, "sekret"),
+            .callsFake(
+                (
+                    filePath: string,
+                    encoding: null,
+                    callback: (?Error, ?string) => void,
+                ) => callback(null, "sekret"),
             );
         sinon.stub(args, "dev").get(() => false);
 
@@ -65,9 +79,17 @@ describe("secret", () => {
         sinon.stub(args, "dev").get(() => false);
 
         // On the second run through, the fs.readFile function should not be called.
-        sinon.stub(fs, "readFile").callsFake((filePath, encoding, callback) => {
-            callback(new Error("Should not be called"));
-        });
+        sinon
+            .stub(fs, "readFile")
+            .callsFake(
+                (
+                    filePath: string,
+                    encoding: null,
+                    callback: (?Error, ?string) => void,
+                ) => {
+                    callback(new Error("Should not be called"));
+                },
+            );
 
         // Act
         const valueMatches = await matches("sekret");
