@@ -20,7 +20,9 @@ declare type $winstonInfo<T: $winstonLevels> = {
   ...
 };
 
-declare type $winstonFormat = Object;
+declare type $winstonFormat = {
+  ...
+};
 
 declare type $winstonFileTransportConfig<T: $winstonLevels> = {
   filename: string,
