@@ -13,9 +13,15 @@
  */
 
 import request from "superagent";
+import superagentCache from "superagent-cache";
+
 import profile from "./profile.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
+
+if (process.env.NODE_ENV !== "test") {
+    superagentCache(request);
+}
 
 type InflightRequests = {
     [url: string]: Promise<JavaScriptPackage>,

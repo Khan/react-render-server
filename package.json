@@ -49,6 +49,7 @@
     "node-fetch": "1.7.3",
     "nodemon": "^1.18.7",
     "superagent": "^5.1.0",
+    "superagent-cache": "^3.0.1",
     "winston": "^3.2.1"
   },
   "devDependencies": {
