@@ -13,9 +13,7 @@
  */
 
 import request from "superagent";
-import responseTime from "superagent-response-time";
 import profile from "./profile.js";
-import logging from "./logging.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 
@@ -73,13 +71,7 @@ export default async function fetchPackage(
         };
 
         // Now create the request.
-        const fetcher = request
-            .get(url)
-            .use(
-                responseTime((req, time) =>
-                    logging.debug(`FETCH(${requester}) ${url} took ${time}ms`),
-                ),
-            );
+        const fetcher = request.get(url);
 
         // We give the fetcher 60 seconds to get a response.
         fetcher.timeout(60000);
