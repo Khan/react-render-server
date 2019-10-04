@@ -19,6 +19,8 @@ import profile from "./profile.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 
+// TODO: No cache or ability to clear cache for developer server usage
+// TODO: Different way of disabling or working with cache during tests?
 if (process.env.NODE_ENV !== "test") {
     superagentCache(request);
 }
