@@ -40,6 +40,18 @@ const DEFAULT_NUM_RETRIES: number = 2; // so 3 tries total
 const inFlightRequests: InflightRequests = {};
 
 /**
+ * Flush the cache.
+ */
+export function flushCache() {
+    /**
+     * Guard this in case we never enabled caching.
+     */
+    if (superagent.cache && superagent.cache.flush) {
+        superagent.cache.flush();
+    }
+}
+
+/**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
