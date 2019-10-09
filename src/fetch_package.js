@@ -12,17 +12,20 @@
  * file, to avoid letting this server execute arbitrary code.
  */
 
-import request from "superagent";
+import superagent from "superagent";
 import superagentCache from "superagent-cache";
 
+import args from "./arguments.js";
 import profile from "./profile.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 
-// TODO: No cache or ability to clear cache for developer server usage
-// TODO: Different way of disabling or working with cache during tests?
-if (process.env.NODE_ENV !== "test") {
-    superagentCache(request);
+if (args.useCache) {
+    /**
+     * Default expiration of cache is 900 seconds (15 minutes).
+     * This feels reasonable for now.
+     */
+    superagentCache(superagent);
 }
 
 type InflightRequests = {
@@ -79,7 +82,7 @@ export default async function fetchPackage(
         };
 
         // Now create the request.
-        const fetcher = request.get(url);
+        const fetcher = superagent.get(url);
 
         // We give the fetcher 60 seconds to get a response.
         fetcher.timeout(60000);
