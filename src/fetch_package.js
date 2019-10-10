@@ -94,21 +94,24 @@ export default async function fetchPackage(
             );
         };
 
+        // Make a token we can use to identify if a request is newly made or
+        // we retrieved from cache.
+        const token = Date.now();
+
         // Now create the request.
         const fetcher = superagent.get(url);
 
         if (args.useCache) {
             fetcher.prune((response) => {
                 /**
-                 * We want to use our own `prune` method so that we can track what
-                 * comes from cache versus what doesn't.
+                 * We want to use our own `prune` method so that we can track
+                 * what comes from cache versus what doesn't.
+                 *
+                 * But we still do the same thing that superagent-cache would
+                 * do.
                  */
                 const guttedResponse = gutResponse(response);
-                /**
-                 * We use this prop to help us track what came from cache versus
-                 * not. It's a bit lame but it will work.
-                 */
-                guttedResponse._cached = "new";
+                guttedResponse._token = token;
                 return guttedResponse;
             });
         }
@@ -132,19 +135,10 @@ export default async function fetchPackage(
             }
 
             if (requestStats) {
-                /**
-                 * A little state machine to track what came from the cache.
-                 */
-                if (result._cached === "new") {
-                    result._cached = "no";
-                } else if (result._cached === "no") {
-                    result._cached = "yes";
-                }
-
-                if (result._cached === "yes") {
-                    requestStats.fromCache++;
-                } else {
+                if (result.token == null || result.token === token) {
                     requestStats.packageFetches++;
+                } else {
+                    requestStats.fromCache++;
                 }
             }
 
