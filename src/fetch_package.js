@@ -27,28 +27,6 @@ if (args.useCache) {
      * This feels reasonable for now.
      */
     superagentCache(superagent);
-
-    /**
-     * We want to use our own `prune` method so that we can track what
-     * comes from cache versus what doesn't.
-     */
-    superagent
-        .prune((response) => {
-            const guttedResponse = gutResponse(response);
-            /**
-             * We use this prop to help us track what came from cache versus
-             * not. It's a bit lame but it will work.
-             */
-            response._cached = "new";
-            return guttedResponse;
-        })
-        .end((err, response) => {
-            if (response._cached === "new") {
-                response._cached = "no";
-            } else {
-                response._cached = "yes";
-            }
-        });
 }
 
 type InflightRequests = {
@@ -119,6 +97,22 @@ export default async function fetchPackage(
         // Now create the request.
         const fetcher = superagent.get(url);
 
+        if (args.useCache) {
+            fetcher.prune((response) => {
+                /**
+                 * We want to use our own `prune` method so that we can track what
+                 * comes from cache versus what doesn't.
+                 */
+                const guttedResponse = gutResponse(response);
+                /**
+                 * We use this prop to help us track what came from cache versus
+                 * not. It's a bit lame but it will work.
+                 */
+                response._cached = "new";
+                return guttedResponse;
+            });
+        }
+
         // We give the fetcher 60 seconds to get a response.
         fetcher.timeout(60000);
 
@@ -138,10 +132,20 @@ export default async function fetchPackage(
             }
 
             if (requestStats) {
+                /**
+                 * A little state machine to track what came from the cache.
+                 */
+                if (result._cached === "new") {
+                    result._cached = "no";
+                } else if (result._cached === "no") {
+                    result._cached = "yes";
+                }
+
                 if (result._cached === "yes") {
                     requestStats.fromCache++;
+                } else {
+                    requestStats.packageFetches++;
                 }
-                requestStats.packageFetches++;
             }
 
             return {
