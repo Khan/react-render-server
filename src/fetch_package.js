@@ -47,7 +47,7 @@ export function flushCache() {
     /**
      * Guard this in case we never enabled caching.
      */
-    if (superagent.cache && superagent.cache.flush) {
+    if (args.useCache) {
         superagent.cache.flush();
     }
 }
@@ -108,7 +108,7 @@ export default async function fetchPackage(
                  * We use this prop to help us track what came from cache versus
                  * not. It's a bit lame but it will work.
                  */
-                response._cached = "new";
+                guttedResponse._cached = "new";
                 return guttedResponse;
             });
         }
