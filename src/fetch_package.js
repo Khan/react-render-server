@@ -14,6 +14,7 @@
 
 import superagent from "superagent";
 import superagentCache from "superagent-cache";
+import {gutResponse} from "superagent-cache/utils.js";
 
 import args from "./arguments.js";
 import profile from "./profile.js";
@@ -26,6 +27,28 @@ if (args.useCache) {
      * This feels reasonable for now.
      */
     superagentCache(superagent);
+
+    /**
+     * We want to use our own `prune` method so that we can track what
+     * comes from cache versus what doesn't.
+     */
+    superagent
+        .prune((response) => {
+            const guttedResponse = gutResponse(response);
+            /**
+             * We use this prop to help us track what came from cache versus
+             * not. It's a bit lame but it will work.
+             */
+            response._cached = "new";
+            return guttedResponse;
+        })
+        .end((err, response) => {
+            if (response._cached === "new") {
+                response._cached = "no";
+            } else {
+                response._cached = "yes";
+            }
+        });
 }
 
 type InflightRequests = {
@@ -115,6 +138,9 @@ export default async function fetchPackage(
             }
 
             if (requestStats) {
+                if (result._cached === "yes") {
+                    requestStats.fromCache++;
+                }
                 requestStats.packageFetches++;
             }
 
