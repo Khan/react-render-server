@@ -48,6 +48,7 @@ if (process.env.NODE_ENV !== "test") {
  * Logging support is based on:
  *   https://cloud.google.com/nodejs/getting-started/logging-application-events
  *
+ * The order matters here.
  * The request logger should come before the app, and the error logger, after.
  */
 const appWithLogging = express()
