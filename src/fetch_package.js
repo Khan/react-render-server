@@ -13,8 +13,9 @@
  */
 
 import superagent from "superagent";
-import superagentCache from "superagent-cache";
-import {gutResponse} from "superagent-cache/utils.js";
+import superagentCachePlugin from "superagent-cache-plugin";
+import cacheModule from "cache-service-cache-module";
+import {gutResponse} from "superagent-cache-plugin/utils.js";
 
 import args from "./arguments.js";
 import profile from "./profile.js";
@@ -22,10 +23,6 @@ import logging from "./logging.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 import type {SuperAgentRequest} from "superagent";
-
-if (args.useCache) {
-    superagentCache(superagent);
-}
 
 type InflightRequests = {
     [url: string]: Promise<JavaScriptPackage>,
@@ -39,6 +36,13 @@ const DEFAULT_NUM_RETRIES: number = 2; // so 3 tries total
 const inFlightRequests: InflightRequests = {};
 
 /**
+ * Setup caching stuff. We may not use it if caching isn't enabled
+ * but it won't do any harm just sitting there.
+ */
+const cache = new cacheModule();
+const superagentCache = superagentCachePlugin(cache);
+
+/**
  * Flush the cache.
  */
 export function flushCache() {
@@ -46,7 +50,7 @@ export function flushCache() {
      * Guard this in case we never enabled caching.
      */
     if (args.useCache) {
-        superagent.cache.flush();
+        cache.flush();
     }
 }
 
@@ -84,18 +88,21 @@ export default async function fetchPackage(
          * Set the expiration of the cache at 900 seconds (15 minutes).
          * This feels reasonable for now.
          */
-        return fetcher.expiration(900).prune((response) => {
-            /**
-             * We want to use our own `prune` method so that we can track
-             * what comes from cache versus what doesn't.
-             *
-             * But we still do the same thing that superagent-cache would
-             * do, for now.
-             */
-            const guttedResponse = gutResponse(response);
-            guttedResponse._token = token;
-            return guttedResponse;
-        });
+        return fetcher
+            .use(superagentCache)
+            .expiration(900)
+            .prune((response) => {
+                /**
+                 * We want to use our own `prune` method so that we can track
+                 * what comes from cache versus what doesn't.
+                 *
+                 * But we still do the same thing that superagent-cache would
+                 * do, for now.
+                 */
+                const guttedResponse = gutResponse(response);
+                guttedResponse._token = token;
+                return guttedResponse;
+            });
     };
 
     const doFetch = async (token: number): Promise<JavaScriptPackage> => {
@@ -139,10 +146,10 @@ export default async function fetchPackage(
             }
 
             if (result._token == null || result._token === token) {
-                logging.silly(`From request: ${url} (token: ${result._token})`);
+                logging.silly(`From request: ${url}`);
                 requestStats && requestStats.packageFetches++;
             } else {
-                logging.silly(`From cache: ${url} (token: ${result._token})`);
+                logging.silly(`From cache: ${url}`);
                 requestStats && requestStats.fromCache++;
             }
 
