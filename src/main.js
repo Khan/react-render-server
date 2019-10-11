@@ -12,7 +12,7 @@ import app from "./server.js";
 /**
  * Let's begin by logging our arguments.
  */
-logging.silly(`Parsed arguments: ${JSON.stringify(args, undefined, "    ")}`);
+logging.debug(`Parsed arguments: ${JSON.stringify(args, undefined, "    ")}`);
 
 /**
  * In production mode, we want to hook up to various StackDriver services.

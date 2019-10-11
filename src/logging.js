@@ -29,24 +29,17 @@ const prodFormatter = ({message, durationMs}: Info): string =>
 const devFormatter = (info: Info): string =>
     `${info.level}: ${prodFormatter(info)}`;
 
-function getFormatters(json, isDev) {
+function getFormatters(isDev) {
     const formatters: Array<Format> = [
         winston.format.splat(), // Allows for %s style substitutions
     ];
 
-    if (json) {
-        formatters.push(winston.format.json());
-        if (isDev) {
-            formatters.push(winston.format.prettyPrint({colorize: true}));
-        }
-    } else {
-        formatters.push(winston.format.cli({all: isDev}));
-        formatters.push(
-            winston.format.printf((info: any) =>
-                (isDev ? devFormatter : prodFormatter)(info),
-            ),
-        );
-    }
+    formatters.push(winston.format.cli({level: isDev}));
+    formatters.push(
+        winston.format.printf((info: any) =>
+            (isDev ? devFormatter : prodFormatter)(info),
+        ),
+    );
 
     return winston.format.combine(...formatters);
 }
@@ -66,14 +59,14 @@ function getTransports(isDev) {
         sink._write = sink.write;
         transports.push(
             new winston.transports.Stream({
-                format: getFormatters(false, isDev),
+                format: getFormatters(isDev),
                 stream: sink,
             }),
         );
     } else {
         transports.push(
             new winston.transports.Console({
-                format: getFormatters(false, isDev),
+                format: getFormatters(isDev),
             }),
         );
     }
@@ -110,6 +103,7 @@ function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
          */
         winstonInstance: winstonLogger,
         expressFormat: true,
+        colorize: isDev,
         meta: false,
     });
 
