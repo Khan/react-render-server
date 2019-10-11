@@ -5,10 +5,18 @@
 
 import express from "express";
 
-import logging, {middleware} from "./logging.js";
 import args from "./arguments.js";
+import logging, {middleware} from "./logging.js";
 import app from "./server.js";
 
+/**
+ * Let's begin by logging our arguments.
+ */
+logging.debug(`Parsed arguments: ${JSON.stringify(args, undefined, "    ")}`);
+
+/**
+ * In production mode, we want to hook up to various StackDriver services.
+ */
 if (!args.dev) {
     // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
     const traceAgent = require("@google-cloud/trace-agent");
@@ -21,7 +29,9 @@ if (!args.dev) {
     profiler.start();
 }
 
-// Set up our globals and singletons
+/**
+ * Make sure we have a NODE_ENV variable.
+ */
 if (args.dev) {
     process.env.NODE_ENV = "dev";
 } else {
@@ -30,14 +40,25 @@ if (args.dev) {
     process.env.NODE_ENV = "production";
 }
 
-// Add logging support, based on
-//   https://cloud.google.com/nodejs/getting-started/logging-application-events
-const appWithLogging = express();
+/**
+ * Create the express app.
+ *
+ * Logging support is based on:
+ *   https://cloud.google.com/nodejs/getting-started/logging-application-events
+ *
+ * The request logger should come before the app, and the error logger, after.
+ */
+const appWithLogging = express()
+    .use(middleware.requestLogger)
+    .use(app)
+    .use(middleware.errorLogger);
 
-appWithLogging.use(middleware.requestLogger);
-appWithLogging.use(middleware.errorLogger);
-appWithLogging.use(app);
-
+/**
+ * Start the server listening.
+ *
+ * We need the variable so we can reference it inside the error handling
+ * callback. Feels a bit nasty, but it works.
+ */
 const server = appWithLogging.listen(args.port, (err: ?Error) => {
     if (server == null || err != null) {
         logging.error(

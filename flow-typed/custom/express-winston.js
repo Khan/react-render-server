@@ -7,7 +7,6 @@ declare type express$Handler = (
   ) => mixed;
 declare type express$ErrorRequestHandler = (
     error: Error,
-    // $FlowFixMe
     req: express$Request,
     res: express$Response,
     next: express$NextFunction
@@ -21,7 +20,7 @@ declare interface expresswinston$BaseLoggerOptions {
 }
 
 declare type expresswinston$LoggerOptionsWithTransports = {
-    transports: Array<Transport>,
+    transports?: Array<Transport>,
     ...
 } & expresswinston$BaseLoggerOptions
 
@@ -35,7 +34,7 @@ declare interface expresswinston$BaseErrorLoggerOptions {
 }
 
 declare type expresswinston$ErrorLoggerOptionsWithTransports = {
-    transports: Array<Transport>,
+    transports?: Array<Transport>,
     ...
 } & expresswinston$BaseErrorLoggerOptions
 
