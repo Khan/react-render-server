@@ -51,7 +51,7 @@ function getFormatters(json, isDev) {
     return winston.format.combine(...formatters);
 }
 
-function getTransports(json, isDev) {
+function getTransports(isDev) {
     const transports = [];
     if (!isDev) {
         transports.push(new StackdriverTransport());
@@ -59,19 +59,21 @@ function getTransports(json, isDev) {
 
     if (process.env.NODE_ENV === "test") {
         // During testing, we just dump logging to a stream.
+        // This isn't used for anything at all right now, but we could use
+        // it for snapshot testing with some updates at some point.
         const sink = new stream.Writable({write: () => {}});
         // This is a hack to make our writable stream work $FlowFixMe
         sink._write = sink.write;
         transports.push(
             new winston.transports.Stream({
-                format: getFormatters(json, isDev),
+                format: getFormatters(false, isDev),
                 stream: sink,
             }),
         );
     } else {
         transports.push(
             new winston.transports.Console({
-                format: getFormatters(json, isDev),
+                format: getFormatters(false, isDev),
             }),
         );
     }
@@ -87,25 +89,44 @@ type Loggers = {
 };
 
 function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
+    // This is the logger that we use to log general information in our app.
+    // Whereever one might use console, use this instead.
+    const winstonLogger = winston.createLogger<NpmLogLevels>({
+        level: logLevel,
+        transports: getTransports(isDev),
+    });
+
     // This is the logger that captures requests handled by our express server.
     const requestLogger = expressWinston.logger({
-        level: `${logLevel}`,
-        transports: getTransports(false, isDev),
+        /**
+         * Specify the level that this logger logs at.
+         * (use a function to dynamically change level based on req and res)
+         *     `function(req, res) { return String; }`
+         */
+        level: "info",
+
+        /**
+         * Use the logger we already set up.
+         */
+        winstonInstance: winstonLogger,
         expressFormat: true,
         meta: false,
     });
 
     // This is the logger that captures errors in our express server.
     const errorLogger = expressWinston.errorLogger({
-        level: `${logLevel}`,
-        transports: getTransports(true, isDev),
-    });
+        /**
+         * Specify the level that this logger logs at.
+         * (use a function to dynamically change level based on req, res and
+         * err)
+         *     `function(req, res, err) { return String; }`
+         */
+        level: "error",
 
-    // This is the logger that we use to log general information in our app.
-    // Whereever one might use console, use this instead.
-    const winstonLogger = winston.createLogger<NpmLogLevels>({
-        level: logLevel,
-        transports: getTransports(false, isDev),
+        /**
+         * Use the logger we already set up.
+         */
+        winstonInstance: winstonLogger,
     });
 
     winstonLogger.debug(
