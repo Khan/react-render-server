@@ -120,7 +120,12 @@ const patchTimers = (): void => {
                 }
                 if (!warned) {
                     warned = true;
-                    logging.warn("Dangling timer(s) encountered");
+                    /**
+                     * This has to use console because it runs in the VM
+                     * and so it doesn't have access to our winston logging.
+                     */
+                    // eslint-disable-next-line no-console
+                    console.warn("Dangling timer(s) encountered");
                 }
             };
             return old(gatedCallback, ...args);
