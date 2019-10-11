@@ -18,6 +18,7 @@ import {gutResponse} from "superagent-cache/utils.js";
 
 import args from "./arguments.js";
 import profile from "./profile.js";
+import logging from "./logging.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 
@@ -136,8 +137,14 @@ export default async function fetchPackage(
 
             if (requestStats) {
                 if (result._token == null || result._token === token) {
+                    logging.silly(
+                        `From request: ${url} (token: ${result._token})`,
+                    );
                     requestStats.packageFetches++;
                 } else {
+                    logging.silly(
+                        `From cache: ${url} (token: ${result._token})`,
+                    );
                     requestStats.fromCache++;
                 }
             }
