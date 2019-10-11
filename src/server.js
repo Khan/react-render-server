@@ -232,7 +232,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
 /**
  * Flush the cache.
  *
- * This can be useful when there's weird errors that may be due to bad
+ * This can be useful when there are weird errors that may be due to bad
  * caching, or for testing.
  *
  * The post data is sent in the request body as json, in the following format:
