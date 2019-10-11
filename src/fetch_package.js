@@ -21,6 +21,7 @@ import profile from "./profile.js";
 import logging from "./logging.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
+import type {SuperAgentRequest} from "superagent";
 
 if (args.useCache) {
     superagentCache(superagent);
@@ -69,7 +70,35 @@ export default async function fetchPackage(
         return inFlightRequests[url];
     }
 
-    const doFetch = async (): Promise<JavaScriptPackage> => {
+    const getFetcher = (url: string, token: number): SuperAgentRequest => {
+        // We give the fetcher 60 seconds to get a response.
+        const fetcher = superagent.get(url).timeout(60000);
+
+        if (!args.useCache) {
+            return fetcher;
+        }
+
+        /**
+         * We're caching.
+         *
+         * Set the expiration of the cache at 900 seconds (15 minutes).
+         * This feels reasonable for now.
+         */
+        return fetcher.expiration(900).prune((response) => {
+            /**
+             * We want to use our own `prune` method so that we can track
+             * what comes from cache versus what doesn't.
+             *
+             * But we still do the same thing that superagent-cache would
+             * do, for now.
+             */
+            const guttedResponse = gutResponse(response);
+            guttedResponse._token = token;
+            return guttedResponse;
+        });
+    };
+
+    const doFetch = async (token: number): Promise<JavaScriptPackage> => {
         // Let's profile this activity.
         // We start the profiling when the promise is executed.
         const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
@@ -91,34 +120,8 @@ export default async function fetchPackage(
             );
         };
 
-        // Make a token we can use to identify if a request is newly made or
-        // we retrieved from cache.
-        const token = Date.now();
-
         // Now create the request.
-        const fetcher = superagent.get(url);
-
-        if (args.useCache) {
-            /**
-             * Set the expiration of the cache at 900 seconds (15 minutes).
-             * This feels reasonable for now.
-             */
-            fetcher.expiration(900).prune((response) => {
-                /**
-                 * We want to use our own `prune` method so that we can track
-                 * what comes from cache versus what doesn't.
-                 *
-                 * But we still do the same thing that superagent-cache would
-                 * do, for now.
-                 */
-                const guttedResponse = gutResponse(response);
-                guttedResponse._token = token;
-                return guttedResponse;
-            });
-        }
-
-        // We give the fetcher 60 seconds to get a response.
-        fetcher.timeout(60000);
+        const fetcher = getFetcher(url, token);
 
         let success = false;
         try {
@@ -135,18 +138,12 @@ export default async function fetchPackage(
                 throw new Error("We've moved on to other tests, my friend");
             }
 
-            if (requestStats) {
-                if (result._token == null || result._token === token) {
-                    logging.silly(
-                        `From request: ${url} (token: ${result._token})`,
-                    );
-                    requestStats.packageFetches++;
-                } else {
-                    logging.silly(
-                        `From cache: ${url} (token: ${result._token})`,
-                    );
-                    requestStats.fromCache++;
-                }
+            if (result._token == null || result._token === token) {
+                logging.silly(`From request: ${url} (token: ${result._token})`);
+                requestStats && requestStats.packageFetches++;
+            } else {
+                logging.silly(`From cache: ${url} (token: ${result._token})`);
+                requestStats && requestStats.fromCache++;
             }
 
             return {
@@ -160,7 +157,10 @@ export default async function fetchPackage(
         }
     };
 
-    const fetchPromise = doFetch().catch((err) => {
+    /**
+     * We pass a token to `doFetch` so we can track cache usage.
+     */
+    const fetchPromise = doFetch(Date.now()).catch((err) => {
         if (
             err.response &&
             err.response.status >= 400 &&
