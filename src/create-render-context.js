@@ -27,10 +27,12 @@ type RenderContextWithSize = {
 
 class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
+    _requestStats: ?RequestStats;
 
-    constructor() {
+    constructor(requestStats?: RequestStats) {
         super();
         this._active = true;
+        this._requestStats = requestStats;
     }
 
     close(): void {
@@ -38,13 +40,15 @@ class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
-        return fetchPackage(url, "JSDOM").then(({content}) => {
-            if (!this._active) {
-                logging.silly(`File requested but never used (${url})`);
-                return Buffer.from("");
-            }
-            return new Buffer(content);
-        });
+        return fetchPackage(url, "JSDOM", this._requestStats).then(
+            ({content}) => {
+                if (!this._active) {
+                    logging.silly(`File requested but never used (${url})`);
+                    return Buffer.from("");
+                }
+                return new Buffer(content);
+            },
+        );
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
@@ -151,8 +155,9 @@ const createRenderContext = function(
     locationUrl: string,
     globals: Globals,
     jsPackages: Array<JavaScriptPackage>,
+    requestStats?: RequestStats,
 ): RenderContextWithSize {
-    const resourceLoader = new CustomResourceLoader();
+    const resourceLoader = new CustomResourceLoader(requestStats);
 
     // A minimal document, for parts of our code that assume there's a DOM.
     const context: RenderContext = (new JSDOM(
@@ -287,6 +292,7 @@ export default function createRenderContextWithStats(
         locationUrl,
         globals,
         jsPackages,
+        requestStats,
     );
 
     vmConstructionProfile.end();

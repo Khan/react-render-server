@@ -65,7 +65,7 @@ export function flushCache() {
 export default async function fetchPackage(
     url: string,
     requester: "JSDOM" | "SERVER" | "TEST",
-    requestStats?: RequestStats,
+    requestStats?: ?RequestStats,
     triesLeftAfterThisOne?: number = DEFAULT_NUM_RETRIES,
 ): Promise<JavaScriptPackage> {
     // If a different request has already asked for this url, just
