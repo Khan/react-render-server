@@ -23,12 +23,6 @@ import type {JavaScriptPackage, RequestStats} from "./types.js";
 
 if (args.useCache) {
     superagentCache(superagent);
-
-    /**
-     * Set the expiration of the cache at 900 seconds (15 minutes).
-     * This feels reasonable for now.
-     */
-    superagent.expiration(900);
 }
 
 type InflightRequests = {
@@ -104,13 +98,17 @@ export default async function fetchPackage(
         const fetcher = superagent.get(url);
 
         if (args.useCache) {
-            fetcher.prune((response) => {
+            /**
+             * Set the expiration of the cache at 900 seconds (15 minutes).
+             * This feels reasonable for now.
+             */
+            fetcher.expiration(900).prune((response) => {
                 /**
                  * We want to use our own `prune` method so that we can track
                  * what comes from cache versus what doesn't.
                  *
                  * But we still do the same thing that superagent-cache would
-                 * do.
+                 * do, for now.
                  */
                 const guttedResponse = gutResponse(response);
                 guttedResponse._token = token;
