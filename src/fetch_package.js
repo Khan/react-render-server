@@ -22,11 +22,13 @@ import profile from "./profile.js";
 import type {JavaScriptPackage, RequestStats} from "./types.js";
 
 if (args.useCache) {
+    superagentCache(superagent);
+
     /**
-     * Default expiration of cache is 900 seconds (15 minutes).
+     * Set the expiration of the cache at 900 seconds (15 minutes).
      * This feels reasonable for now.
      */
-    superagentCache(superagent);
+    superagent.expiration(900);
 }
 
 type InflightRequests = {
@@ -135,7 +137,7 @@ export default async function fetchPackage(
             }
 
             if (requestStats) {
-                if (result.token == null || result.token === token) {
+                if (result._token == null || result._token === token) {
                     requestStats.packageFetches++;
                 } else {
                     requestStats.fromCache++;
