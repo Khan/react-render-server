@@ -12,6 +12,7 @@ type RawParsedArgs = {
     log_level: LogLevel,
     dev: boolean,
     port: number,
+    use_cache: boolean,
 };
 
 const packageInfoJson: PackageJson = packageInfo;
@@ -35,6 +36,11 @@ parser.addArgument(["--log-level"], {
     choices: ["silly", "debug", "verbose", "info", "warn", "error"],
     help: "What level to log at.",
 });
+parser.addArgument(["--use-cache"], {
+    action: "storeTrue",
+    help:
+        "Force caching of JS files on. Only has an effect when combined with --dev as caching is always on for non-dev runs.",
+});
 
 // We only want to parse the args if we're running inside our main app.
 // Could be src/main.js or dist/main.js.
@@ -45,6 +51,7 @@ const args: RawParsedArgs = process.argv[1].endsWith("/main.js")
           log_level: "debug",
           dev: true,
           port: 42,
+          use_cache: false,
       };
 
 /**
@@ -67,6 +74,10 @@ class ArgumentProvider implements IProvideArguments {
 
     get dev(): boolean {
         return this._args.dev;
+    }
+
+    get useCache(): boolean {
+        return this._args.use_cache || !this.dev;
     }
 }
 

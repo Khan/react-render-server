@@ -9,7 +9,7 @@ import express from "express";
 import logging from "./logging.js";
 import profile from "./profile.js";
 
-import fetchPackage from "./fetch_package.js";
+import fetchPackage, {flushCache} from "./fetch_package.js";
 import * as renderSecret from "./secret.js";
 import render from "./render.js";
 
@@ -185,12 +185,12 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     }
 
     // Fetch the entry point and its dependencies.
-    const fetchPromises = jsUrls.map((url) =>
-        fetchPackage(url, (res.locals.requestStats: any)),
-    );
-
+    const requestStats: RequestStats = (res.locals.requestStats: any);
     const fetchPackages = async () => {
         try {
+            const fetchPromises = jsUrls.map((url) =>
+                fetchPackage(url, "SERVER", requestStats),
+            );
             return await Promise.all(fetchPromises);
         } catch (err) {
             handleFetchError(err, res);
@@ -208,7 +208,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             packages,
             props,
             globals,
-            (res.locals.requestStats: any),
+            requestStats,
         );
 
         // We store the updated request-stats in renderedState
@@ -229,6 +229,29 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     }
 });
 
+/**
+ * Flush the cache.
+ *
+ * This can be useful when there are weird errors that may be due to bad
+ * caching, or for testing.
+ *
+ * The post data is sent in the request body as json, in the following format:
+ * {
+ *    "secret": "...."
+ * }
+ *
+ * 'secret' is a shared secret.  It must equal the value of the 'secret'
+ * file in the server's base-directory, or the server will deny the request.
+ * NOTE: In dev mode, the secret field is ignored.
+ *
+ * We respond with the instance that was flushed.
+ * TODO(WEB-1410): how do we flush *all* the instances??
+ */
+app.post("/flush", checkSecret, (req: $Request, res: $Response) => {
+    flushCache();
+    res.send((process.env["GAE_INSTANCE"] || "dev") + "\n");
+});
+
 app.get("/_api/ping", (req: $Request, res: $Response) => res.send("pong!\n"));
 
 app.get("/_api/version", (req: $Request, res: $Response) => {
@@ -244,6 +267,7 @@ app.get("/_ah/stop", (req: $Request, res: $Response) => res.send("ok!\n"));
 // Simplistic priming endpoint. Calling this endpoint uses CPU and thus
 // hopefully causes the autoscaler to spin up more instances. This endpoint
 // takes about 2 seconds when called locally on my laptop.
+// TODO(somewhatabstract): Is this useful? Does it work?
 app.get("/prime", (req: $Request, res: $Response) => {
     for (let i = 0; i < 3000000000; i++) {
         // noop

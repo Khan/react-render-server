@@ -12,10 +12,17 @@
  * file, to avoid letting this server execute arbitrary code.
  */
 
-import request from "superagent";
+import superagent from "superagent";
+import superagentCachePlugin from "superagent-cache-plugin";
+import cacheModule from "cache-service-cache-module";
+import {gutResponse} from "superagent-cache-plugin/utils.js";
+
+import args from "./arguments.js";
 import profile from "./profile.js";
+import logging from "./logging.js";
 
 import type {JavaScriptPackage, RequestStats} from "./types.js";
+import type {SuperAgentRequest} from "superagent";
 
 type InflightRequests = {
     [url: string]: Promise<JavaScriptPackage>,
@@ -29,16 +36,36 @@ const DEFAULT_NUM_RETRIES: number = 2; // so 3 tries total
 const inFlightRequests: InflightRequests = {};
 
 /**
+ * Setup caching stuff. We may not use it if caching isn't enabled
+ * but it won't do any harm just sitting there.
+ */
+const cache = new cacheModule();
+const superagentCache = superagentCachePlugin(cache);
+
+/**
+ * Flush the cache.
+ */
+export function flushCache() {
+    /**
+     * Guard this in case we never enabled caching.
+     */
+    if (args.useCache) {
+        cache.flush();
+    }
+}
+
+/**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
  *
- * @returns {Promise<{content: string, url: string}>} A promise of an object
+ * @returns {Promise<JavaScriptPackage>} A promise of an object
  * containing the content and the url from which it came.
  */
 export default async function fetchPackage(
     url: string,
-    requestStats?: RequestStats,
+    requester: "JSDOM" | "SERVER" | "TEST",
+    requestStats?: ?RequestStats,
     triesLeftAfterThisOne?: number = DEFAULT_NUM_RETRIES,
 ): Promise<JavaScriptPackage> {
     // If a different request has already asked for this url, just
@@ -47,24 +74,61 @@ export default async function fetchPackage(
         return inFlightRequests[url];
     }
 
-    // Let's profile this activity.
-    const fetchProfile = profile.start(`FETCH: ${url}`);
+    const getFetcher = (url: string, token: number): SuperAgentRequest => {
+        // We give the fetcher 60 seconds to get a response.
+        const fetcher = superagent.get(url).timeout(60000);
 
-    // This is a helper function to terminate the profiling with a suitable
-    // message.
-    const reportFetchTime = (success: boolean): void => {
-        fetchProfile.end(
-            `${success ? "FETCH_PASS" : "FETCH_FAIL"} ${url}`,
-            success ? "debug" : "error",
-        );
+        if (!args.useCache) {
+            return fetcher;
+        }
+
+        /**
+         * We're caching.
+         *
+         * Set the expiration of the cache at 900 seconds (15 minutes).
+         * This feels reasonable for now.
+         */
+        return fetcher
+            .use(superagentCache)
+            .expiration(900)
+            .prune((response) => {
+                /**
+                 * We want to use our own `prune` method so that we can track
+                 * what comes from cache versus what doesn't.
+                 *
+                 * But we still do the same thing that superagent-cache would
+                 * do, for now.
+                 */
+                const guttedResponse = gutResponse(response);
+                guttedResponse._token = token;
+                return guttedResponse;
+            });
     };
 
-    const doFetch = async (): Promise<JavaScriptPackage> => {
-        // Now create the request.
-        const fetcher = request.get(url);
+    const doFetch = async (token: number): Promise<JavaScriptPackage> => {
+        // Let's profile this activity.
+        // We start the profiling when the promise is executed.
+        const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
+        const retryText = isRetry
+            ? ` RETRY#: ${DEFAULT_NUM_RETRIES - triesLeftAfterThisOne}`
+            : "";
+        const fetchProfile = profile.start(
+            `FETCH(${requester}): ${url}${retryText}`,
+        );
 
-        // We give the fetcher 60 seconds to get a response.
-        fetcher.timeout(60000);
+        // This is a helper function to terminate the profiling with a suitable
+        // message.
+        const reportFetchTime = (success: boolean): void => {
+            fetchProfile.end(
+                `${
+                    success ? "FETCH_PASS" : "FETCH_FAIL"
+                }(${requester}): ${url}${retryText}`,
+                success ? "debug" : "error",
+            );
+        };
+
+        // Now create the request.
+        const fetcher = getFetcher(url, token);
 
         let success = false;
         try {
@@ -81,8 +145,12 @@ export default async function fetchPackage(
                 throw new Error("We've moved on to other tests, my friend");
             }
 
-            if (requestStats) {
-                requestStats.packageFetches++;
+            if (result._token == null || result._token === token) {
+                logging.silly(`From request: ${url}`);
+                requestStats && requestStats.packageFetches++;
+            } else {
+                logging.silly(`From cache: ${url}`);
+                requestStats && requestStats.fromCache++;
             }
 
             return {
@@ -96,7 +164,10 @@ export default async function fetchPackage(
         }
     };
 
-    const fetchPromise = doFetch().catch((err) => {
+    /**
+     * We pass a token to `doFetch` so we can track cache usage.
+     */
+    const fetchPromise = doFetch(Date.now()).catch((err) => {
         if (
             err.response &&
             err.response.status >= 400 &&
@@ -112,7 +183,12 @@ export default async function fetchPackage(
         // If we get here, we have a 5xx error or similar
         // (socket timeout, maybe).  Let's retry a few times.
         if (triesLeftAfterThisOne > 0) {
-            return fetchPackage(url, requestStats, triesLeftAfterThisOne - 1);
+            return fetchPackage(
+                url,
+                requester,
+                requestStats,
+                triesLeftAfterThisOne - 1,
+            );
         }
 
         // OK, I give up.

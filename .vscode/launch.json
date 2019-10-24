@@ -7,13 +7,18 @@
         {
             "type": "node",
             "request": "launch",
+            "runtimeArgs": ["--require", "@babel/register"],
             "name": "Launch Program",
-            "program": "${workspaceFolder}/dist/main.js",
+            "console": "integratedTerminal",
+            "outputCapture": "std",
+            "sourceMaps": true,
+            "program": "${workspaceFolder}/src/main.js",
             "args": [
                 "--dev",
-                "--port=8040"
-            ],
-            "preLaunchTask": "npm: build"
+                "--port=8040",
+                "--use-cache",
+                "--log-level=silly"
+            ]
         },
         {
             "type": "node",

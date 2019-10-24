@@ -27,10 +27,12 @@ type RenderContextWithSize = {
 
 class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
+    _requestStats: ?RequestStats;
 
-    constructor() {
+    constructor(requestStats?: RequestStats) {
         super();
         this._active = true;
+        this._requestStats = requestStats;
     }
 
     close(): void {
@@ -38,13 +40,15 @@ class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
-        return fetchPackage(url).then(({content}) => {
-            if (!this._active) {
-                logging.silly(`File requested but never used (${url})`);
-                return Buffer.from("");
-            }
-            return new Buffer(content);
-        });
+        return fetchPackage(url, "JSDOM", this._requestStats).then(
+            ({content}) => {
+                if (!this._active) {
+                    logging.silly(`File requested but never used (${url})`);
+                    return Buffer.from("");
+                }
+                return new Buffer(content);
+            },
+        );
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
@@ -79,7 +83,7 @@ class CustomResourceLoader extends ResourceLoader {
 const getScript = function(
     fnOrText: Function | string,
     options: vm$ScriptOptions,
-) {
+): any {
     switch (typeof fnOrText) {
         case "function":
             const script = "(\n" + fnOrText.toString() + "\n)()";
@@ -95,13 +99,21 @@ const getScript = function(
     }
 };
 
-const runInContext = function(jsdomContext, fnOrText, options = {}) {
+const runInContext = function(
+    jsdomContext: RenderContext,
+    fnOrText: Function | string,
+    options: vm$ScriptOptions = {},
+): any {
     return jsdomContext.runVMScript(getScript(fnOrText, options));
 };
 
-const patchTimers = () => {
+const patchTimers = (): void => {
     let warned = false;
-    const patchCallbackFnWithGate = (obj, fnName, gateName) => {
+    const patchCallbackFnWithGate = (
+        obj: any,
+        fnName: string,
+        gateName: string,
+    ) => {
         const old = obj[fnName];
         delete obj[fnName];
         obj[fnName] = (callback, ...args) => {
@@ -112,7 +124,12 @@ const patchTimers = () => {
                 }
                 if (!warned) {
                     warned = true;
-                    logging.warn("Dangling timer(s) encountered");
+                    /**
+                     * This has to use console because it runs in the VM
+                     * and so it doesn't have access to our winston logging.
+                     */
+                    // eslint-disable-next-line no-console
+                    console.warn("Dangling timer(s) encountered");
                 }
             };
             return old(gatedCallback, ...args);
@@ -138,8 +155,9 @@ const createRenderContext = function(
     locationUrl: string,
     globals: Globals,
     jsPackages: Array<JavaScriptPackage>,
+    requestStats?: RequestStats,
 ): RenderContextWithSize {
-    const resourceLoader = new CustomResourceLoader();
+    const resourceLoader = new CustomResourceLoader(requestStats);
 
     // A minimal document, for parts of our code that assume there's a DOM.
     const context: RenderContext = (new JSDOM(
@@ -274,6 +292,7 @@ export default function createRenderContextWithStats(
         locationUrl,
         globals,
         jsPackages,
+        requestStats,
     );
 
     vmConstructionProfile.end();

@@ -72,5 +72,6 @@ export interface IProvideArguments {
     get port(): number;
     get dev(): boolean;
     get logLevel(): LogLevel;
+    get useCache(): boolean;
 }
 /* eslint-enable flowtype/no-dupe-keys */

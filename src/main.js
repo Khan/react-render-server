@@ -30,14 +30,16 @@ if (!args.dev) {
 }
 
 /**
- * Make sure we have a NODE_ENV variable.
+ * Make sure we have a NODE_ENV variablewithout overriding the test state.
  */
-if (args.dev) {
-    process.env.NODE_ENV = "dev";
-} else {
-    // This is important for the default catch-all error handler:
-    // http://expressjs.com/en/guide/error-handling.html
-    process.env.NODE_ENV = "production";
+if (process.env.NODE_ENV !== "test") {
+    if (args.dev) {
+        process.env.NODE_ENV = "dev";
+    } else {
+        // This is important for the default catch-all error handler:
+        // http://expressjs.com/en/guide/error-handling.html
+        process.env.NODE_ENV = "production";
+    }
 }
 
 /**
@@ -45,6 +47,8 @@ if (args.dev) {
  *
  * Logging support is based on:
  *   https://cloud.google.com/nodejs/getting-started/logging-application-events
+ *
+ * The order matters here.
  *
  * The request logger should come before the app, and the error logger, after.
  */
