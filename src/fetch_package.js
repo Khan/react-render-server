@@ -16,6 +16,7 @@ import superagent from "superagent";
 import superagentCachePlugin from "superagent-cache-plugin";
 import cacheModule from "cache-service-cache-module";
 import {gutResponse} from "superagent-cache-plugin/utils.js";
+import Agent from "agentkeepalive";
 
 import args from "./arguments.js";
 import profile from "./profile.js";
@@ -41,6 +42,16 @@ const inFlightRequests: InflightRequests = {};
  */
 const cache = new cacheModule();
 const superagentCache = superagentCachePlugin(cache);
+
+/**
+ * Setup keep-alive so that we can make more effective use of our connection
+ * to request JS files.
+ */
+const keepaliveAgent = new Agent({
+    keepAlive: true,
+    timeout: 60000, // active socket keepalive for 60 seconds
+    freeSocketTimeout: 30000, // free socket keepalive for 30 seconds
+});
 
 /**
  * Flush the cache.
@@ -76,7 +87,10 @@ export default async function fetchPackage(
 
     const getFetcher = (url: string, token: number): SuperAgentRequest => {
         // We give the fetcher 60 seconds to get a response.
-        const fetcher = superagent.get(url).timeout(60000);
+        const fetcher = superagent
+            .agent(keepaliveAgent)
+            .get(url)
+            .timeout(60000);
 
         if (!args.useCache) {
             return fetcher;
