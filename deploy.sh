@@ -25,11 +25,6 @@ VERSION=`git log -n1 --format="format:%H %ct" | perl -ne '$ENV{TZ} = "US/Pacific
 [ `git status -u -s | wc -c` -eq 0 ] \
     || die "You must commit your changes before deploying."
 
-# Ensure we're deploying from latest master
-git fetch origin
-[ `git rev-parse HEAD` = `git rev-parse origin/master` ] \
-    || die "You must deploy from latest origin/master."
-
 # Don't deploy if tests fail
 npm test
 
