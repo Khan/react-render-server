@@ -5,7 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "start": "ulimit -n 999999 || ulimit -n 2048; npm run build && node dist/main.js -p 8080 --log-level=debug",
+    "start": "node dist/main.js -p 8080 --log-level=debug",
     "serve_local": "npm run build && nodemon dist/main.js -- --dev",
     "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --require @babel/register --require test_setup.js",
     "deploy": "./deploy.sh",
@@ -13,7 +13,8 @@
     "set_default": "./set_default.sh",
     "lint": "flow && eslint --config .eslintrc ./*.js src",
     "prettyquick": "pretty-quick",
-    "build": "npm run clean && babel src --out-dir dist --source-maps --ignore src/testdata",
+    "build:noclean": "babel src --out-dir dist --source-maps --ignore src/testdata",
+    "build": "npm run clean && npm run build:noclean",
     "postinstall": "npm run build"
   },
   "repository": {
