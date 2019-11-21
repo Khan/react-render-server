@@ -46,7 +46,7 @@ class CustomResourceLoader extends ResourceLoader {
                     logging.silly(`File requested but never used (${url})`);
                     return Buffer.from("");
                 }
-                return new Buffer(content);
+                return Buffer.from(content);
             },
         );
     }

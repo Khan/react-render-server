@@ -79,6 +79,19 @@ class ArgumentProvider implements IProvideArguments {
     get useCache(): boolean {
         return this._args.use_cache || !this.dev;
     }
+
+    toString() {
+        return JSON.stringify(
+            {
+                port: this.port,
+                logLevel: this.logLevel,
+                dev: this.dev,
+                useCache: this.useCache,
+            },
+            null,
+            "    ",
+        );
+    }
 }
 
 export default new ArgumentProvider(args);
