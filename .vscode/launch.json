@@ -6,6 +6,8 @@
     "configurations": [
         {
             "type": "node",
+            // Use to override node with NVM. Must be exact version (can't just be 8 or 10)
+            // "runtimeVersion": "10.17.0",
             "request": "launch",
             "runtimeArgs": ["--require", "@babel/register"],
             "name": "Launch Program",
