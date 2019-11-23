@@ -7,6 +7,10 @@ import type {
     Info as WinstonInfo,
 } from "winston";
 
+export interface AbortablePromise<T> extends Promise<T> {
+    abort: () => void;
+}
+
 export type Info = {
     ...WinstonInfo<NpmLogLevels>,
     durationMs: number,

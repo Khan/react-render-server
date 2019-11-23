@@ -46,22 +46,27 @@ class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
-        return fetchPackage(url, "JSDOM", this._requestStats).then(
-            ({content}) => {
-                if (!this._active) {
-                    logging.silly(`File requested but never used (${url})`);
+        const abortableFetch = fetchPackage(url, "JSDOM", this._requestStats);
+        const promiseToBuffer = abortableFetch.then(({content}) => {
+            if (!this._active) {
+                logging.silly(`File requested but never used (${url})`);
 
-                    /**
-                     * We can return an empty buffer here without caching the
-                     * empty result because the actual file is already cached
-                     * by our package fetching. So this does not impact future
-                     * renders.
-                     */
-                    return Buffer.from("");
-                }
-                return Buffer.from(content);
-            },
-        );
+                /**
+                 * We can return an empty buffer here without caching the
+                 * empty result because the actual file is already cached
+                 * by our package fetching. So this does not impact future
+                 * renders.
+                 */
+                return Buffer.from("");
+            }
+            return Buffer.from(content);
+        });
+        /**
+         * We have to turn this back into an abortable promise so that JSDOM
+         * can abort it when closing, if it needs to.
+         */
+        (promiseToBuffer: any).abort = abortableFetch.abort;
+        return promiseToBuffer;
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {

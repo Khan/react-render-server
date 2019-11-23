@@ -20,13 +20,16 @@ import Agent from "agentkeepalive";
 
 import args from "./arguments.js";
 import profile from "./profile.js";
-import logging from "./logging.js";
 
-import type {JavaScriptPackage, RequestStats} from "./types.js";
+import type {
+    JavaScriptPackage,
+    RequestStats,
+    AbortablePromise,
+} from "./types.js";
 import type {SuperAgentRequest} from "superagent";
 
 type InflightRequests = {
-    [url: string]: Promise<JavaScriptPackage>,
+    [url: string]: AbortablePromise<JavaScriptPackage>,
     ...,
 };
 
@@ -70,7 +73,7 @@ export function flushCache() {
  * return a promise holding the package contents.  If requestStats is
  * defined, we update it with how many fetches we had to do.
  *
- * @returns {Promise<JavaScriptPackage>} A promise of an object
+ * @returns {AbortablePromise<JavaScriptPackage>} A promise of an object
  * containing the content and the url from which it came.
  */
 export default async function fetchPackage(
@@ -78,10 +81,12 @@ export default async function fetchPackage(
     requester: "JSDOM" | "SERVER" | "TEST",
     requestStats?: ?RequestStats,
     triesLeftAfterThisOne?: number = DEFAULT_NUM_RETRIES,
-): Promise<JavaScriptPackage> {
+): AbortablePromise<JavaScriptPackage> {
     // If a different request has already asked for this url, just
     // tag along with it rather than making our own request.
     if (inFlightRequests[url]) {
+        // We know that that this is abortable so we can leave it like this
+        // $FlowFixMe
         return inFlightRequests[url];
     }
 
@@ -119,7 +124,10 @@ export default async function fetchPackage(
             });
     };
 
-    const doFetch = async (token: number): Promise<JavaScriptPackage> => {
+    const doFetch = async (
+        token: number,
+        registerAbortFn: (abortFn: Function) => void,
+    ): Promise<JavaScriptPackage> => {
         // Let's profile this activity.
         // We start the profiling when the promise is executed.
         const isRetry = triesLeftAfterThisOne < DEFAULT_NUM_RETRIES;
@@ -132,10 +140,10 @@ export default async function fetchPackage(
 
         // This is a helper function to terminate the profiling with a suitable
         // message.
-        const reportFetchTime = (success: boolean): void => {
+        const reportFetchTime = (success: boolean, cached: boolean): void => {
             fetchProfile.end(
-                `${
-                    success ? "FETCH_PASS" : "FETCH_FAIL"
+                `${cached ? "CACHE" : "FETCH"}_${
+                    success ? "PASS" : "FAIL"
                 }(${requester}): ${url}${retryText}`,
                 success ? "debug" : "error",
             );
@@ -143,8 +151,10 @@ export default async function fetchPackage(
 
         // Now create the request.
         const fetcher = getFetcher(url, token);
+        registerAbortFn(fetcher.abort);
 
         let success = false;
+        let cached = false;
         try {
             // Now we handle when the request ends, either successfully or
             // otherwise.
@@ -160,10 +170,9 @@ export default async function fetchPackage(
             }
 
             if (result._token == null || result._token === token) {
-                logging.silly(`From request: ${url}`);
                 requestStats && requestStats.packageFetches++;
             } else {
-                logging.silly(`From cache: ${url}`);
+                cached = true;
                 requestStats && requestStats.fromCache++;
             }
 
@@ -172,7 +181,7 @@ export default async function fetchPackage(
                 url,
             };
         } finally {
-            reportFetchTime(success);
+            reportFetchTime(success, cached);
             // The request is done: don't say it's inflight anymore!
             delete inFlightRequests[url];
         }
@@ -180,8 +189,14 @@ export default async function fetchPackage(
 
     /**
      * We pass a token to `doFetch` so we can track cache usage.
+     * We pass a register call to capture the request abort so that JSDOM
+     * can abort the fetch on close.
      */
-    const fetchPromise = doFetch(Date.now()).catch((err) => {
+    let abort;
+    const registerAbortFn = (abortFn: Function): void => {
+        abort = abortFn;
+    };
+    const fetchPromise = doFetch(Date.now(), registerAbortFn).catch((err) => {
         if (
             err.response &&
             err.response.status >= 400 &&
@@ -211,6 +226,15 @@ export default async function fetchPackage(
 
     // Let other concurrent requests know that we're fetching this
     // url, so they don't try to do it too.
-    inFlightRequests[url] = fetchPromise;
-    return fetchPromise;
+    inFlightRequests[url] = (fetchPromise: any);
+
+    /**
+     * We attach the captured abort so that it can be used to abort
+     * this request.
+     */
+    inFlightRequests[url].abort = abort || (() => {});
+
+    // We know that that this is abortable so we can leave it like this
+    // $FlowFixMe
+    return inFlightRequests[url];
 }
