@@ -216,8 +216,7 @@ export default async function render(
         try {
             context.close();
         } catch (e) {
-            const {message}: Error = e;
-            logging.warn("Error while closing JSDOM context", message);
+            logging.warn(`Error while closing JSDOM context: ${e}`);
         }
         renderProfile.end();
     }
