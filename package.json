@@ -18,7 +18,7 @@
     "postinstall": "npm run build",
     "check:file": "bash -c 'git diff \"${@:1}\" --shortstat -- $0'",
     "error:file-change": "bash -c 'if [ \"$(npm run --silent check:file -- ${@:0})\" != \"\" ]; then echo \"🛑  $0 has changed - commit the changes\" && exit 1 ; else echo \"✅  $0 is up-to-date\" ; fi'",
-    "update:yarn.lock": "if [ \"$(npm run --silent check:file -- package-lock.json --cached)\" != \"\" ] ; then (rm yarn.lock 2> /dev/null || true) && yarn import ; else npm run --silent error:file-change -- yarn.lock ; fi"
+    "update:yarn.lock": "if [ \"$(npm run --silent check:file -- package-lock.json --cached)\" != \"\" ] ; then (rm yarn.lock 2> /dev/null || true) && yarn import ; fi && npm run --silent error:file-change -- yarn.lock"
   },
   "repository": {
     "type": "git",
