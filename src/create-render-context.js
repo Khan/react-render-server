@@ -29,8 +29,17 @@ class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
     _requestStats: ?RequestStats;
 
+    /**
+     * We will return EMPTY in cases where we just don't care about the file
+     * loading. Let's just reuse a promise for that.
+     */
+    static EMPTY = Promise.resolve(Buffer.from(""));
+
     constructor(requestStats?: RequestStats) {
         super();
+
+        (CustomResourceLoader.EMPTY: any).abort =
+            (CustomResourceLoader.EMPTY: any).abort || (() => {});
         this._active = true;
         this._requestStats = requestStats;
     }
@@ -39,7 +48,7 @@ class CustomResourceLoader extends ResourceLoader {
         this._active = false;
     }
 
-    _fetchJavaScript(url: string, options: FetchOptions): Promise<Buffer> {
+    _fetchJavaScript(url: string): Promise<Buffer> {
         const abortableFetch = fetchPackage(url, "JSDOM", this._requestStats);
         const promiseToBuffer = abortableFetch.then(({content}) => {
             if (!this._active) {
@@ -63,12 +72,9 @@ class CustomResourceLoader extends ResourceLoader {
         return promiseToBuffer;
     }
 
-    _fetchNull(options: FetchOptions): ?Promise<Buffer> {
-        return super.fetch("data:null", options);
-    }
-
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
-        const loggableUrl = url.startsWith("data:") ? "inline data" : url;
+        const isInlineData = url.startsWith("data:");
+        const loggableUrl = isInlineData ? "inline data" : url;
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
@@ -82,7 +88,7 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string so things can tidy up properly.
              */
-            return this._fetchNull(options);
+            return CustomResourceLoader.EMPTY;
         }
 
         // If this is not a JavaScript request or the JSDOM context has been
@@ -98,12 +104,18 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string.
              */
-            return this._fetchNull(options);
+            return isInlineData
+                ? super.fetch("data:null", options)
+                : /**
+                   * This isn't ideal. Things expecting images are going to be
+                   * upset.
+                   */
+                  CustomResourceLoader.EMPTY;
         }
 
         // If this is a JavaScript request, then we want to do some things to
         // request it ourselves, before we let JSDOM handle the result.
-        return this._fetchJavaScript(url, options);
+        return this._fetchJavaScript(url);
     }
 }
 
