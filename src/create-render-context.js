@@ -29,12 +29,6 @@ class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
     _requestStats: ?RequestStats;
 
-    /**
-     * We will return EMPTY in cases where we just don't care about the file
-     * loading. Let's just reuse a promise for that.
-     */
-    static EMPTY = Promise.resolve(Buffer.from(""));
-
     constructor(requestStats?: RequestStats) {
         super();
         this._active = true;
@@ -45,7 +39,7 @@ class CustomResourceLoader extends ResourceLoader {
         this._active = false;
     }
 
-    _fetchJavaScript(url: string): Promise<Buffer> {
+    _fetchJavaScript(url: string, options: FetchOptions): Promise<Buffer> {
         const abortableFetch = fetchPackage(url, "JSDOM", this._requestStats);
         const promiseToBuffer = abortableFetch.then(({content}) => {
             if (!this._active) {
@@ -69,6 +63,10 @@ class CustomResourceLoader extends ResourceLoader {
         return promiseToBuffer;
     }
 
+    _fetchNull(options: FetchOptions): ?Promise<Buffer> {
+        return super.fetch("data:null", options);
+    }
+
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
         const loggableUrl = url.startsWith("data:") ? "inline data" : url;
         if (!this._active) {
@@ -84,7 +82,7 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string so things can tidy up properly.
              */
-            return CustomResourceLoader.EMPTY;
+            return this._fetchNull(options);
         }
 
         // If this is not a JavaScript request or the JSDOM context has been
@@ -100,12 +98,12 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string.
              */
-            return CustomResourceLoader.EMPTY;
+            return this._fetchNull(options);
         }
 
         // If this is a JavaScript request, then we want to do some things to
         // request it ourselves, before we let JSDOM handle the result.
-        return this._fetchJavaScript(url);
+        return this._fetchJavaScript(url, options);
     }
 }
 
