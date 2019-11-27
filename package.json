@@ -6,16 +6,19 @@
   "scripts": {
     "clean": "rm -rf dist",
     "start": "node dist/main.js -p 8080 --log-level=debug",
-    "serve_local": "npm run build && nodemon dist/main.js -- --dev --log-level=silly --use-cache",
+    "serve_local": "npm run build && nodemon dist/main.js -- --dev --port=8040",
     "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --require @babel/register --require test_setup.js",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
     "lint": "flow && eslint --config .eslintrc ./*.js src",
     "prettyquick": "pretty-quick",
-    "build:noclean": "babel src --out-dir dist --source-maps --ignore src/testdata",
-    "build": "npm run clean && npm run build:noclean",
-    "postinstall": "npm run build"
+    "build:noclean": "babel src --out-dir dist --source-maps --ignore src/testdata --config-file ./babel.config.js",
+    "build": "npm run clean && update:yarnlock && npm run build:noclean",
+    "postinstall": "npm run build",
+    "check:file": "bash -c 'git diff \"${@:1}\" --shortstat -- $0'",
+    "error:file-change": "bash -c 'if [ \"$(npm run --silent check:file -- ${@:0})\" != \"\" ]; then echo \"🛑  $0 has changed - commit the changes\" && exit 1 ; else echo \"✅  $0 is up-to-date\" ; fi'",
+    "update:yarn.lock": "[ \"$(npm run --silent check:file -- package.lock --cached)\" == '' ] && rm yarn.lock && yarn import && npm run --silent error:file-change -- yarn.lock"
   },
   "repository": {
     "type": "git",
@@ -84,6 +87,7 @@
     "node": ">=8"
   },
   "pre-commit": [
+    "update:yarn.lock",
     "lint",
     "test",
     "prettyquick"
