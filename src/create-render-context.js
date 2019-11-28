@@ -72,9 +72,28 @@ class CustomResourceLoader extends ResourceLoader {
         return promiseToBuffer;
     }
 
-    _isImage(url: string): boolean {
+    _getFakeData(url: string, options: FetchOptions): ?Promise<Buffer> {
         const ImageRegex = /^.*\.(jpe?g|png|gif)(?:\?.*)?/g;
-        return url.startsWith("data:image") || ImageRegex.test(url);
+        const isImage = url.startsWith("data:image") || ImageRegex.test(url);
+        if (isImage) {
+            const imagePromise = super.fetch(
+                /**
+                 * Shortest valid image:
+                 * https://stackoverflow.com/a/13139830/23234
+                 */
+                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                options,
+            );
+            /**
+             * JSDOM has a bug where it calls abort on pending promises when
+             * it gets closed, but it also creates Promises without abort calls.
+             * So, let's make sure it has one.
+             */
+            (imagePromise: any).abort = (imagePromise: any).abort || (() => {});
+            return imagePromise;
+        }
+
+        return CustomResourceLoader.EMPTY;
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
@@ -109,16 +128,7 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string.
              */
-            return this._isImage(url)
-                ? super.fetch(
-                      /**
-                       * Shortest valid image:
-                       * https://stackoverflow.com/a/13139830/23234
-                       */
-                      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-                      options,
-                  )
-                : CustomResourceLoader.EMPTY;
+            return this._getFakeData(url, options);
         }
 
         // If this is a JavaScript request, then we want to do some things to
