@@ -28,6 +28,7 @@ type RenderContextWithSize = {
 class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
     _requestStats: ?RequestStats;
+    _cachedFakeImageResponse: ?Promise<Buffer>;
 
     /**
      * We will return EMPTY in cases where we just don't care about the file
@@ -76,21 +77,28 @@ class CustomResourceLoader extends ResourceLoader {
         const ImageRegex = /^.*\.(jpe?g|png|gif)(?:\?.*)?/g;
         const isImage = url.startsWith("data:image") || ImageRegex.test(url);
         if (isImage) {
-            const imagePromise = super.fetch(
-                /**
-                 * Shortest valid image:
-                 * https://stackoverflow.com/a/13139830/23234
-                 */
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-                options,
-            );
             /**
-             * JSDOM has a bug where it calls abort on pending promises when
-             * it gets closed, but it also creates Promises without abort calls.
-             * So, let's make sure it has one.
+             * If we didn't already get this response, let's do so, otherwise
+             * we just reuse the one we have.
              */
-            (imagePromise: any).abort = (imagePromise: any).abort || (() => {});
-            return imagePromise;
+            if (!this._cachedFakeImageResponse) {
+                this._cachedFakeImageResponse = super.fetch(
+                    /**
+                     * Shortest valid image:
+                     * https://stackoverflow.com/a/13139830/23234
+                     */
+                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                    options,
+                );
+                /**
+                 * JSDOM has a bug where it calls abort on pending promises when
+                 * it gets closed, but it also creates Promises without abort calls.
+                 * So, let's make sure it has one.
+                 */
+                (this._cachedFakeImageResponse: any).abort =
+                    (this._cachedFakeImageResponse: any).abort || (() => {});
+            }
+            return this._cachedFakeImageResponse;
         }
 
         return CustomResourceLoader.EMPTY;
