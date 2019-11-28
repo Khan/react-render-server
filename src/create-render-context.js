@@ -72,6 +72,11 @@ class CustomResourceLoader extends ResourceLoader {
         return promiseToBuffer;
     }
 
+    _isImage(url: string): boolean {
+        const ImageRegex = /^.*\.(jpe?g|png|gif)(?:\?.*)?/g;
+        return url.startsWith("data:image") || ImageRegex.test(url);
+    }
+
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
         const isInlineData = url.startsWith("data:");
         const loggableUrl = isInlineData ? "inline data" : url;
@@ -104,13 +109,16 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string.
              */
-            return isInlineData
-                ? super.fetch("data:null", options)
-                : /**
-                   * This isn't ideal. Things expecting images are going to be
-                   * upset.
-                   */
-                  CustomResourceLoader.EMPTY;
+            return this._isImage(url)
+                ? super.fetch(
+                      /**
+                       * Shortest valid image:
+                       * https://stackoverflow.com/a/13139830/23234
+                       */
+                      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                      options,
+                  )
+                : CustomResourceLoader.EMPTY;
         }
 
         // If this is a JavaScript request, then we want to do some things to
