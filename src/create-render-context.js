@@ -6,7 +6,7 @@
 
 import vm from "vm";
 
-import {JSDOM, ResourceLoader} from "jsdom";
+import {JSDOM, ResourceLoader, VirtualConsole} from "jsdom";
 
 import logging from "./logging.js";
 import profile from "./profile.js";
@@ -73,37 +73,6 @@ class CustomResourceLoader extends ResourceLoader {
         return promiseToBuffer;
     }
 
-    _getFakeData(url: string, options: FetchOptions): ?Promise<Buffer> {
-        const ImageRegex = /^.*\.(jpe?g|png|gif)(?:\?.*)?/g;
-        const isImage = url.startsWith("data:image") || ImageRegex.test(url);
-        if (isImage) {
-            /**
-             * If we didn't already get this response, let's do so, otherwise
-             * we just reuse the one we have.
-             */
-            if (!this._cachedFakeImageResponse) {
-                this._cachedFakeImageResponse = super.fetch(
-                    /**
-                     * Shortest valid image:
-                     * https://stackoverflow.com/a/13139830/23234
-                     */
-                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-                    options,
-                );
-                /**
-                 * JSDOM has a bug where it calls abort on pending promises when
-                 * it gets closed, but it also creates Promises without abort calls.
-                 * So, let's make sure it has one.
-                 */
-                (this._cachedFakeImageResponse: any).abort =
-                    (this._cachedFakeImageResponse: any).abort || (() => {});
-            }
-            return this._cachedFakeImageResponse;
-        }
-
-        return CustomResourceLoader.EMPTY;
-    }
-
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
         const isInlineData = url.startsWith("data:");
         const loggableUrl = isInlineData ? "inline data" : url;
@@ -136,7 +105,7 @@ class CustomResourceLoader extends ResourceLoader {
              * resolutions that are relying on this file. Instead, we resolve
              * as an empty string.
              */
-            return this._getFakeData(url, options);
+            return CustomResourceLoader.EMPTY;
         }
 
         // If this is a JavaScript request, then we want to do some things to
@@ -208,6 +177,16 @@ const patchTimers = (): void => {
     patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
 };
 
+const createVirtualConsole = () => {
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (e: Error) => {
+        // eslint-disable-next-line no-console
+        console.error(`JSDOM: ${e.name} ${e.message}\n${e.stack}`);
+    });
+    virtualConsole.sendTo(console, {omitJSDOMErrors: true});
+    return virtualConsole;
+};
+
 /**
  * Create the VM context in which to render.
  *
@@ -244,6 +223,9 @@ const createRenderContext = function(
             // actually rendering things. While JSDOM does not render, we can
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
+            // We pass in our own console, which we can use to filter out
+            // messages we really really don't care about.
+            virtualConsole: createVirtualConsole(),
         },
     ): any);
 
