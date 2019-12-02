@@ -180,8 +180,13 @@ const patchTimers = (): void => {
 const createVirtualConsole = () => {
     const virtualConsole = new VirtualConsole();
     virtualConsole.on("jsdomError", (e: Error) => {
+        if (e.message.indexOf("Could not load img") >= 0) {
+            // We know that images cannot load. We're deliberately blocking
+            // them.
+            return;
+        }
         // eslint-disable-next-line no-console
-        console.error(`JSDOM: ${e.name} ${e.message}\n${e.stack}`);
+        console.error(`JSDOM: ${e.stack}`);
     });
     virtualConsole.sendTo(console, {omitJSDOMErrors: true});
     return virtualConsole;
