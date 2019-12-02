@@ -6,7 +6,7 @@
 
 import vm from "vm";
 
-import {JSDOM, ResourceLoader} from "jsdom";
+import {JSDOM, ResourceLoader, VirtualConsole} from "jsdom";
 
 import logging from "./logging.js";
 import profile from "./profile.js";
@@ -37,6 +37,9 @@ class CustomResourceLoader extends ResourceLoader {
 
     constructor(requestStats?: RequestStats) {
         super();
+
+        (CustomResourceLoader.EMPTY: any).abort =
+            (CustomResourceLoader.EMPTY: any).abort || (() => {});
         this._active = true;
         this._requestStats = requestStats;
     }
@@ -70,7 +73,8 @@ class CustomResourceLoader extends ResourceLoader {
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
-        const loggableUrl = url.startsWith("data:") ? "inline data" : url;
+        const isInlineData = url.startsWith("data:");
+        const loggableUrl = isInlineData ? "inline data" : url;
         if (!this._active) {
             // Let's head off any fetches that occur after we're inactive.
             // Not sure if we get any, but now we'll know.
@@ -172,6 +176,21 @@ const patchTimers = (): void => {
     patchCallbackFnWithGate(window, "requestAnimationFrame", "__SSR_ACTIVE__");
 };
 
+const createVirtualConsole = () => {
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (e: Error) => {
+        if (e.message.indexOf("Could not load img") >= 0) {
+            // We know that images cannot load. We're deliberately blocking
+            // them.
+            return;
+        }
+        // eslint-disable-next-line no-console
+        console.error(`JSDOM: ${e.stack}`);
+    });
+    virtualConsole.sendTo(console, {omitJSDOMErrors: true});
+    return virtualConsole;
+};
+
 /**
  * Create the VM context in which to render.
  *
@@ -208,6 +227,9 @@ const createRenderContext = function(
             // actually rendering things. While JSDOM does not render, we can
             // have it pretend that it is (it still isn't).
             pretendToBeVisual: true,
+            // We pass in our own console, which we can use to filter out
+            // messages we really really don't care about.
+            virtualConsole: createVirtualConsole(),
         },
     ): any);
 
