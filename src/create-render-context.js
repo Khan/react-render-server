@@ -28,7 +28,6 @@ type RenderContextWithSize = {
 class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
     _requestStats: ?RequestStats;
-    _cachedFakeImageResponse: ?Promise<Buffer>;
 
     /**
      * We will return EMPTY in cases where we just don't care about the file
