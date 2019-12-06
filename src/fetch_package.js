@@ -15,7 +15,6 @@
 import superagent from "superagent";
 import superagentCachePlugin from "superagent-cache-plugin";
 import cacheModule from "cache-service-cache-module";
-import {gutResponse} from "superagent-cache-plugin/utils.js";
 import Agent from "agentkeepalive";
 
 import args from "./arguments.js";
@@ -110,7 +109,7 @@ export default async function fetchPackage(
         return fetcher
             .use(superagentCache)
             .expiration(900)
-            .prune((response) => {
+            .prune((response, gutResponse) => {
                 /**
                  * We want to use our own `prune` method so that we can track
                  * what comes from cache versus what doesn't.

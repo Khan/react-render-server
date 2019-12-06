@@ -6122,10 +6122,10 @@ stubs@^3.0.0:
   resolved "https://registry.yarnpkg.com/stubs/-/stubs-3.0.0.tgz#e8d2ba1fa9c90570303c030b6900f7d5f89abe5b"
   integrity sha1-6NK6H6nJBXAwPAMLaQD31fiavls=
 
-superagent-cache-plugin@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/superagent-cache-plugin/-/superagent-cache-plugin-2.0.1.tgz#dd03f448e40def1dd60fe7d36219e806dc0db36a"
-  integrity sha512-4JETU5cs0sv/UU1qQxvYcx9f1zvzrgUOs2PaRThxJHoKcOfryFHxrGdDU/b8VtQrUsTZ0JTntY2Hy+lVJw6bHA==
+superagent-cache-plugin@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/superagent-cache-plugin/-/superagent-cache-plugin-2.1.0.tgz#5bd58a6ab11b6f33625422c660f8f0ff2e6de643"
+  integrity sha512-279uTBO5MQxR/4Ztdoef3+MQxbXG3ypatMrtLg1nld97Aq5GTEULPEKAvfJFy45hhnrGJR/xXsPhIHwmpnyNrw==
 
 superagent@^3.8.3:
   version "3.8.3"
