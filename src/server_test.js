@@ -268,6 +268,9 @@ describe("API endpoint /render", function() {
                     .reply(404);
                 return;
             }
+            // We attempt retry 3 times on a 404 error
+            mockScope.get(path).reply(404);
+            mockScope.get(path).reply(404);
             mockScope.get(path).reply(404);
         });
 

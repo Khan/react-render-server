@@ -196,18 +196,6 @@ export default async function fetchPackage(
         abort = abortFn;
     };
     const fetchPromise = doFetch(Date.now(), registerAbortFn).catch((err) => {
-        if (
-            err.response &&
-            err.response.status >= 400 &&
-            err.response.status < 500
-        ) {
-            // One could imagine adding a 'negative' cache
-            // entry for 4xx errors, maybe with a maxAge of 1
-            // minute, but unless we see this being a problem
-            // in practice it's not worth the code complexity.
-            throw err;
-        }
-
         // If we get here, we have a 5xx error or similar
         // (socket timeout, maybe).  Let's retry a few times.
         if (triesLeftAfterThisOne > 0) {
