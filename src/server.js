@@ -126,25 +126,62 @@ const checkSecret = function(
     });
 };
 
-const handleFetchError = function(err: any, res: $Response): void {
-    // Error handler for fetching failures.
-    if (err.response && err.response.error) {
-        logging.error(
-            "Fetching failure: " + err.response.error + ": ",
-            err.stack,
-        );
-        res.status(500).json({error: err, stack: err.stack});
-    } else if (err.error) {
-        // set for timeouts, in particular
-        logging.error(err.error);
-        res.status(500).json(err);
-    } else {
-        logging.error("Fetching failure: ", err.stack);
-        res.status(500).json({error: err.toString(), stack: err.stack});
+const extractErrorInfo = function(error: any): string {
+    if (typeof error === "string") {
+        return error;
     }
+
+    if (error.response && error.response.error) {
+        return `${error.response.error}: ${error.stack}`;
+    }
+
+    if (error.error && error !== error.error) {
+        return extractErrorInfo(error.error);
+    }
+
+    if (error.stack) {
+        return error.stack;
+    }
+
+    return `${error}`;
+};
+
+const logAndGetError = function(
+    context: string,
+    err: any,
+    globals: any,
+): mixed {
+    const errorString = extractErrorInfo(err);
+
+    /**
+     * Let's log some info here.
+     *
+     * context:
+     *      Some context on the workflow or stage in which the error
+     *      occurred.
+     *
+     * globals.location:
+     *      What URL was being rendered
+     *
+     * errorString:
+     *      The given error as a string.
+     */
+    logging.error(`${context} (${globals["location"]}): ${errorString}`);
+
+    // Error handler for fetching failures.
+    if (err.error && (!err.response || !err.response.error)) {
+        // set for timeouts, in particular
+        err = err.error;
+    }
+
+    return {
+        error: `${err}`,
+        stack: err.stack,
+    };
 };
 
 const respond400Error = (res, error, value) => {
+    logging.error(error);
     return res.status(400).json({error, value});
 };
 
@@ -193,7 +230,8 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             );
             return await Promise.all(fetchPromises);
         } catch (err) {
-            handleFetchError(err, res);
+            const errorResponse = logAndGetError("FETCH FAIL", err, globals);
+            res.status(500).json(errorResponse);
             return null;
         }
     };
@@ -219,13 +257,10 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
         delete renderedState.requestStats;
         res.json(renderedState);
     } catch (err) {
-        logging.error(
-            "Rendering failure: " + jsUrls[jsUrls.length - 1] + " :",
-            err.stack,
-        );
+        const errorResponse = logAndGetError("RENDER FAIL", err, globals);
         // A rendering error is probably a bad component, so we
         // give a 400.
-        res.status(400).json({error: err.toString(), stack: err.stack});
+        res.status(400).json(errorResponse);
     }
 });
 

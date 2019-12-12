@@ -174,6 +174,9 @@ describe("API endpoint /render", function() {
             ],
             props: testProps,
             secret: "sekret",
+            globals: {
+                location: "http://www.example.com",
+            },
         };
 
         testJson.urls.forEach((url) => {
@@ -251,6 +254,9 @@ describe("API endpoint /render", function() {
             path: "./javascript/server-package/test-component.jsx",
             props: testProps,
             secret: "sekret",
+            globals: {
+                location: "http://www.example.com",
+            },
         };
 
         testJson.urls.forEach((url) => {
@@ -266,8 +272,7 @@ describe("API endpoint /render", function() {
         });
 
         const expected =
-            "Fetching failure: Error: " +
-            "cannot undefined /webpacked/common/1.js (404): ";
+            "FETCH FAIL (http://www.example.com): Error: cannot undefined /webpacked/common/1.js (404)";
 
         // Act
         await agent.post("/render").send(testJson);
@@ -276,7 +281,7 @@ describe("API endpoint /render", function() {
         let foundLogMessage = false;
         errorLoggingSpy.args.forEach((arglist) => {
             arglist.forEach((arg) => {
-                if (arg === expected) {
+                if (arg.indexOf(expected) === 0) {
                     foundLogMessage = true;
                 }
             });
