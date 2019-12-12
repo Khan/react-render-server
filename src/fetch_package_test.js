@@ -36,8 +36,10 @@ describe("fetchPackage", () => {
         mockScope.done();
     });
 
-    it("should fail on 4xx", async () => {
+    it("should retry on 4xx", async () => {
         // Arrange
+        mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
         mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
 
         // Act
@@ -46,6 +48,7 @@ describe("fetchPackage", () => {
         } catch (e) {
             // Assert
             assert.equal(404, e.response.status);
+            mockScope.done();
             return;
         }
         throw new Error("Should have failed on 4xx");
