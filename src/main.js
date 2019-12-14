@@ -3,6 +3,9 @@
  * The main entrypoint for our react-component render server.
  */
 
+// eslint-disable-next-line import/no-unassigned-import
+import "./patch-promise.js";
+
 import express from "express";
 
 import args from "./arguments.js";
