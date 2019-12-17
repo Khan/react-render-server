@@ -93,6 +93,20 @@ describe("fetchPackage", () => {
         throw new Error("Should have failed on 5xx");
     });
 
+    it("should succeed on 4xx followed by 200", async () => {
+        // Arrange
+        mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+
+        // Act
+        const result = await fetchPackage("https://www.ka.org/ok.js", "TEST");
+
+        // Assert
+        assert.equal(result.url, "https://www.ka.org/ok.js");
+        assert.equal(result.content, "global._fetched = 'yay!';");
+        mockScope.done();
+    });
+
     it("should succeed on 5xx followed by 200", async () => {
         // Arrange
         mockScope.get("/ok.js").reply(500, "global._fetched = 'boo';");
@@ -182,6 +196,20 @@ describe("fetchPackage with cache", () => {
         }
 
         throw new Error("Should have failed on 5xx");
+    });
+
+    it("should succeed on 4xx followed by 200", async () => {
+        // Arrange
+        mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
+        mockScope.get("/ok.js").reply(200, "global._fetched = 'yay!';");
+
+        // Act
+        const result = await fetchPackage("https://www.ka.org/ok.js", "TEST");
+
+        // Assert
+        assert.equal(result.url, "https://www.ka.org/ok.js");
+        assert.equal(result.content, "global._fetched = 'yay!';");
+        mockScope.done();
     });
 
     it("should succeed on 5xx followed by 200", async () => {
