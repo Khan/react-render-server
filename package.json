@@ -7,7 +7,7 @@
     "clean": "rm -rf dist",
     "start": "node dist/main.js -p 8080 --log-level=debug",
     "serve_local": "npm run build && nodemon dist/main.js -- --dev --log-level=silly --port=8040",
-    "test": "NODE_ENV=test mocha --exit --reporter spec 'src/*_test.js' --require @babel/register --require test_setup.js",
+    "test": "NODE_ENV=test mocha --exit --reporter spec --require @babel/register --require test_setup.js 'src/*_test.js'",
     "deploy": "./deploy.sh",
     "deploy:docker": "DOCKER=1 ./deploy.sh",
     "set_default": "./set_default.sh",
