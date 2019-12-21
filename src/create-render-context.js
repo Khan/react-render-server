@@ -4,9 +4,6 @@
  * Create a render context object.
  */
 
-// eslint-disable-next-line import/no-unassigned-import
-import "./patch-promise.js";
-
 import vm from "vm";
 
 import {JSDOM, VirtualConsole} from "jsdom";

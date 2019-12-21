@@ -1,7 +1,6 @@
 // @flow
 
-// eslint-disable-next-line import/no-unassigned-import
-import "./patch-promise.js";
+import {applyAbortPatch} from "./patch-promise.js";
 
 import {ResourceLoader} from "jsdom";
 
@@ -10,6 +9,11 @@ import fetchPackage from "./fetch_package.js";
 
 import type {FetchOptions} from "jsdom";
 import type {RequestStats} from "./types.js";
+
+/**
+ * Make sure any promises that get made have an abort.
+ */
+applyAbortPatch();
 
 export class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
