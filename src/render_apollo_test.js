@@ -257,7 +257,7 @@ describe("render apollo", () => {
         // Assert
         await assert.isRejected(
             underTest,
-            "Network error: ApolloNetwork must have a valid url.",
+            "Network error: ApolloNetwork must have a valid url (URL: BAD_URL)",
         );
     });
 
@@ -286,7 +286,7 @@ describe("render apollo", () => {
         // Assert
         await assert.isRejected(
             underTest,
-            "Network error: Server returned an error.",
+            "Network error: Server returned an error (URL: https://www.ka.org/graphql)",
         );
     });
 
@@ -315,7 +315,7 @@ describe("render apollo", () => {
         // Assert
         await assert.isRejected(
             underTest,
-            "Network error: Server returned an error.",
+            "Network error: Server returned an error (URL: https://www.ka.org/graphql)",
         );
     });
 
@@ -376,7 +376,7 @@ describe("render apollo", () => {
         // Assert
         await assert.isRejected(
             underTest,
-            "Network error: Server response exceeded timeout.",
+            "Network error: Server response exceeded timeout (URL: https://www.ka.org/graphql)",
         );
     });
 
@@ -409,7 +409,7 @@ describe("render apollo", () => {
         // Assert
         await assert.isRejected(
             underTest,
-            "Network error: Server response exceeded timeout.",
+            "Network error: Server response exceeded timeout (URL: https://www.ka.org/graphql)",
         );
     });
 });
