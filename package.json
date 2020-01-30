@@ -52,7 +52,7 @@
     "graphql": "14.1.1",
     "graphql-tag": "2.8.0",
     "jsdom": "^15.1.1",
-    "node-fetch": "1.7.3",
+    "node-fetch": "^2.6.0",
     "nodemon": "^1.18.7",
     "superagent": "^5.1.0",
     "superagent-cache-plugin": "^2.1.0",
