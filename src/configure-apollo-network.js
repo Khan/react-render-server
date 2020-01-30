@@ -51,7 +51,9 @@ export default function configureApolloNetwork(
 
     const handleNetworkFetch = async (url: string, params: any) => {
         if (!url || url === BAD_URL) {
-            throw new Error("ApolloNetwork must have a valid url.");
+            throw new Error(
+                `ApolloNetwork must have a valid url (URL: ${url})`,
+            );
         }
 
         const result = await Promise.race([
@@ -60,13 +62,13 @@ export default function configureApolloNetwork(
             // it's still on-going.
             timeout(
                 apolloNetwork.timeout || 1000,
-                "Server response exceeded timeout.",
+                `Server response exceeded timeout (URL: ${url})`,
             ),
         ]);
 
         // Handle server errors
         if (!result || result.status !== 200) {
-            throw new Error("Server returned an error.");
+            throw new Error(`Server returned an error (URL: ${url})`);
         }
 
         return result;
