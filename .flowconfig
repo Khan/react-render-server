@@ -1,6 +1,3 @@
-[version]
-0.114.0
-
 [ignore]
 <PROJECT_ROOT>/coverage
 <PROJECT_ROOT>/dist
