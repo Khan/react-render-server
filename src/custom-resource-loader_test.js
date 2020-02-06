@@ -44,7 +44,7 @@ describe("CustomResourceLoader", () => {
             // Arrange
 
             // Act
-            const underTest = new CustomResourceLoader();
+            const underTest = new CustomResourceLoader(logging);
             const result = underTest.isActive;
 
             // Assert
@@ -55,7 +55,7 @@ describe("CustomResourceLoader", () => {
             // Arrange
 
             // Act
-            const underTest = new CustomResourceLoader();
+            const underTest = new CustomResourceLoader(logging);
 
             // Assert
             assert.instanceOf(underTest, ResourceLoader);
@@ -65,7 +65,7 @@ describe("CustomResourceLoader", () => {
     describe("#close", () => {
         it("should set isActive to false", () => {
             // Arrange
-            const underTest = new CustomResourceLoader();
+            const underTest = new CustomResourceLoader(logging);
 
             // Act
             underTest.close();
@@ -80,7 +80,7 @@ describe("CustomResourceLoader", () => {
         describe("when not a JavaScript file", () => {
             it("should return EMPTY promise", () => {
                 // Arrange
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 const result = underTest.fetch(
@@ -99,7 +99,7 @@ describe("CustomResourceLoader", () => {
                 const fetchPackageSpy = sinon
                     .stub(FetchPackageModule, "default")
                     .returns(new Promise((resolve, reject) => {}));
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 underTest.fetch("http://example.com/test.js", {});
@@ -107,6 +107,7 @@ describe("CustomResourceLoader", () => {
                 // Assert
                 sinon.assert.calledWith(
                     fetchPackageSpy,
+                    logging,
                     "http://example.com/test.js",
                     "JSDOM",
                 );
@@ -124,7 +125,10 @@ describe("CustomResourceLoader", () => {
                     vmContextSize: 0,
                     createdVmContext: true,
                 };
-                const underTest = new CustomResourceLoader(requestStats);
+                const underTest = new CustomResourceLoader(
+                    logging,
+                    requestStats,
+                );
 
                 // Act
                 underTest.fetch("http://example.com/test.js", {});
@@ -132,6 +136,7 @@ describe("CustomResourceLoader", () => {
                 // Assert
                 sinon.assert.calledWith(
                     fetchPackageSpy,
+                    logging,
                     "http://example.com/test.js",
                     "JSDOM",
                     requestStats,
@@ -144,7 +149,7 @@ describe("CustomResourceLoader", () => {
                 sinon
                     .stub(FetchPackageModule, "default")
                     .returns(Promise.resolve({content}));
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 // It will not be null $FlowIgnore
@@ -163,7 +168,7 @@ describe("CustomResourceLoader", () => {
                 const fetchPromise = Promise.resolve({content: "CONTENT"});
                 const abortSpy = sinon.spy(fetchPromise, "abort");
                 sinon.stub(FetchPackageModule, "default").returns(fetchPromise);
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 const result = underTest.fetch(
@@ -186,7 +191,7 @@ describe("CustomResourceLoader", () => {
                         setTimeout(() => resolve({content: ""}), 0);
                     }),
                 );
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 const fetchPromise = underTest.fetch(
@@ -212,7 +217,7 @@ describe("CustomResourceLoader", () => {
                         setTimeout(() => resolve({content: ""}), 0);
                     }),
                 );
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
 
                 // Act
                 const fetchPromise = underTest.fetch(
@@ -235,7 +240,7 @@ describe("CustomResourceLoader", () => {
             it("should log warning", () => {
                 // Arrange
                 const warnSpy = sinon.spy(logging, "warn");
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
                 underTest.close();
 
                 // Act
@@ -250,7 +255,7 @@ describe("CustomResourceLoader", () => {
 
             it("should return EMPTY", () => {
                 // Arrange
-                const underTest = new CustomResourceLoader();
+                const underTest = new CustomResourceLoader(logging);
                 underTest.close();
 
                 // Act
