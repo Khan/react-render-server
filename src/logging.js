@@ -128,9 +128,7 @@ export function makeErrorMiddleware(logger: Logger): Middleware {
     });
 }
 
-export async function makeRequestMiddleware(
-    logger: Logger,
-): Promise<Middleware> {
+export function makeRequestMiddleware(logger: Logger): Promise<Middleware> {
     // This is the logger that captures requests handled by our express server.
     return args.dev
         ? /**
@@ -157,7 +155,7 @@ export async function makeRequestMiddleware(
         : /**
            * Otherwise, we're using the Google middleware
            */
-          await lw.express.makeMiddleware(logger);
+          lw.express.makeMiddleware(logger);
 }
 
 export const rootLogger: Logger = initLogging(args.logLevel, args.dev);
