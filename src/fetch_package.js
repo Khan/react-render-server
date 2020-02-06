@@ -67,6 +67,14 @@ export function flushCache() {
     }
 }
 
+function isCacheable(url: string): boolean {
+    /**
+     * For now, let's just cache JS and JSX files.
+     */
+    const JSFileRegex = /^.*\.js(?:\?.*)?/g;
+    return JSFileRegex.test(url);
+}
+
 /**
  * Given a full url, e.g. http://kastatic.org/javascript/foo-package.js,
  * return a promise holding the package contents.  If requestStats is
@@ -96,7 +104,11 @@ export default async function fetchPackage(
             .get(url)
             .timeout(60000);
 
-        if (!args.useCache) {
+        /**
+         * We only want to go via the cache if it's something we want to cache.
+         */
+        const useCache = args.useCache && isCacheable(url);
+        if (!useCache) {
             return fetcher;
         }
 
