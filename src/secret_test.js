@@ -6,8 +6,13 @@ import {assert} from "chai";
 import sinon from "sinon";
 import args from "./arguments.js";
 import * as renderSecret from "./secret.js";
+import {rootLogger} from "./logging.js";
 
-const matches: (string) => Promise<boolean> = promisify(renderSecret.matches);
+import type {Logger} from "./types.js";
+
+const matches: (Logger, string) => Promise<boolean> = promisify(
+    renderSecret.matches,
+);
 
 describe("secret", () => {
     afterEach(() => {
@@ -28,7 +33,7 @@ describe("secret", () => {
         sinon.stub(args, "dev").get(() => false);
 
         // Act
-        const promise = matches("sekret");
+        const promise = matches(rootLogger, "sekret");
 
         // Assert
         await assert.isRejected(promise, "File not found");
@@ -48,7 +53,7 @@ describe("secret", () => {
         sinon.stub(args, "dev").get(() => false);
 
         // Act
-        const promise = matches("sekret");
+        const promise = matches(rootLogger, "sekret");
 
         // Assert
         await assert.isRejected(promise, "secret file is empty!");
@@ -68,7 +73,7 @@ describe("secret", () => {
         sinon.stub(args, "dev").get(() => false);
 
         // Act
-        const valueMatches = await matches("sekret");
+        const valueMatches = await matches(rootLogger, "sekret");
 
         // Assert
         assert.isTrue(valueMatches, "Should match secret value ");
@@ -92,7 +97,7 @@ describe("secret", () => {
             );
 
         // Act
-        const valueMatches = await matches("sekret");
+        const valueMatches = await matches(rootLogger, "sekret");
 
         // Assert
         assert.isTrue(valueMatches, "Should match secret value ");

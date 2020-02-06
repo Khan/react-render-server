@@ -24,6 +24,7 @@ import type {
     JavaScriptPackage,
     RequestStats,
     AbortablePromise,
+    Logger,
 } from "./types.js";
 import type {SuperAgentRequest} from "superagent";
 
@@ -84,6 +85,7 @@ function isCacheable(url: string): boolean {
  * containing the content and the url from which it came.
  */
 export default async function fetchPackage(
+    logging: Logger,
     url: string,
     requester: "JSDOM" | "SERVER" | "TEST",
     requestStats?: ?RequestStats,
@@ -146,6 +148,7 @@ export default async function fetchPackage(
             ? ` RETRY#: ${DEFAULT_NUM_RETRIES - triesLeftAfterThisOne}`
             : "";
         const fetchProfile = profile.start(
+            logging,
             `FETCH(${requester}): ${url}${retryText}`,
         );
 
@@ -212,6 +215,7 @@ export default async function fetchPackage(
         // (socket timeout, maybe).  Let's retry a few times.
         if (triesLeftAfterThisOne > 0) {
             return fetchPackage(
+                logging,
                 url,
                 requester,
                 requestStats,
