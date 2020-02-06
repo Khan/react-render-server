@@ -11,7 +11,7 @@ import * as lw from "@google-cloud/logging-winston";
 
 import args from "./arguments.js";
 
-import type {Middleware, NextFunction, $Request, $Response} from "express";
+import type {Middleware} from "express";
 import type {Transport, NpmLogLevels, Format} from "winston";
 import type {Info, Logger, LogLevel} from "./types.js";
 
@@ -133,12 +133,31 @@ export async function makeRequestMiddleware(
 ): Promise<Middleware> {
     // This is the logger that captures requests handled by our express server.
     return args.dev
-        ? (req: $Request, res: $Response, next: NextFunction) => {
-              // $FlowIgnore: We make this up for google
-              req.log = logger;
-              next();
-          }
-        : await lw.express.makeMiddleware(logger);
+        ? /**
+           * If we're in dev, we're going to use the expressWinston logger
+           */
+          Promise.resolve(
+              expressWinston.logger({
+                  /**
+                   * Specify the level that this logger logs at.
+                   * (use a function to dynamically change level based on req and res)
+                   *     `function(req, res) { return String; }`
+                   */
+                  level: "info",
+
+                  /**
+                   * Use the logger we already set up.
+                   */
+                  winstonInstance: logger,
+                  expressFormat: true,
+                  colorize: true,
+                  meta: false,
+              }),
+          )
+        : /**
+           * Otherwise, we're using the Google middleware
+           */
+          await lw.express.makeMiddleware(logger);
 }
 
 export const rootLogger: Logger = initLogging(args.logLevel, args.dev);
