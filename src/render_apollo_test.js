@@ -2,6 +2,7 @@
 import fs from "fs";
 import {assert} from "chai";
 import render from "./render.js";
+import {rootLogger as logging} from "./logging.js";
 import nock from "nock";
 
 describe("render apollo", () => {
@@ -85,6 +86,7 @@ describe("render apollo", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {},
             {
@@ -111,6 +113,7 @@ describe("render apollo", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {name: "Test Class 1"},
             {
@@ -149,6 +152,7 @@ describe("render apollo", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {},
             {
@@ -177,6 +181,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -218,6 +223,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -246,6 +252,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -273,6 +280,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -302,6 +310,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -334,6 +343,7 @@ describe("render apollo", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {},
             {
@@ -363,6 +373,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
@@ -395,6 +406,7 @@ describe("render apollo", () => {
 
         // Act
         const underTest = render(
+            logging,
             packages,
             {},
             {
