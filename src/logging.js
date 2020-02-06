@@ -34,7 +34,7 @@ function getFormatters() {
     return winston.format.combine(...formatters);
 }
 
-function getTransports(isDev: boolean): Array<Transport> {
+function getTransport(isDev: boolean): Transport {
     if (process.env.NODE_ENV === "test") {
         // During testing, we just dump logging to a stream.
         // This isn't used for anything at all right now, but we could use
@@ -42,29 +42,31 @@ function getTransports(isDev: boolean): Array<Transport> {
         const sink = new stream.Writable({write: () => {}});
         // This is a hack to make our writable stream work $FlowFixMe
         sink._write = sink.write;
-        return [
-            new winston.transports.Stream({
-                format: getFormatters(),
-                stream: sink,
-            }),
-        ];
+        return new winston.transports.Stream({
+            format: getFormatters(),
+            stream: sink,
+        });
     }
 
     /**
      * If we're in dev mode, just use a console transport.
      */
     if (isDev) {
-        return [
-            new winston.transports.Console({
-                format: getFormatters(),
-            }),
-        ];
+        return new winston.transports.Console({
+            format: getFormatters(),
+        });
     }
 
     /**
-     * We must be in production, so use the Stackdriver logging setup.
+     * We must be in production, so we will use the Stackdriver logging setup.
+     * However, we don't need to use our own here as the middleware will do that
+     * for us.
+     *
+     * I repeat, the middleware below will add the logging transport. If we stop
+     * using that middleware, we'll need to add the transport back. We don't
+     * want it to be there twice as that would duplicate log messages.
      */
-    return [new lw.LoggingWinston()];
+    return null;
 }
 
 function initLogging(logLevel: LogLevel, isDev: boolean): Logger {
@@ -72,7 +74,7 @@ function initLogging(logLevel: LogLevel, isDev: boolean): Logger {
     // Whereever one might use console, use this instead.
     const winstonLogger = winston.createLogger<NpmLogLevels>({
         level: logLevel,
-        transports: getTransports(isDev),
+        transports: getTransport(isDev),
     });
 
     winstonLogger.debug(
@@ -147,7 +149,9 @@ export function makeRequestMiddleware(logger: Logger): Promise<Middleware> {
               }),
           )
         : /**
-           * Otherwise, we're using the Google middleware
+           * Otherwise, we're using the Google middleware.
+           * This does some nice things including adding the appropriate
+           * logging transport for us.
            */
           lw.express.makeMiddleware(logger);
 }

@@ -94,7 +94,10 @@ app.use(
         const logging = getLogger(req);
 
         pendingRenderRequests++;
-        const renderProfile = profile.start(logging, "/render");
+        const renderProfile = profile.start(
+            logging,
+            `/render (active requests: ${pendingRenderRequests})`,
+        );
 
         // Register for the response finish so we can finish up our stats.
         res.on("finish", () => {
