@@ -71,7 +71,7 @@ describe("API endpoint /render", function() {
         mockScope = nock("https://www.khanacademy.org");
         sinon
             .stub(renderSecret, "matches")
-            .callsFake((secret, callback) =>
+            .callsFake((logging, secret, callback) =>
                 callback(null, secret === "sekret"),
             );
         errorLoggingSpy = sinon.spy(logging, "error");
