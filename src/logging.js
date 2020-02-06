@@ -46,9 +46,6 @@ function getFormatters(isDev: boolean) {
 
 function getTransports(isDev: boolean): Array<Transport> {
     const transports = [];
-    if (!isDev) {
-        transports.push(new lw.LoggingWinston());
-    }
 
     if (process.env.NODE_ENV === "test") {
         // During testing, we just dump logging to a stream.
@@ -64,12 +61,17 @@ function getTransports(isDev: boolean): Array<Transport> {
             }),
         );
     } else {
-        transports.push(
-            new winston.transports.Console({
-                format: getFormatters(isDev),
-            }),
-        );
+        if (isDev) {
+            transports.push(
+                new winston.transports.Console({
+                    format: getFormatters(isDev),
+                }),
+            );
+        } else {
+            transports.push(new lw.LoggingWinston());
+        }
     }
+
     return transports;
 }
 
