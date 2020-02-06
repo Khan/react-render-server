@@ -6,7 +6,7 @@ import sinon from "sinon";
 import supertest from "supertest";
 import * as renderSecret from "./secret.js";
 import server from "./server.js";
-import logging from "./logging.js";
+import {rootLogger as logging} from "./logging.js";
 
 describe("API endpoint /_api/ping", () => {
     const agent = supertest.agent(server);

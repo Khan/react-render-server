@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 
 import args from "./arguments.js";
-import logging from "./logging.js";
+import {getScopedLogger} from "./logging.js";
 
 const secretPath: string = path.normalize(__dirname + "/../secret");
 let secret: string;
@@ -24,6 +24,8 @@ export const get = function(done: (?Error, ?string) => void): void {
         done(null, secret);
         return;
     }
+
+    const logging = getScopedLogger();
 
     fs.readFile(secretPath, "utf-8", (err: ?Error, contents: string): void => {
         if (err) {

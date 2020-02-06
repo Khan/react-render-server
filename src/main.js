@@ -6,7 +6,8 @@
 import express from "express";
 
 import args from "./arguments.js";
-import logging, {
+import {
+    rootLogger as logging,
     extractErrorInfo,
     makeErrorMiddleware,
     makeRequestMiddleware,

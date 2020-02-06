@@ -4,7 +4,7 @@ import {applyAbortPatch} from "./patch-promise.js";
 
 import {ResourceLoader} from "jsdom";
 
-import logging from "./logging.js";
+import {getScopedLogger} from "./logging.js";
 import fetchPackage from "./fetch_package.js";
 
 import type {FetchOptions} from "jsdom";
@@ -41,6 +41,7 @@ export class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
+        const logging = getScopedLogger();
         const abortableFetch = fetchPackage(url, "JSDOM", this._requestStats);
         const promiseToBuffer = abortableFetch.then(({content}) => {
             if (!this._active) {
@@ -66,6 +67,7 @@ export class CustomResourceLoader extends ResourceLoader {
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
+        const logging = getScopedLogger();
         const isInlineData = url.startsWith("data:");
         const loggableUrl = isInlineData ? "inline data" : url;
         if (!this._active) {

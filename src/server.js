@@ -6,7 +6,12 @@
 import bodyParser from "body-parser";
 import express from "express";
 
-import logging, {extractErrorInfo} from "./logging.js";
+import {
+    extractErrorInfo,
+    useScopedLogger,
+    revertScopedLogger,
+    getScopedLogger,
+} from "./logging.js";
 import profile from "./profile.js";
 
 import fetchPackage, {flushCache} from "./fetch_package.js";
@@ -91,20 +96,37 @@ app.use(
             createdVmContext: false,
         }: RequestStats);
 
+        /**
+         * Before we do any real work, we may have added the log middleware
+         * and we'll want everything to use it. Rather than pass that around
+         * or pass the request around, we can use our logging module and
+         * tell it to scope logging to the request logger during the request.
+         * NOTE: the $Request type doesn't have a log field, officially.
+         * $FlowIgnore
+         */
+        const requestLog: Logger = req.log;
+        if (requestLog != null) {
+            useScopedLogger(requestLog);
+        }
+
         pendingRenderRequests++;
         const renderProfile = profile.start("/render");
 
         // Register for the response finish so we can finish up our stats.
         res.on("finish", () => {
-            pendingRenderRequests--;
-            if (res.statusCode < 300) {
-                // only log on successful fetches
-                const renderBody: RenderBody = (req.body: any);
-                renderProfile.end(
-                    `render-stats for ${
-                        renderBody.urls[renderBody.urls.length - 1]
-                    }: ${JSON.stringify(res.locals.requestStats) || ""}`,
-                );
+            try {
+                pendingRenderRequests--;
+                if (res.statusCode < 300) {
+                    // only log on successful fetches
+                    const renderBody: RenderBody = (req.body: any);
+                    renderProfile.end(
+                        `render-stats for ${
+                            renderBody.urls[renderBody.urls.length - 1]
+                        }: ${JSON.stringify(res.locals.requestStats) || ""}`,
+                    );
+                }
+            } finally {
+                revertScopedLogger();
             }
         });
         next();
@@ -146,7 +168,9 @@ const logAndGetError = function(
      * errorString:
      *      The given error as a string.
      */
-    logging.error(`${context} (${globals["location"]}): ${errorString}`);
+    getScopedLogger().error(
+        `${context} (${globals["location"]}): ${errorString}`,
+    );
 
     // Error handler for fetching failures.
     if (err.error && (!err.response || !err.response.error)) {
@@ -161,7 +185,7 @@ const logAndGetError = function(
 };
 
 const respond400Error = (res, error, value) => {
-    logging.error(error);
+    getScopedLogger().error(error);
     return res.status(400).json({error, value});
 };
 
