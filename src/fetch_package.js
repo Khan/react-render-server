@@ -69,7 +69,7 @@ export function flushCache() {
 
 function isCacheable(url: string): boolean {
     /**
-     * For now, let's just cache JS and JSX files.
+     * For now, let's just cache JS files.
      */
     const JSFileRegex = /^.*\.js(?:\?.*)?/g;
     return JSFileRegex.test(url);
