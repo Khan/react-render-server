@@ -4,11 +4,10 @@ import {applyAbortPatch} from "./patch-promise.js";
 
 import {ResourceLoader} from "jsdom";
 
-import {getScopedLogger} from "./logging.js";
 import fetchPackage from "./fetch_package.js";
 
 import type {FetchOptions} from "jsdom";
-import type {RequestStats} from "./types.js";
+import type {RequestStats, Logger} from "./types.js";
 
 /**
  * Make sure any promises that get made have an abort.
@@ -18,6 +17,7 @@ applyAbortPatch();
 export class CustomResourceLoader extends ResourceLoader {
     _active: boolean;
     _requestStats: ?RequestStats;
+    _logging: Logger;
 
     /**
      * We will return EMPTY in cases where we just don't care about the file
@@ -25,11 +25,12 @@ export class CustomResourceLoader extends ResourceLoader {
      */
     static EMPTY = Promise.resolve(Buffer.from(""));
 
-    constructor(requestStats?: RequestStats) {
+    constructor(logging: Logger, requestStats?: RequestStats) {
         super();
 
         this._active = true;
         this._requestStats = requestStats;
+        this._logging = logging;
     }
 
     get isActive(): boolean {
@@ -41,8 +42,13 @@ export class CustomResourceLoader extends ResourceLoader {
     }
 
     _fetchJavaScript(url: string): Promise<Buffer> {
-        const logging = getScopedLogger();
-        const abortableFetch = fetchPackage(url, "JSDOM", this._requestStats);
+        const logging = this._logging;
+        const abortableFetch = fetchPackage(
+            logging,
+            url,
+            "JSDOM",
+            this._requestStats,
+        );
         const promiseToBuffer = abortableFetch.then(({content}) => {
             if (!this._active) {
                 logging.silly(`File requested but never used (${url})`);
@@ -67,7 +73,7 @@ export class CustomResourceLoader extends ResourceLoader {
     }
 
     fetch(url: string, options: FetchOptions): ?Promise<Buffer> {
-        const logging = getScopedLogger();
+        const logging = this._logging;
         const isInlineData = url.startsWith("data:");
         const loggableUrl = isInlineData ? "inline data" : url;
         if (!this._active) {

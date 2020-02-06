@@ -16,6 +16,7 @@ import type {
     JavaScriptPackage,
     RenderContext,
     RequestStats,
+    Logger,
 } from "./types.js";
 
 type RenderContextWithSize = {
@@ -110,12 +111,13 @@ const createVirtualConsole = () => {
  * @returns {{context: JSDOM, cumulativePackageSize: number}}
  */
 const createRenderContext = function(
+    logging: Logger,
     locationUrl: string,
     globals: Globals,
     jsPackages: Array<JavaScriptPackage>,
     requestStats?: RequestStats,
 ): RenderContextWithSize {
-    const resourceLoader = new CustomResourceLoader(requestStats);
+    const resourceLoader = new CustomResourceLoader(logging, requestStats);
 
     // A minimal document, for parts of our code that assume there's a DOM.
     const context: RenderContext = (new JSDOM(
@@ -240,16 +242,19 @@ const createRenderContext = function(
  * @returns {JSDOM}
  */
 export default function createRenderContextWithStats(
+    logging: Logger,
     locationUrl: string,
     globals: Globals,
     jsPackages: Array<any>,
     requestStats?: RequestStats,
 ): RenderContext {
     const vmConstructionProfile = profile.start(
+        logging,
         `building VM ${(globals && `for ${globals["location"]}`) || ""}`,
     );
 
     const {context, cumulativePackageSize} = createRenderContext(
+        logging,
         locationUrl,
         globals,
         jsPackages,
