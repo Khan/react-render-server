@@ -4,6 +4,7 @@ import jsdom from "jsdom";
 import {assert} from "chai";
 import sinon from "sinon";
 import render from "./render.js";
+import {rootLogger as logging} from "./logging.js";
 
 describe("render", () => {
     const loadPackages = (packageNames) =>
@@ -36,7 +37,7 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props, {
+        const result = await render(logging, packages, props, {
             location: "https://example.com",
         });
 
@@ -65,7 +66,7 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props, {
+        const result = await render(logging, packages, props, {
             location: "https://example.com",
         });
 
@@ -94,7 +95,7 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, props, {
+        const result = await render(logging, packages, props, {
             location: "https://example.com",
         });
 
@@ -106,6 +107,7 @@ describe("render", () => {
         // Arrange
         const packages = loadPackages(["basic/entry.js"]);
         const expectation = await render(
+            logging,
             packages,
             {name: "A NAME"},
             {
@@ -115,6 +117,7 @@ describe("render", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {name: "A NAME"},
             {
@@ -130,6 +133,7 @@ describe("render", () => {
         // Arrange
         const packages = loadPackages(["basic/entry.js"]);
         const expectation = await render(
+            logging,
             packages,
             {name: "A NAME"},
             {
@@ -139,6 +143,7 @@ describe("render", () => {
 
         // Act
         const result = await render(
+            logging,
             packages,
             {name: "A DIFFERENT NAME"},
             {
@@ -163,6 +168,7 @@ describe("render", () => {
         // All we're testing for here is that this renders without crashing.
         const underTest = async () =>
             await render(
+                logging,
                 packages,
                 {name: "A NAME"},
                 {
@@ -191,7 +197,7 @@ describe("render", () => {
         };
 
         // Act
-        const result = await render(packages, {}, globals);
+        const result = await render(logging, packages, {}, globals);
 
         // Assert
         assert.deepEqual(result, expectation);

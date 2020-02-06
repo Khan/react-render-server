@@ -11,7 +11,7 @@ import * as lw from "@google-cloud/logging-winston";
 
 import args from "./arguments.js";
 
-import type {Middleware} from "express";
+import type {Middleware, $Request} from "express";
 import type {Transport, NpmLogLevels, Format} from "winston";
 import type {Info, Logger, LogLevel} from "./types.js";
 
@@ -162,13 +162,10 @@ export async function makeRequestMiddleware(
 
 export const rootLogger: Logger = initLogging(args.logLevel, args.dev);
 
-let scopedLogger: ?Logger = null;
-export const getScopedLogger = (): Logger => {
-    return scopedLogger != null ? scopedLogger : rootLogger;
-};
-export const useScopedLogger = (logger: Logger) => {
-    scopedLogger = logger;
-};
-export const revertScopedLogger = () => {
-    scopedLogger = null;
+export const getLogger = (req: $Request): Logger => {
+    /**
+     * NOTE: the $Request type doesn't have a log field, officially.
+     * $FlowIgnore
+     */
+    return req.log == null ? rootLogger : req.log;
 };
