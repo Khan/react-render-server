@@ -18,6 +18,7 @@
  *
  *     PROFILE(end): doing foo (40ms)
  */
+import {tracer} from "./trace-agent.js";
 import {getScopedLogger} from "./logging.js";
 
 import type {LogLevel} from "./types.js";
@@ -41,9 +42,11 @@ const start = (msg: string): ProfileSession => {
     // summary. However the start markers may be useful if we have to dig in.
     logging.silly(`PROFILE(start): ${msg}`);
 
+    const span = tracer.createChildSpan({name: msg});
     const profiler = logging.startTimer();
     return {
         end: (endMsg?: string, level?: LogLevel = "debug") => {
+            span.endSpan();
             const message = endMsg || msg;
             profiler.done({
                 message: `PROFILE(end): ${message}`,
