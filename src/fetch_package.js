@@ -101,12 +101,12 @@ export default async function fetchPackage(
         // We give the fetcher 60 seconds to get a response.
         const fetcher = superagent
             .agent(keepaliveAgent)
+            .get(url)
             .set(
                 "User-Agent",
                 `${process.env.GAE_SERVICE || "react-render-server"} ${process
                     .env.GAE_VERSION || "UNKNOWN"}`,
             )
-            .get(url)
             .timeout(60000);
 
         /**
