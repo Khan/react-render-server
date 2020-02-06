@@ -47,6 +47,14 @@ function getFormatters(isDev: boolean) {
 function getTransports(isDev: boolean): Array<Transport> {
     const transports = [];
 
+    /**
+     * If we're not in dev, we also want to make sure we're using the
+     * stackdriver logging transport.
+     */
+    if (!isDev) {
+        transports.push(new lw.LoggingWinston());
+    }
+
     if (process.env.NODE_ENV === "test") {
         // During testing, we just dump logging to a stream.
         // This isn't used for anything at all right now, but we could use
@@ -61,17 +69,18 @@ function getTransports(isDev: boolean): Array<Transport> {
             }),
         );
     } else {
-        if (isDev) {
-            transports.push(
-                new winston.transports.Console({
-                    format: getFormatters(isDev),
-                }),
-            );
-        } else {
-            transports.push(new lw.LoggingWinston());
-        }
+        /**
+         * We need this transport, even when we have the logging-winston
+         * transport for Strackdriver. Without it, things we're logging
+         * only go to the winston_log and don't make it into the
+         * appengine.googleapis.com/request_log
+         */
+        transports.push(
+            new winston.transports.Console({
+                format: getFormatters(isDev),
+            }),
+        );
     }
-
     return transports;
 }
 
