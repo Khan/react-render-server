@@ -3,9 +3,14 @@
  * The main entrypoint for our react-component render server.
  */
 
-import express from "express";
+/**
+ * Import the trace-agent setup first so that it can patch everything else.
+ */
+// eslint-disable-next-line import/no-unassigned-import
+import "./trace-agent.js";
 
 import args from "./arguments.js";
+import express from "express";
 import {
     rootLogger as logging,
     extractErrorInfo,
@@ -24,10 +29,6 @@ async function main() {
      * In production mode, we want to hook up to various StackDriver services.
      */
     if (!args.dev) {
-        // Start logging agent for Cloud Trace (https://cloud.google.com/trace/).
-        const traceAgent = require("@google-cloud/trace-agent");
-        traceAgent.start({logLevel: 2}); // log at WARN and ERROR
-
         const debugAgent = require("@google-cloud/debug-agent");
         debugAgent.start({logLevel: 2});
 
