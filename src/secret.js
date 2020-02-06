@@ -13,19 +13,21 @@ import fs from "fs";
 import path from "path";
 
 import args from "./arguments.js";
-import {getScopedLogger} from "./logging.js";
+
+import type {Logger} from "./types.js";
 
 const secretPath: string = path.normalize(__dirname + "/../secret");
 let secret: string;
 
 // Exported for use by the benchmark/loadtest tool.
-export const get = function(done: (?Error, ?string) => void): void {
+export const get = function(
+    logging: Logger,
+    done: (?Error, ?string) => void,
+): void {
     if (secret) {
         done(null, secret);
         return;
     }
-
-    const logging = getScopedLogger();
 
     fs.readFile(secretPath, "utf-8", (err: ?Error, contents: string): void => {
         if (err) {
@@ -51,6 +53,7 @@ export const get = function(done: (?Error, ?string) => void): void {
 };
 
 export const matches = function(
+    logging: Logger,
     actualSecret: string,
     done: (?Error, ?boolean) => void,
 ): void {
@@ -60,7 +63,7 @@ export const matches = function(
         return;
     }
 
-    return get((err: ?Error, secret: ?string): void => {
+    return get(logging, (err: ?Error, secret: ?string): void => {
         if (err) {
             done(err);
             return;
