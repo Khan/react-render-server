@@ -103,7 +103,8 @@ export default async function fetchPackage(
             .agent(keepaliveAgent)
             .set(
                 "user-agent",
-                `react-render-server ${process.env.GAE_VERSION || "UNKNOWN"}`,
+                `${process.env.GAE_SERVICE || "react-render-server"} ${process
+                    .env.GAE_VERSION || "UNKNOWN"}`,
             )
             .get(url)
             .timeout(60000);
