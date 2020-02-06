@@ -60,7 +60,7 @@ async function main() {
     const appWithLogging = express()
         .use(await makeRequestMiddleware(logging))
         .use(app)
-        .use(await makeErrorMiddleware(logging));
+        .use(makeErrorMiddleware(logging));
 
     /**
      * Start the server listening.

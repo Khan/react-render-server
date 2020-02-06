@@ -110,24 +110,22 @@ export function extractErrorInfo(error: any): string {
     return `${error}`;
 }
 
-export function makeErrorMiddleware(logger: Logger): Promise<Middleware> {
+export function makeErrorMiddleware(logger: Logger): Middleware {
     // This is the logger that captures errors in our express server.
-    return Promise.resolve(
-        expressWinston.errorLogger({
-            /**
-             * Specify the level that this logger logs at.
-             * (use a function to dynamically change level based on req, res and
-             * err)
-             *     `function(req, res, err) { return String; }`
-             */
-            level: "error",
+    return expressWinston.errorLogger({
+        /**
+         * Specify the level that this logger logs at.
+         * (use a function to dynamically change level based on req, res and
+         * err)
+         *     `function(req, res, err) { return String; }`
+         */
+        level: "error",
 
-            /**
-             * Use the logger we already set up.
-             */
-            winstonInstance: logger,
-        }),
-    );
+        /**
+         * Use the logger we already set up.
+         */
+        winstonInstance: logger,
+    });
 }
 
 export async function makeRequestMiddleware(
