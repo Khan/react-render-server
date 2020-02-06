@@ -6,7 +6,7 @@
  * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
-import logging from "./logging.js";
+import {getScopedLogger} from "./logging.js";
 import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
 import configureApolloNetwork from "./configure-apollo-network.js";
@@ -165,6 +165,7 @@ export default async function render(
     globals: Globals,
     requestStats?: RequestStats,
 ) {
+    const logging = getScopedLogger();
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = createRenderContext(

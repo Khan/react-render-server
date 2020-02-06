@@ -2,7 +2,7 @@
 import * as sinon from "sinon";
 import {assert} from "chai";
 import {ResourceLoader} from "jsdom";
-import logging from "./logging.js";
+import {rootLogger as logging} from "./logging.js";
 import * as FetchPackageModule from "./fetch_package.js";
 import {CustomResourceLoader} from "./custom-resource-loader.js";
 

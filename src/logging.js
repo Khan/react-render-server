@@ -141,6 +141,15 @@ export async function makeRequestMiddleware(
         : await lw.express.makeMiddleware(logger);
 }
 
-const logger: Logger = initLogging(args.logLevel, args.dev);
+export const rootLogger: Logger = initLogging(args.logLevel, args.dev);
 
-export default logger;
+let scopedLogger: ?Logger = null;
+export const getScopedLogger = (): Logger => {
+    return scopedLogger != null ? scopedLogger : rootLogger;
+};
+export const useScopedLogger = (logger: Logger) => {
+    scopedLogger = logger;
+};
+export const revertScopedLogger = () => {
+    scopedLogger = null;
+};
