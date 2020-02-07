@@ -2,4 +2,4 @@ service: react-render
 runtime: nodejs10
 default_expiration: "30m"   # per ADR-52
 
-instance_class: F4
+instance_class: F4_HIGHMEM
