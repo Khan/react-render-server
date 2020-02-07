@@ -6,7 +6,7 @@
 import bodyParser from "body-parser";
 import express from "express";
 
-import logging from "./logging.js";
+import logging, {extractErrorInfo} from "./logging.js";
 import profile from "./profile.js";
 
 import fetchPackage, {flushCache} from "./fetch_package.js";
@@ -124,26 +124,6 @@ const checkSecret = function(
         }
         next();
     });
-};
-
-const extractErrorInfo = function(error: any): string {
-    if (typeof error === "string") {
-        return error;
-    }
-
-    if (error.response && error.response.error) {
-        return `${error.response.error}: ${error.stack}`;
-    }
-
-    if (error.error && error !== error.error) {
-        return extractErrorInfo(error.error);
-    }
-
-    if (error.stack) {
-        return error.stack;
-    }
-
-    return `${error}`;
 };
 
 const logAndGetError = function(
@@ -281,6 +261,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
  *
  * We respond with the instance that was flushed.
  * TODO(WEB-1410): how do we flush *all* the instances??
+ *                 Datastore! See graphql-gateway
  */
 app.post("/flush", checkSecret, (req: $Request, res: $Response) => {
     flushCache();

@@ -30,18 +30,18 @@ declare type $winstonFileTransportConfig<T: $winstonLevels> = {
   ...
 };
 
-declare class $winstonTransport {
+declare interface $winstonTransport {
   level?: string;
   silent?: boolean;
 }
 
-declare class $winstonFileTransport<T> extends $winstonTransport {
+declare class $winstonFileTransport<T> implements $winstonTransport {
   constructor($winstonFileTransportConfig<T>): $winstonFileTransport<T>;
 }
 
 declare type $winstonConsoleTransportConfig<T: $winstonLevels> = { level?: $Keys<T>, ... };
 
-declare class $winstonConsoleTransport<T> extends $winstonTransport {
+declare class $winstonConsoleTransport<T> implements $winstonTransport {
   constructor(
     config?: $winstonConsoleTransportConfig<T>
   ): $winstonConsoleTransport<T>;
@@ -55,7 +55,7 @@ declare type $winstonStreamTransportConfig<T: $winstonLevels> = {
   ...,
 };
 
-declare class $winstonStreamTransport<T> extends $winstonTransport {
+declare class $winstonStreamTransport<T> implements $winstonTransport {
   constructor(config?: $winstonStreamTransportConfig<T>): $winstonStreamTransport<T>;
 }
 // End: https://github.com/Khan/react-render-server/pull/20
@@ -153,7 +153,7 @@ declare module "winston" {
   declare export type Info<T: Levels > = $winstonInfo<T>;
   declare export type Format = $winstonFormat;
   declare export type FileTransportConfig<T: Levels> = $winstonFileTransportConfig<T>;
-  declare export type Transport = typeof $winstonTransport;
+  declare export type Transport = $winstonTransport;
   declare export type FileTransport<T: Levels> = $winstonFileTransport<T>;
   declare export type ConsoleTransportConfig<T: Levels> = $winstonConsoleTransportConfig<T>;
   declare export type ConsoleTransport<T: Levels> = $winstonConsoleTransport<T>;

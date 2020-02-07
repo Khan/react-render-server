@@ -7,12 +7,12 @@ import stream from "stream";
 import expressWinston from "express-winston";
 import winston from "winston";
 
-import {LoggingWinston as StackdriverTransport} from "@google-cloud/logging-winston";
+import * as lw from "@google-cloud/logging-winston";
 
 import args from "./arguments.js";
 
-import type {Middleware} from "express";
-import type {NpmLogLevels, Format} from "winston";
+import type {Middleware, NextFunction, $Request, $Response} from "express";
+import type {Transport, NpmLogLevels, Format} from "winston";
 import type {Info, Logger, LogLevel} from "./types.js";
 
 /**
@@ -29,7 +29,7 @@ const prodFormatter = ({message, durationMs}: Info): string =>
 const devFormatter = (info: Info): string =>
     `${info.level}: ${prodFormatter(info)}`;
 
-function getFormatters(isDev) {
+function getFormatters(isDev: boolean) {
     const formatters: Array<Format> = [
         winston.format.splat(), // Allows for %s style substitutions
     ];
@@ -44,10 +44,10 @@ function getFormatters(isDev) {
     return winston.format.combine(...formatters);
 }
 
-function getTransports(isDev) {
+function getTransports(isDev: boolean): Array<Transport> {
     const transports = [];
     if (!isDev) {
-        transports.push(new StackdriverTransport());
+        transports.push(new lw.LoggingWinston());
     }
 
     if (process.env.NODE_ENV === "test") {
@@ -73,15 +73,7 @@ function getTransports(isDev) {
     return transports;
 }
 
-type Loggers = {
-    default: Logger,
-    middleware: {
-        requestLogger: Middleware,
-        errorLogger: Middleware,
-    },
-};
-
-function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
+function initLogging(logLevel: LogLevel, isDev: boolean): Logger {
     // This is the logger that we use to log general information in our app.
     // Whereever one might use console, use this instead.
     const winstonLogger = winston.createLogger<NpmLogLevels>({
@@ -89,26 +81,38 @@ function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
         transports: getTransports(isDev),
     });
 
-    // This is the logger that captures requests handled by our express server.
-    const requestLogger = expressWinston.logger({
-        /**
-         * Specify the level that this logger logs at.
-         * (use a function to dynamically change level based on req and res)
-         *     `function(req, res) { return String; }`
-         */
-        level: "info",
+    winstonLogger.debug(
+        `Intialized logging with Level=${logLevel} DeveloperMode=${
+            isDev ? "true" : "false"
+        }`,
+    );
 
-        /**
-         * Use the logger we already set up.
-         */
-        winstonInstance: winstonLogger,
-        expressFormat: true,
-        colorize: isDev,
-        meta: false,
-    });
+    return winstonLogger;
+}
 
+export function extractErrorInfo(error: any): string {
+    if (typeof error === "string") {
+        return error;
+    }
+
+    if (error.response && error.response.error) {
+        return `${error.response.error}: ${error.stack}`;
+    }
+
+    if (error.error && error !== error.error) {
+        return extractErrorInfo(error.error);
+    }
+
+    if (error.stack) {
+        return error.stack;
+    }
+
+    return `${error}`;
+}
+
+export function makeErrorMiddleware(logger: Logger): Middleware {
     // This is the logger that captures errors in our express server.
-    const errorLogger = expressWinston.errorLogger({
+    return expressWinston.errorLogger({
         /**
          * Specify the level that this logger logs at.
          * (use a function to dynamically change level based on req, res and
@@ -120,22 +124,23 @@ function initLogging(logLevel: LogLevel, isDev: boolean): Loggers {
         /**
          * Use the logger we already set up.
          */
-        winstonInstance: winstonLogger,
+        winstonInstance: logger,
     });
-
-    winstonLogger.debug(
-        `Intialized logging with Level=${logLevel} DeveloperMode=${
-            isDev ? "true" : "false"
-        }`,
-    );
-
-    return {
-        default: winstonLogger,
-        middleware: {requestLogger, errorLogger},
-    };
 }
 
-const loggers: Loggers = initLogging(args.logLevel, args.dev);
+export async function makeRequestMiddleware(
+    logger: Logger,
+): Promise<Middleware> {
+    // This is the logger that captures requests handled by our express server.
+    return args.dev
+        ? (req: $Request, res: $Response, next: NextFunction) => {
+              // $FlowIgnore: We make this up for google
+              req.log = logger;
+              next();
+          }
+        : await lw.express.makeMiddleware(logger);
+}
 
-export const middleware = loggers.middleware;
-export default loggers.default;
+const logger: Logger = initLogging(args.logLevel, args.dev);
+
+export default logger;
