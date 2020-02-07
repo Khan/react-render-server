@@ -59,14 +59,11 @@ function getTransport(isDev: boolean): Transport {
 
     /**
      * We must be in production, so we will use the Stackdriver logging setup.
-     * However, we don't need to use our own here as the middleware will do that
-     * for us.
      *
-     * I repeat, the middleware below will add the logging transport. If we stop
-     * using that middleware, we'll need to add the transport back. We don't
-     * want it to be there twice as that would duplicate log messages.
+     * To avoid getting duplicate entries, make sure this transport is passed
+     * to the middleware method below.
      */
-    return null;
+    return new lw.LoggingWinston();
 }
 
 function initLogging(logLevel: LogLevel, isDev: boolean): Logger {
@@ -153,7 +150,7 @@ export function makeRequestMiddleware(logger: Logger): Promise<Middleware> {
            * This does some nice things including adding the appropriate
            * logging transport for us.
            */
-          lw.express.makeMiddleware(logger);
+          lw.express.makeMiddleware(logger, getTransport(false));
 }
 
 export const rootLogger: Logger = initLogging(args.logLevel, args.dev);
