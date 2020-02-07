@@ -74,7 +74,7 @@ declare type $winstonLoggerConfig<T: $winstonLevels> = {
   format?: $winstonFormat,
   level?: $Keys<T>,
   levels?: T,
-  transports?: Array<$winstonTransport>,
+  transports?: $winstonTransport | Array<$winstonTransport>,
   ...
 };
 
