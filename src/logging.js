@@ -20,36 +20,21 @@ import type {Info, Logger, LogLevel} from "./types.js";
  * We're adding the durationMs from the profiler commands in winston so
  * that we can read them :)
  */
-const prodFormatter = ({message, durationMs}: Info): string =>
-    `${message} ${(durationMs && `(${durationMs}ms)`) || ""}`;
+const devFormatter = ({level, message, durationMs}: Info): string =>
+    `${level}: ${message} ${(durationMs && `(${durationMs}ms)`) || ""}`;
 
-/**
- * Our dev format adds the log level.
- */
-const devFormatter = (info: Info): string =>
-    `${info.level}: ${prodFormatter(info)}`;
-
-function getFormatters(isDev: boolean) {
+function getFormatters() {
     const formatters: Array<Format> = [
         winston.format.splat(), // Allows for %s style substitutions
     ];
 
-    formatters.push(winston.format.cli({level: isDev}));
-    formatters.push(
-        winston.format.printf((info: any) =>
-            (isDev ? devFormatter : prodFormatter)(info),
-        ),
-    );
+    formatters.push(winston.format.cli({level: true}));
+    formatters.push(winston.format.printf((info: any) => devFormatter(info)));
 
     return winston.format.combine(...formatters);
 }
 
 function getTransports(isDev: boolean): Array<Transport> {
-    const transports = [];
-    if (!isDev) {
-        transports.push(new lw.LoggingWinston());
-    }
-
     if (process.env.NODE_ENV === "test") {
         // During testing, we just dump logging to a stream.
         // This isn't used for anything at all right now, but we could use
@@ -57,20 +42,29 @@ function getTransports(isDev: boolean): Array<Transport> {
         const sink = new stream.Writable({write: () => {}});
         // This is a hack to make our writable stream work $FlowFixMe
         sink._write = sink.write;
-        transports.push(
+        return [
             new winston.transports.Stream({
-                format: getFormatters(isDev),
+                format: getFormatters(),
                 stream: sink,
             }),
-        );
-    } else {
-        transports.push(
-            new winston.transports.Console({
-                format: getFormatters(isDev),
-            }),
-        );
+        ];
     }
-    return transports;
+
+    /**
+     * If we're in dev mode, just use a console transport.
+     */
+    if (isDev) {
+        return [
+            new winston.transports.Console({
+                format: getFormatters(),
+            }),
+        ];
+    }
+
+    /**
+     * We must be in production, so use the Stackdriver logging setup.
+     */
+    return [new lw.LoggingWinston()];
 }
 
 function initLogging(logLevel: LogLevel, isDev: boolean): Logger {
