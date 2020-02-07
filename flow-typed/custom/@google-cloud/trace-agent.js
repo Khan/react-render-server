@@ -3,7 +3,8 @@
 declare class traceagent$Tracer {}
 
 declare type traceagent$Config = {
-    logLevel: number,
+    enabled?: boolean,
+    logLevel?: number,
 };
 
 declare function traceagent$start(config?: traceagent$Config): traceagent$Tracer;
