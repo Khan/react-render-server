@@ -24,7 +24,7 @@ const parser = new argparse.ArgumentParser({
 });
 parser.addArgument(["-p", "--port"], {
     type: "int",
-    defaultValue: process.env.PORT || 8060,
+    defaultValue: process.env.PORT || 8080,
     help: "Port to run on.",
 });
 parser.addArgument(["--dev"], {
