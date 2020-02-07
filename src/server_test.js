@@ -6,7 +6,7 @@ import sinon from "sinon";
 import supertest from "supertest";
 import * as renderSecret from "./secret.js";
 import server from "./server.js";
-import logging from "./logging.js";
+import {rootLogger as logging} from "./logging.js";
 
 describe("API endpoint /_api/ping", () => {
     const agent = supertest.agent(server);
@@ -71,7 +71,7 @@ describe("API endpoint /render", function() {
         mockScope = nock("https://www.khanacademy.org");
         sinon
             .stub(renderSecret, "matches")
-            .callsFake((secret, callback) =>
+            .callsFake((logging, secret, callback) =>
                 callback(null, secret === "sekret"),
             );
         errorLoggingSpy = sinon.spy(logging, "error");

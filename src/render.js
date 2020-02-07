@@ -6,7 +6,6 @@
  * render, and jsdom (plus a few other things) to provide the
  * necessary context for rendering it.
  */
-import logging from "./logging.js";
 import profile from "./profile.js";
 import createRenderContext from "./create-render-context.js";
 import configureApolloNetwork from "./configure-apollo-network.js";
@@ -16,6 +15,7 @@ import type {
     JavaScriptPackage,
     RenderResult,
     RequestStats,
+    Logger,
 } from "./types.js";
 
 import type {
@@ -160,6 +160,7 @@ const performRender = async (): Promise<RenderResult> => {
  * (https://github.com/Khan/aphrodite).
  */
 export default async function render(
+    logging: Logger,
     jsPackages: Array<JavaScriptPackage>,
     props: mixed,
     globals: Globals,
@@ -168,6 +169,7 @@ export default async function render(
     // Here we get the existing VM context for this request or create a new one
     // and configure it accordingly.
     const context = createRenderContext(
+        logging,
         globals ? globals["location"] : "http://www.khanacademy.org",
         globals,
         jsPackages,
@@ -177,6 +179,7 @@ export default async function render(
     context.window.ssrProps = props;
 
     const renderProfile = profile.start(
+        logging,
         `rendering ${(globals && globals["location"]) || ""}`,
     );
 

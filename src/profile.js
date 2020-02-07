@@ -18,20 +18,19 @@
  *
  *     PROFILE(end): doing foo (40ms)
  */
-import logging from "./logging.js";
-
-import type {LogLevel} from "./types.js";
+import type {LogLevel, Logger} from "./types.js";
 
 type ProfileSession = {
     end: (endMsg?: string, level?: LogLevel) => void,
 };
 
-const start = (msg: string): ProfileSession => {
+const start = (logging: Logger, msg: string): ProfileSession => {
     if (!msg) {
         throw new Error(
             "Must provide a message or name for the profile session.",
         );
     }
+
     // We use the winston profiling API to do the profiling bit, but we add
     // some additional log entries to aid investigations (like spotting when
     // a profiling task started as winston will only log once profiling is done)

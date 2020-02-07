@@ -6,7 +6,7 @@
 import bodyParser from "body-parser";
 import express from "express";
 
-import logging, {extractErrorInfo} from "./logging.js";
+import {extractErrorInfo, getLogger} from "./logging.js";
 import profile from "./profile.js";
 
 import fetchPackage, {flushCache} from "./fetch_package.js";
@@ -14,7 +14,7 @@ import * as renderSecret from "./secret.js";
 import render from "./render.js";
 
 import type {$Request, $Response, NextFunction} from "express";
-import type {RenderBody, RequestStats} from "./types.js";
+import type {Logger, RenderBody, RequestStats} from "./types.js";
 
 // We keep track of how many render requests are currently "in
 // flight", to help us estimate how long a new request will take.
@@ -91,8 +91,10 @@ app.use(
             createdVmContext: false,
         }: RequestStats);
 
+        const logging = getLogger(req);
+
         pendingRenderRequests++;
-        const renderProfile = profile.start("/render");
+        const renderProfile = profile.start(logging, "/render");
 
         // Register for the response finish so we can finish up our stats.
         res.on("finish", () => {
@@ -116,17 +118,23 @@ const checkSecret = function(
     res: $Response,
     next: NextFunction,
 ): mixed {
+    const logging = getLogger(req);
     const {secret}: RenderBody = (req.body: any);
-    renderSecret.matches(secret, (err: ?Error, secretMatches: ?boolean) => {
-        if (err != null || !secretMatches) {
-            res.status(400).send({error: "Missing or invalid secret"});
-            return;
-        }
-        next();
-    });
+    renderSecret.matches(
+        logging,
+        secret,
+        (err: ?Error, secretMatches: ?boolean) => {
+            if (err != null || !secretMatches) {
+                res.status(400).send({error: "Missing or invalid secret"});
+                return;
+            }
+            next();
+        },
+    );
 };
 
 const logAndGetError = function(
+    logging: Logger,
     context: string,
     err: any,
     globals: any,
@@ -160,7 +168,7 @@ const logAndGetError = function(
     };
 };
 
-const respond400Error = (res, error, value) => {
+const respond400Error = (logging: Logger, res: $Response, error, value) => {
     logging.error(error);
     return res.status(400).json({error, value});
 };
@@ -168,9 +176,11 @@ const respond400Error = (res, error, value) => {
 app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Validate the input.
     const {urls, props, globals}: RenderBody = (req.body: any);
+    const logging = getLogger(req);
 
     if (!Array.isArray(urls) || !urls.every((url) => typeof url === "string")) {
         return respond400Error(
+            logging,
             res,
             'Missing "urls" keyword in POST JSON input, ' +
                 'or "urls" is not a list of strings',
@@ -178,6 +188,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
         );
     } else if (typeof props !== "object" || Array.isArray(props)) {
         return respond400Error(
+            logging,
             res,
             'Missing "props" keyword in POST JSON input, ' +
                 'or "props" is not an object, or it has non-string keys.',
@@ -194,6 +205,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
 
     if (jsUrls.length === 0) {
         return respond400Error(
+            logging,
             res,
             'Error in "urls" keyword in POST JSON input, ' +
                 "no valid JS urls were specified.",
@@ -206,11 +218,16 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     const fetchPackages = async () => {
         try {
             const fetchPromises = jsUrls.map((url) =>
-                fetchPackage(url, "SERVER", requestStats),
+                fetchPackage(logging, url, "SERVER", requestStats),
             );
             return await Promise.all(fetchPromises);
         } catch (err) {
-            const errorResponse = logAndGetError("FETCH FAIL", err, globals);
+            const errorResponse = logAndGetError(
+                logging,
+                "FETCH FAIL",
+                err,
+                globals,
+            );
             res.status(500).json(errorResponse);
             return null;
         }
@@ -223,6 +240,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
 
     try {
         const renderedState = await render(
+            logging,
             packages,
             props,
             globals,
@@ -237,7 +255,12 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
         delete renderedState.requestStats;
         res.json(renderedState);
     } catch (err) {
-        const errorResponse = logAndGetError("RENDER FAIL", err, globals);
+        const errorResponse = logAndGetError(
+            logging,
+            "RENDER FAIL",
+            err,
+            globals,
+        );
         // A rendering error is probably a bad component, so we
         // give a 400.
         res.status(400).json(errorResponse);
