@@ -104,6 +104,11 @@ export default async function fetchPackage(
         const fetcher = superagent
             .agent(keepaliveAgent)
             .get(url)
+            .set(
+                "User-Agent",
+                `${process.env.GAE_SERVICE || "react-render-server"} ${process
+                    .env.GAE_VERSION || "UNKNOWN"}`,
+            )
             .timeout(60000);
 
         /**
