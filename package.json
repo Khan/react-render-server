@@ -56,6 +56,7 @@
     "nodemon": "^1.18.7",
     "superagent": "^5.1.0",
     "superagent-cache-plugin": "^2.1.0",
+    "whatwg-url": "^8.0.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {
