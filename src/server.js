@@ -171,7 +171,12 @@ const logAndGetError = function(
     };
 };
 
-const respond400Error = (logging: Logger, res: $Response, error, value) => {
+const respond400BadRequest = (
+    logging: Logger,
+    res: $Response,
+    error,
+    value,
+) => {
     logging.error(error);
     return res.status(400).json({error, value});
 };
@@ -182,7 +187,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     const logging = getLogger(req);
 
     if (!Array.isArray(urls) || !urls.every((url) => typeof url === "string")) {
-        return respond400Error(
+        return respond400BadRequest(
             logging,
             res,
             'Missing "urls" keyword in POST JSON input, ' +
@@ -190,7 +195,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             urls,
         );
     } else if (typeof props !== "object" || Array.isArray(props)) {
-        return respond400Error(
+        return respond400BadRequest(
             logging,
             res,
             'Missing "props" keyword in POST JSON input, ' +
@@ -207,7 +212,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     );
 
     if (jsUrls.length === 0) {
-        return respond400Error(
+        return respond400BadRequest(
             logging,
             res,
             'Error in "urls" keyword in POST JSON input, ' +
