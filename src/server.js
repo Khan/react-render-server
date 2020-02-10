@@ -5,6 +5,7 @@
 
 import bodyParser from "body-parser";
 import express from "express";
+import whatwgURL from "whatwg-url";
 
 import {extractErrorInfo, getLogger} from "./logging.js";
 import profile from "./profile.js";
@@ -181,17 +182,20 @@ const respond400BadRequest = (
     return res.status(400).json({error, value});
 };
 
+const isValidAbsoluteURL = (str: string): boolean =>
+    typeof str === "string" && whatwgURL.parseURL(str) !== null;
+
 app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Validate the input.
     const {urls, props, globals}: RenderBody = (req.body: any);
     const logging = getLogger(req);
 
-    if (!Array.isArray(urls) || !urls.every((url) => typeof url === "string")) {
+    if (!Array.isArray(urls) || !urls.every(isValidAbsoluteURL)) {
         return respond400BadRequest(
             logging,
             res,
             'Missing "urls" keyword in POST JSON input, ' +
-                'or "urls" is not a list of strings',
+                'or one or more "urls" are not valid',
             urls,
         );
     } else if (typeof props !== "object" || Array.isArray(props)) {
@@ -200,6 +204,17 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             res,
             'Missing "props" keyword in POST JSON input, ' +
                 'or "props" is not an object, or it has non-string keys.',
+            props,
+        );
+    } else if (
+        globals &&
+        globals["location"] &&
+        !isValidAbsoluteURL(globals["location"])
+    ) {
+        return respond400BadRequest(
+            logging,
+            res,
+            'globals["location"] is not a valid URL',
             props,
         );
     }
@@ -269,9 +284,11 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             err,
             globals,
         );
-        // A rendering error is probably a bad component, so we
-        // give a 400.
-        res.status(400).json(errorResponse);
+        /**
+         * Even in the case of a bad render, we want to categorize this as
+         * a server error.
+         */
+        res.status(500).json(errorResponse);
     }
 });
 
