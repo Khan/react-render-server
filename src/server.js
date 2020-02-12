@@ -5,7 +5,6 @@
 
 import bodyParser from "body-parser";
 import express from "express";
-import whatwgURL from "whatwg-url";
 
 import {extractErrorInfo, getLogger} from "./logging.js";
 import profile from "./profile.js";
@@ -182,9 +181,15 @@ const respond400BadRequest = (
     return res.status(400).json({error, value});
 };
 
-const isValidAbsoluteURL = (str: string): boolean =>
-    typeof str === "string" && whatwgURL.parseURL(str) !== null;
-
+const isValidAbsoluteURL = (str: string): boolean => {
+    try {
+        // eslint-disable-next-line no-new
+        new URL(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
 app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Validate the input.
     const {urls, props, globals}: RenderBody = (req.body: any);
