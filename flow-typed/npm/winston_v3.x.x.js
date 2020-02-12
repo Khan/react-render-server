@@ -82,6 +82,7 @@ declare type $winstonLogger<T: $winstonLevels> = {
   [$Keys<T>]: (message: string, meta?: Object) => void,
   add: $winstonTransport => void,
   clear: () => void,
+  child: (defaultRequestMetadata: any) => $winstonLogger<T>,
   configure: ($winstonLoggerConfig<T>) => void,
   log: (message: $winstonInfo<T>) => void,
   remove: $winstonTransport => void,

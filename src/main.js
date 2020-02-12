@@ -17,6 +17,7 @@ import {
     makeErrorMiddleware,
     makeRequestMiddleware,
 } from "./logging.js";
+import {requestIDMiddleware} from "./request-id-middleware.js";
 import app from "./server.js";
 
 async function main() {
@@ -60,8 +61,13 @@ async function main() {
      * The request logger should come before the app, and the error logger, after.
      */
     const appWithLogging = express()
+        // Add request log middleware.
         .use(await makeRequestMiddleware(logging))
+        // Augment request log middleware with GAE requestID.
+        .use(requestIDMiddleware)
+        // Add the app.
         .use(app)
+        // Add error handling middleware.
         .use(makeErrorMiddleware(logging));
 
     /**
