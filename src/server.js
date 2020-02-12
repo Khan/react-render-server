@@ -171,30 +171,55 @@ const logAndGetError = function(
     };
 };
 
-const respond400Error = (logging: Logger, res: $Response, error, value) => {
+const respond400BadRequest = (
+    logging: Logger,
+    res: $Response,
+    error,
+    value,
+) => {
     logging.error(error);
     return res.status(400).json({error, value});
 };
 
+const isValidAbsoluteURL = (str: string): boolean => {
+    try {
+        // eslint-disable-next-line no-new
+        new URL(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
 app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Validate the input.
     const {urls, props, globals}: RenderBody = (req.body: any);
     const logging = getLogger(req);
 
-    if (!Array.isArray(urls) || !urls.every((url) => typeof url === "string")) {
-        return respond400Error(
+    if (!Array.isArray(urls) || !urls.every(isValidAbsoluteURL)) {
+        return respond400BadRequest(
             logging,
             res,
             'Missing "urls" keyword in POST JSON input, ' +
-                'or "urls" is not a list of strings',
+                'or one or more "urls" are not valid',
             urls,
         );
     } else if (typeof props !== "object" || Array.isArray(props)) {
-        return respond400Error(
+        return respond400BadRequest(
             logging,
             res,
             'Missing "props" keyword in POST JSON input, ' +
                 'or "props" is not an object, or it has non-string keys.',
+            props,
+        );
+    } else if (
+        globals &&
+        globals["location"] &&
+        !isValidAbsoluteURL(globals["location"])
+    ) {
+        return respond400BadRequest(
+            logging,
+            res,
+            'globals["location"] is not a valid URL',
             props,
         );
     }
@@ -207,7 +232,7 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     );
 
     if (jsUrls.length === 0) {
-        return respond400Error(
+        return respond400BadRequest(
             logging,
             res,
             'Error in "urls" keyword in POST JSON input, ' +
@@ -264,9 +289,11 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
             err,
             globals,
         );
-        // A rendering error is probably a bad component, so we
-        // give a 400.
-        res.status(400).json(errorResponse);
+        /**
+         * Even in the case of a bad render, we want to categorize this as
+         * a server error.
+         */
+        res.status(500).json(errorResponse);
     }
 });
 
