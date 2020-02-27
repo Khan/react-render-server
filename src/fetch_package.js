@@ -68,6 +68,18 @@ export function flushCache() {
     }
 }
 
+/**
+ * Flush the cache of anything that hasn't been used in the last 15 minutes.
+ */
+export function flushUnusedCache() {
+    /**
+     * Guard this in case we never enabled caching.
+     */
+    if (args.useCache) {
+        cache.flushUnused(15 * 60);
+    }
+}
+
 function isCacheable(url: string): boolean {
     /**
      * For now, let's just cache JS files.
@@ -122,12 +134,12 @@ export default async function fetchPackage(
         /**
          * We're caching.
          *
-         * Set the expiration of the cache at 900 seconds (15 minutes).
-         * This feels reasonable for now.
+         * Set the expiration of the cache to be really high (24 hours) as the
+         * files aren't expected to ever change.
          */
         return fetcher
             .use(superagentCache)
-            .expiration(900)
+            .expiration(24 * 60 * 60)
             .prune((response, gutResponse) => {
                 /**
                  * We want to use our own `prune` method so that we can track
