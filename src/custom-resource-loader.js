@@ -4,7 +4,7 @@ import {applyAbortPatch} from "./patch-promise.js";
 
 import {ResourceLoader} from "jsdom";
 
-import fetchPackage, {flushUnusedCache} from "./fetch_package.js";
+import fetchPackage from "./fetch_package.js";
 
 import type {FetchOptions} from "jsdom";
 import type {RequestStats, Logger} from "./types.js";
@@ -31,11 +31,6 @@ export class CustomResourceLoader extends ResourceLoader {
         this._active = true;
         this._requestStats = requestStats;
         this._logging = logging;
-
-        // Remove any unused files from the fetch_package cache. We do this
-        // before we start any requests to make sure we don't overfill the
-        // cache with all the new data we download.
-        flushUnusedCache();
     }
 
     get isActive(): boolean {
