@@ -9,7 +9,7 @@ import express from "express";
 import {extractErrorInfo, getLogger} from "./logging.js";
 import profile from "./profile.js";
 
-import fetchPackage, {flushCache} from "./fetch_package.js";
+import fetchPackage, {flushCache, flushUnusedCache} from "./fetch_package.js";
 import * as renderSecret from "./secret.js";
 import render from "./render.js";
 
@@ -244,6 +244,13 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Fetch the entry point and its dependencies.
     const requestStats: RequestStats = (res.locals.requestStats: any);
     const fetchPackages = async () => {
+        /**
+         * Remove any unused files from the fetch_package cache. We do this
+         * before we start any requests to make sure we don't overfill the
+         * cache with all the new data we download.
+         */
+        flushUnusedCache();
+
         try {
             const fetchPromises = jsUrls.map((url) =>
                 fetchPackage(logging, url, "SERVER", requestStats),
