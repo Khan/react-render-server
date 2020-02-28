@@ -46,7 +46,7 @@
     "apollo-link-http": "1.5.3",
     "argparse": "^1.0.3",
     "body-parser": "^1.18.3",
-    "cache-service-cache-module": "^2.0.1",
+    "cache-service-cache-module": "git+https://git@github.com/Khan/cache-service-cache-module.git#de11094188227c0bd34fcd58b9fe8099805f208d",
     "express": "^4.17.1",
     "express-winston": "^3.3.0",
     "graphql": "14.1.1",
