@@ -80,6 +80,30 @@ export function flushUnusedCache() {
     }
 }
 
+/**
+ * Logic for modifying the cache key so that we are able collapse the
+ * untranslated files.
+ *
+ * We modify the URI used for the cache key to make it so that un-translated
+ * JS files (that are the same as the en-version) use the same URI as a cache
+ * key. This makes it so that we have to download far fewer files and use less
+ * memory, especially for our shared libs. This is some extremely-Khan-specific
+ * code and really only works because all of our JS files have unique hashes
+ * embedded in their names and those hashes change if the contents have been
+ * translated.
+ *
+ * @param {object} key A cache key that comes from superagent-cache-plugin
+ */
+export function pruneKey(key: {uri: string, ...}) {
+    return {
+        ...key,
+        uri: key.uri.replace(
+            /\/genwebpack\/prod\/[^/]+\//,
+            "/genwebpack/prod/en/",
+        ),
+    };
+}
+
 function isCacheable(url: string): boolean {
     /**
      * For now, let's just cache JS files.
@@ -133,41 +157,27 @@ export default async function fetchPackage(
 
         /**
          * We're caching.
-         *
-         * Set the expiration of the cache to be really high (24 hours) as the
-         * files aren't expected to ever change.
          */
-        return fetcher
-            .use(superagentCache)
-            .expiration(24 * 60 * 60)
-            .pruneKey((key) => ({
-                ...key,
-                // We modify the URI used for the cache key to make it so that
-                // un-translated JS files (that are the same as the en-version)
-                // use the same URI as a cache key. This makes it so that we
-                // have to download far fewer files and use less memory,
-                // especially for our shared libs. This is some
-                // extremely-Khan-specific code and really only works because
-                // all of our JS files have unique hashes embedded in their
-                // names and those hashes change if the contents have been
-                // translated.
-                uri: key.uri.replace(
-                    /\/genwebpack\/prod\/[^/]+\//,
-                    "/genwebpack/prod/en/",
-                ),
-            }))
-            .prune((response, gutResponse) => {
-                /**
-                 * We want to use our own `prune` method so that we can track
-                 * what comes from cache versus what doesn't.
-                 *
-                 * But we still do the same thing that superagent-cache would
-                 * do, for now.
-                 */
-                const guttedResponse = gutResponse(response);
-                guttedResponse._token = token;
-                return guttedResponse;
-            });
+        return (
+            fetcher
+                .use(superagentCache)
+                // Set the expiration of the cache to be really high (24 hours)
+                // as the files aren't expected to ever change.
+                .expiration(24 * 60 * 60)
+                .pruneKey(pruneKey)
+                .prune((response, gutResponse) => {
+                    /**
+                     * We want to use our own `prune` method so that we can track
+                     * what comes from cache versus what doesn't.
+                     *
+                     * But we still do the same thing that superagent-cache would
+                     * do, for now.
+                     */
+                    const guttedResponse = gutResponse(response);
+                    guttedResponse._token = token;
+                    return guttedResponse;
+                })
+        );
     };
 
     const doFetch = async (

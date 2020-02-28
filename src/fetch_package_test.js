@@ -1,6 +1,6 @@
 // @flow
 import {rootLogger} from "./logging.js";
-import fetchPackage, {flushCache} from "./fetch_package.js";
+import fetchPackage, {flushCache, pruneKey} from "./fetch_package.js";
 import args from "./arguments.js";
 import {assert} from "chai";
 import nock from "nock";
@@ -280,5 +280,43 @@ describe("fetchPackage with cache", () => {
         assert.equal(result.url, "https://www.ka.org/ok.js");
         assert.equal(result.content, "global._fetched = 'yay!';");
         mockScope.done();
+    });
+});
+
+describe("pruneKey", () => {
+    it("should not modify the URL for en", () => {
+        // Arrange
+        const key = {other: true, uri: "/genwebpack/prod/en/foo.js"};
+
+        // Act
+        const result = pruneKey(key);
+
+        // Assert
+        assert.deepEqual(result, key);
+    });
+
+    it("should not modify the URL for some other URL", () => {
+        // Arrange
+        const key = {other: true, uri: "/foo.js"};
+
+        // Act
+        const result = pruneKey(key);
+
+        // Assert
+        assert.deepEqual(result, key);
+    });
+
+    it("should modify the URL for non-en", () => {
+        // Arrange
+        const key = {other: true, uri: "/genwebpack/prod/es/foo.js"};
+
+        // Act
+        const result = pruneKey(key);
+
+        // Assert
+        assert.deepEqual(result, {
+            other: true,
+            uri: "/genwebpack/prod/en/foo.js",
+        });
     });
 });
