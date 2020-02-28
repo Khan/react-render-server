@@ -1686,9 +1686,9 @@ cache-base@^1.0.1:
     union-value "^1.0.0"
     unset-value "^1.0.0"
 
-"cache-service-cache-module@git+https://git@github.com/Khan/cache-service-cache-module.git#de11094188227c0bd34fcd58b9fe8099805f208d":
+"cache-service-cache-module@git+https://git@github.com/Khan/cache-service-cache-module.git#a93afb91ce520b96600229820d1c8189da5b96b3":
   version "2.0.1"
-  resolved "git+https://git@github.com/Khan/cache-service-cache-module.git#de11094188227c0bd34fcd58b9fe8099805f208d"
+  resolved "git+https://git@github.com/Khan/cache-service-cache-module.git#a93afb91ce520b96600229820d1c8189da5b96b3"
 
 cacheable-request@^2.1.1:
   version "2.1.4"
