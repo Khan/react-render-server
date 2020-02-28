@@ -140,6 +140,22 @@ export default async function fetchPackage(
         return fetcher
             .use(superagentCache)
             .expiration(24 * 60 * 60)
+            .pruneKey((key) => ({
+                ...key,
+                // We modify the URI used for the cache key to make it so that
+                // un-translated JS files (that are the same as the en-version)
+                // use the same URI as a cache key. This makes it so that we
+                // have to download far fewer files and use less memory,
+                // especially for our shared libs. This is some
+                // extremely-Khan-specific code and really only works because
+                // all of our JS files have unique hashes embedded in their
+                // names and those hashes change if the contents have been
+                // translated.
+                uri: key.uri.replace(
+                    /\/genwebpack\/prod\/[^/]+\//,
+                    "/genwebpack/prod/en/",
+                ),
+            }))
             .prune((response, gutResponse) => {
                 /**
                  * We want to use our own `prune` method so that we can track

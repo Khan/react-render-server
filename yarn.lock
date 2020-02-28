@@ -6098,10 +6098,9 @@ stubs@^3.0.0:
   resolved "https://registry.yarnpkg.com/stubs/-/stubs-3.0.0.tgz#e8d2ba1fa9c90570303c030b6900f7d5f89abe5b"
   integrity sha1-6NK6H6nJBXAwPAMLaQD31fiavls=
 
-superagent-cache-plugin@^2.1.0:
+"superagent-cache-plugin@git+https://git@github.com/Khan/superagent-cache-plugin.git#803d5170d3e1cd50075acda2eeb6645c8e3b53e1":
   version "2.1.0"
-  resolved "https://registry.yarnpkg.com/superagent-cache-plugin/-/superagent-cache-plugin-2.1.0.tgz#5bd58a6ab11b6f33625422c660f8f0ff2e6de643"
-  integrity sha512-279uTBO5MQxR/4Ztdoef3+MQxbXG3ypatMrtLg1nld97Aq5GTEULPEKAvfJFy45hhnrGJR/xXsPhIHwmpnyNrw==
+  resolved "git+https://git@github.com/Khan/superagent-cache-plugin.git#803d5170d3e1cd50075acda2eeb6645c8e3b53e1"
 
 superagent@^3.8.3:
   version "3.8.3"

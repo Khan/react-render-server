@@ -55,7 +55,7 @@
     "node-fetch": "^2.6.0",
     "nodemon": "^1.18.7",
     "superagent": "^5.1.0",
-    "superagent-cache-plugin": "^2.1.0",
+    "superagent-cache-plugin": "git+https://git@github.com/Khan/superagent-cache-plugin.git#803d5170d3e1cd50075acda2eeb6645c8e3b53e1",
     "winston": "^3.2.1"
   },
   "devDependencies": {

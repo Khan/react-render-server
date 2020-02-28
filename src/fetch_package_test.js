@@ -179,6 +179,34 @@ describe("fetchPackage with cache", () => {
         assert.notEqual(0, mockScope.pendingMocks().length);
     });
 
+    it("should only fetch once for multiple requests even if URL is different", async () => {
+        // Arrange
+        mockScope
+            .get("/genwebpack/prod/en/ok.js")
+            .reply(200, "global._fetched = 'yay!';");
+        mockScope
+            .get("/genwebpack/prod/es/ok.js")
+            .reply(200, "global._fetched = 'ignored';");
+
+        // Act
+        const result0 = await fetchPackage(
+            rootLogger,
+            "https://www.ka.org/genwebpack/prod/en/ok.js",
+            "TEST",
+        );
+        const result1 = await fetchPackage(
+            rootLogger,
+            "https://www.ka.org/genwebpack/prod/es/ok.js",
+            "TEST",
+        );
+
+        // Assert
+        assert.equal(result0.content, result1.content);
+        // We should still have pending mocks; the second request
+        // should never have gotten sent.
+        assert.notEqual(0, mockScope.pendingMocks().length);
+    });
+
     it("should retry on 4xx even with cache", async () => {
         // Arrange
         mockScope.get("/ok.js").reply(404, "global._fetched = 'boo';");
