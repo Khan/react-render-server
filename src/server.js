@@ -244,9 +244,11 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
     // Fetch the entry point and its dependencies.
     const requestStats: RequestStats = (res.locals.requestStats: any);
     const fetchPackages = async () => {
-        // Remove any unused files from the fetch_package cache. We do this
-        // before we start any requests to make sure we don't overfill the
-        // cache with all the new data we download.
+        /**
+         * Remove any unused files from the fetch_package cache. We do this
+         * before we start any requests to make sure we don't overfill the
+         * cache with all the new data we download.
+         */
         flushUnusedCache();
 
         try {

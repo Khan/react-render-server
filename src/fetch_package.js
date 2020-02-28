@@ -161,8 +161,10 @@ export default async function fetchPackage(
         return (
             fetcher
                 .use(superagentCache)
-                // Set the expiration of the cache to be really high (24 hours)
-                // as the files aren't expected to ever change.
+                /**
+                 * Set the expiration of the cache to be really high (24 hours)
+                 * as the files aren't expected to ever change.
+                 */
                 .expiration(24 * 60 * 60)
                 .pruneKey(pruneKey)
                 .prune((response, gutResponse) => {
