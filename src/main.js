@@ -99,6 +99,36 @@ async function main() {
         const port = address.port;
         logging.info(`react-render-server running at http://${host}:${port}`);
     });
+
+    /**
+     * NOTE(somewhatabstract): We have seen many 502 BAD GATEWAY errors in
+     * production Node services. It seems this is because the Node server
+     * is closing a connection before the load balancer is expecting it to.
+     * There is some indication on the Internet [1] that the issue can occur
+     * when Node's (or nginx [2]) keepalive is lower than the load balancer's
+     * keepalive. In addition, the recommended fix is to always have the load
+     * balancer close a connection by ensuring the Node server has a higher
+     * keepalive timeout value than the load balancer.
+     *
+     * Node's default is 5s, but the indication is that the Google load
+     * balancer value is 80s [3]. So, here we default to 90s, but we also
+     * provide a configuration value to change it as needed.
+     *
+     * In addition, it is suggested that the headers timeout should be higher
+     * than the keepalive timeout [1].
+     *
+     * [1] https://shuheikagawa.com/blog/2019/04/25/keep-alive-timeout/
+     * [2] https://blog.percy.io/tuning-nginx-behind-google-cloud-platform-http-s-load-balancer-305982ddb340
+     * [3] https://khanacademy.slack.com/archives/CJSE4TMQX/p1573252787333500
+     */
+    if (server != null) {
+        server.keepAliveTimeout = 90000;
+        /**
+         * Flow's node types don't support this yet.
+         * $FlowIgnore
+         */
+        server.headersTimeout = server.keepAliveTimeout + 5000;
+    }
 }
 
 main().catch((err) => {
