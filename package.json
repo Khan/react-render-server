@@ -49,7 +49,7 @@
     "cache-service-cache-module": "git+https://git@github.com/Khan/cache-service-cache-module.git#a93afb91ce520b96600229820d1c8189da5b96b3",
     "express": "^4.17.1",
     "express-winston": "^3.3.0",
-    "graphql": "14.1.1",
+    "graphql": "14.5.8",
     "graphql-tag": "2.8.0",
     "jsdom": "^15.1.1",
     "node-fetch": "^2.6.0",
