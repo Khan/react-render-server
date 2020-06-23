@@ -285,7 +285,6 @@ app.post("/render", checkSecret, async (req: $Request, res: $Response) => {
         // We store the updated request-stats in renderedState
         // (the only way to get the updated data back from our
         // subprocess); pop that out into update req.requestStats.
-        // eslint-disable-next-line require-atomic-updates
         res.locals.requestStats = renderedState.requestStats;
         delete renderedState.requestStats;
         res.json(renderedState);
