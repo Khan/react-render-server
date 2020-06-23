@@ -83,6 +83,9 @@
     "sinon": "^7.5.0",
     "supertest": "^4.0.2"
   },
+  "peerDependencies": {
+    "heapdump": "^0.3.15"
+  },
   "engines": {
     "node": ">=8"
   },
