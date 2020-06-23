@@ -51,6 +51,26 @@ async function main() {
     }
 
     /**
+     * In development mode, we include the heapdump module if it exists.
+     * With this installed, `kill -USR2 <pid>` can be used to create a
+     * heapsnapshot file of the gateway's memory.
+     */
+    if (process.env.KA_ALLOW_HEAPDUMP || process.env.NODE_ENV === "dev") {
+        try {
+            /* eslint-disable import/no-unassigned-import */
+            // $FlowIgnore[cannot-resolve-module]
+            require("heapdump");
+            /* eslint-enable import/no-unassigned-import */
+            logging.debug(
+                `Heapdumps enabled. To create a heap snapshot at any time, run "kill -USR2 ${process.pid}".`,
+            );
+        } catch (e) {
+            // heapdump is an optional peer dependency, so if it is absent,
+            // that is perfectly fine.
+        }
+    }
+
+    /**
      * Create the express app.
      *
      * Logging support is based on:
